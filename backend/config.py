@@ -18,6 +18,8 @@ class Config:
 class DevelopmentConfig(Config):
     """Configurações de desenvolvimento"""
     DEBUG = True
+    # Permitir CORS de qualquer origem em desenvolvimento
+    CORS_ORIGINS = '*'
 
 
 class ProductionConfig(Config):
