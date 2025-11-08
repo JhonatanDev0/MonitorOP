@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faClipboardList, faUsers, faListCheck } from '@fortawesome/free-solid-svg-icons';
 import { atividadeService, projetoService, squadService } from '../services/api';
 import { Link } from 'react-router-dom';
 
@@ -50,19 +52,25 @@ function Dashboard() {
           <div className="stat-card">
             <div className="stat-label">Total de Avaliações</div>
             <div className="stat-value">{resumo.projetos}</div>
-            <Link to="/projetos" className="btn btn-primary btn-small">Ver Avaliações</Link>
+            <Link to="/projetos" className="btn btn-primary btn-small">
+              <FontAwesomeIcon icon={faClipboardList} /> Ver Avaliações
+            </Link>
           </div>
 
           <div className="stat-card">
             <div className="stat-label">Total de Squads</div>
             <div className="stat-value">{resumo.squads}</div>
-            <Link to="/squads" className="btn btn-primary btn-small">Ver Squads</Link>
+              <Link to="/squads" className="btn btn-primary btn-small">
+                <FontAwesomeIcon icon={faUsers} /> Ver Squads
+              </Link>
           </div>
 
           <div className="stat-card">
             <div className="stat-label">Total de Atividades</div>
             <div className="stat-value">{resumo.atividades}</div>
-            <Link to="/atividades" className="btn btn-primary btn-small">Ver Atividades</Link>
+              <Link to="/atividades" className="btn btn-primary btn-small">
+                <FontAwesomeIcon icon={faListCheck} /> Ver Atividades
+              </Link>
           </div>
         </div>
       </div>

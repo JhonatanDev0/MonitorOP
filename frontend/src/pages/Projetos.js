@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { projetoService, squadService } from '../services/api';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 function Projetos() {
   const [projetos, setProjetos] = useState([]);
@@ -123,12 +125,13 @@ function Projetos() {
     <div>
       <div className="card">
         <div className="card-header">
-          <h2 className="card-title">Projetos</h2>
+          <h2 className="card-title">Avaliações</h2>
           <button 
             className="btn btn-primary" 
             onClick={() => setShowForm(!showForm)}
           >
-            {showForm ? 'Cancelar' : '+ Novo Projeto'}
+            <FontAwesomeIcon icon={showForm ? faTimes : faPlus} />
+            {showForm ? ' Cancelar' : ' Nova Avaliação'}
           </button>
         </div>
 
@@ -164,7 +167,7 @@ function Projetos() {
                 className="form-control"
                 value={formData.ordem_producao}
                 onChange={(e) => setFormData({...formData, ordem_producao: e.target.value})}
-                placeholder="Ex: OP09, OP10,..."
+                placeholder="Ex: OP-2025-001"
               />
             </div>
 
@@ -255,10 +258,10 @@ function Projetos() {
 
             <div style={{display: 'flex', gap: '10px'}}>
               <button type="submit" className="btn btn-success">
-                {editando ? 'Atualizar' : 'Criar'}
+                <FontAwesomeIcon icon={faSave} /> {editando ? 'Atualizar' : 'Criar'}
               </button>
               <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                Cancelar
+                <FontAwesomeIcon icon={faTimes} /> Cancelar
               </button>
             </div>
           </form>
@@ -266,8 +269,8 @@ function Projetos() {
 
         {projetos.length === 0 ? (
           <div className="empty-state">
-            <h3>Nenhum projeto cadastrado</h3>
-            <p>Clique em "+ Novo Projeto" para começar</p>
+            <h3>Nenhuma avaliação cadastrada</h3>
+            <p>Clique em "+ Nova Avaliação" para começar</p>
           </div>
         ) : (
           <table className="table">
@@ -275,7 +278,7 @@ function Projetos() {
               <tr>
                 <th>Subprograma</th>
                 <th>Nome</th>
-                <th>Ordem de Produção</th>
+                <th>Ordem Produção</th>
                 <th>Período de Aplicação</th>
                 <th>Etapas</th>
                 <th>Disciplinas</th>
@@ -306,19 +309,20 @@ function Projetos() {
                       : '-'}
                   </td>
                   <td>
-                    <button 
-                      className="btn btn-primary btn-small" 
-                      onClick={() => handleEdit(projeto)}
-                      style={{marginRight: '5px'}}
-                    >
-                      Editar
-                    </button>
-                    <button 
-                      className="btn btn-danger btn-small" 
-                      onClick={() => handleDelete(projeto.id)}
-                    >
-                      Deletar
-                    </button>
+                    <div style={{display: 'flex', gap: '5px'}}>
+                      <button 
+                        className="btn btn-primary btn-small" 
+                        onClick={() => handleEdit(projeto)}
+                      >
+                        <FontAwesomeIcon icon={faEdit} /> Editar
+                      </button>
+                      <button 
+                        className="btn btn-danger btn-small" 
+                        onClick={() => handleDelete(projeto.id)}
+                      >
+                        <FontAwesomeIcon icon={faTrash} /> Deletar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

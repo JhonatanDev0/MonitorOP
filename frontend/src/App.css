@@ -138,6 +138,20 @@ body {
   font-size: 12px;
 }
 
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn svg {
+  font-size: 14px;
+}
+
+.btn-small svg {
+  font-size: 12px;
+}
+
 /* Forms */
 .form-group {
   margin-bottom: 20px;

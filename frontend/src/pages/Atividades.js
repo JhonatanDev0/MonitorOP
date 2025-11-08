@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { atividadeService, projetoService, squadService } from '../services/api';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus, faEdit, faTrash, faSave, faTimes, faFilterCircleXmark } from '@fortawesome/free-solid-svg-icons';
 
 function Atividades() {
   const [atividades, setAtividades] = useState([]);
@@ -157,7 +159,8 @@ function Atividades() {
             className="btn btn-primary" 
             onClick={() => setShowForm(!showForm)}
           >
-            {showForm ? 'Cancelar' : '+ Nova Atividade'}
+            <FontAwesomeIcon icon={showForm ? faTimes : faPlus} />
+            {showForm ? ' Cancelar' : ' Nova Atividade'}
           </button>
         </div>
 
@@ -255,10 +258,10 @@ function Atividades() {
 
             <div style={{display: 'flex', gap: '10px'}}>
               <button type="submit" className="btn btn-success">
-                {editando ? 'Atualizar' : 'Criar'}
+                <FontAwesomeIcon icon={faSave} /> {editando ? 'Atualizar' : 'Criar'}
               </button>
               <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                Cancelar
+                <FontAwesomeIcon icon={faTimes} /> Cancelar
               </button>
             </div>
           </form>
@@ -324,7 +327,7 @@ function Atividades() {
 
         {(filtros.projeto_id || filtros.squad_id || filtros.status || filtros.prioridade) && (
           <button className="btn btn-secondary btn-small" onClick={limparFiltros}>
-            Limpar Filtros
+            <FontAwesomeIcon icon={faFilterCircleXmark} /> Limpar Filtros
           </button>
         )}
 
@@ -364,19 +367,20 @@ function Atividades() {
                   <td>{getStatusBadge(atividade.status)}</td>
                   <td>{getPrioridadeBadge(atividade.prioridade)}</td>
                   <td>
-                    <button 
-                      className="btn btn-primary btn-small" 
-                      onClick={() => handleEdit(atividade)}
-                      style={{marginRight: '5px'}}
-                    >
-                      Editar
-                    </button>
-                    <button 
-                      className="btn btn-danger btn-small" 
-                      onClick={() => handleDelete(atividade.id)}
-                    >
-                      Deletar
-                    </button>
+                    <div style={{display: 'flex', gap: '5px'}}>
+                      <button 
+                        className="btn btn-primary btn-small" 
+                        onClick={() => handleEdit(atividade)}
+                      >
+                        <FontAwesomeIcon icon={faEdit} /> Editar
+                      </button>
+                      <button 
+                        className="btn btn-danger btn-small" 
+                        onClick={() => handleDelete(atividade.id)}
+                      >
+                        <FontAwesomeIcon icon={faTrash} /> Deletar
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
