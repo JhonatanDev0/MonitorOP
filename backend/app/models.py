@@ -13,14 +13,15 @@ projeto_squad = db.Table('projeto_squad',
 class Projeto(db.Model):
     """Model para representar um Projeto (Avaliação)"""
     id = db.Column(db.Integer, primary_key=True)
-    subprograma = db.Column(db.String(50))  # Código identificador
+    subprograma = db.Column(db.String(50))
     nome = db.Column(db.String(200), nullable=False)
-    data_aplicacao = db.Column(db.Date)  # Data de aplicação da avaliação
-    data_termino = db.Column(db.Date)  # Data de término da aplicação
-    etapas = db.Column(db.Text)  # Etapas envolvidas na avaliação
-    disciplinas = db.Column(db.Text)  # Disciplinas envolvidas
-    tipos_processamento = db.Column(db.String(100))  # Destaque e/ou Transcrição
-    observacao = db.Column(db.Text)  # Observações sobre o projeto
+    ordem_producao = db.Column(db.String(100))  # ADICIONAR ESTA LINHA
+    data_aplicacao = db.Column(db.Date)
+    data_termino = db.Column(db.Date)
+    etapas = db.Column(db.Text)
+    disciplinas = db.Column(db.Text)
+    tipos_processamento = db.Column(db.String(100))
+    observacao = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -34,6 +35,7 @@ class Projeto(db.Model):
             'id': self.id,
             'subprograma': self.subprograma,
             'nome': self.nome,
+            'ordem_producao': self.ordem_producao,  # ADICIONAR ESTA LINHA
             'data_aplicacao': self.data_aplicacao.isoformat() if self.data_aplicacao else None,
             'data_termino': self.data_termino.isoformat() if self.data_termino else None,
             'etapas': self.etapas,

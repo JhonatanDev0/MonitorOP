@@ -39,12 +39,13 @@ def criar_projeto():
         projeto = Projeto(
             subprograma=data.get('subprograma', ''),
             nome=data['nome'],
+            ordem_producao=data.get('ordem_producao', ''),  # ADICIONAR ESTA LINHA
             etapas=data.get('etapas', ''),
             disciplinas=data.get('disciplinas', ''),
             tipos_processamento=data.get('tipos_processamento', ''),
             observacao=data.get('observacao', '')
         )
-        
+                
         # Datas opcionais
         if data.get('data_aplicacao'):
             projeto.data_aplicacao = datetime.strptime(data['data_aplicacao'], '%Y-%m-%d').date()
@@ -77,6 +78,8 @@ def atualizar_projeto(id):
             projeto.subprograma = data['subprograma']
         if 'nome' in data:
             projeto.nome = data['nome']
+        if 'ordem_producao' in data:
+            projeto.ordem_producao = data['ordem_producao']  # ADICIONAR ESTA LINHA
         if 'etapas' in data:
             projeto.etapas = data['etapas']
         if 'disciplinas' in data:

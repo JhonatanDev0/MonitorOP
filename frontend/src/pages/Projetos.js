@@ -10,6 +10,7 @@ function Projetos() {
   const [formData, setFormData] = useState({
     subprograma: '',
     nome: '',
+    ordem_producao: '',
     data_aplicacao: '',
     data_termino: '',
     etapas: '',
@@ -63,6 +64,7 @@ function Projetos() {
     setFormData({
       subprograma: projeto.subprograma || '',
       nome: projeto.nome,
+      ordem_producao: projeto.ordem_producao || '',
       data_aplicacao: projeto.data_aplicacao || '',
       data_termino: projeto.data_termino || '',
       etapas: projeto.etapas || '',
@@ -91,6 +93,7 @@ function Projetos() {
     setFormData({
       subprograma: '',
       nome: '',
+      ordem_producao: '',
       data_aplicacao: '',
       data_termino: '',
       etapas: '',
@@ -151,6 +154,17 @@ function Projetos() {
                 onChange={(e) => setFormData({...formData, nome: e.target.value})}
                 required
                 placeholder="Ex: Avaliação SAEB Ensino Fundamental"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Ordem de Produção</label>
+              <input
+                type="text"
+                className="form-control"
+                value={formData.ordem_producao}
+                onChange={(e) => setFormData({...formData, ordem_producao: e.target.value})}
+                placeholder="Ex: OP09, OP10,..."
               />
             </div>
 
@@ -261,6 +275,7 @@ function Projetos() {
               <tr>
                 <th>Subprograma</th>
                 <th>Nome</th>
+                <th>Ordem de Produção</th>
                 <th>Período de Aplicação</th>
                 <th>Etapas</th>
                 <th>Disciplinas</th>
@@ -274,6 +289,7 @@ function Projetos() {
                 <tr key={projeto.id}>
                   <td><strong>{projeto.subprograma || '-'}</strong></td>
                   <td>{projeto.nome}</td>
+                  <td>{projeto.ordem_producao || '-'}</td>
                   <td>
                     {projeto.data_aplicacao && projeto.data_termino
                       ? `${new Date(projeto.data_aplicacao).toLocaleDateString()} - ${new Date(projeto.data_termino).toLocaleDateString()}`

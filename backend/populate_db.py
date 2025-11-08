@@ -28,6 +28,7 @@ with app.app_context():
     projeto1 = Projeto(
         subprograma="SAEB-2023",
         nome="Avaliação SAEB Ensino Fundamental",
+        ordem_producao="OP10",
         data_aplicacao=datetime(2025, 3, 15).date(),
         data_termino=datetime(2025, 3, 20).date(),
         etapas="5º ano, 9º ano",
@@ -40,6 +41,7 @@ with app.app_context():
     projeto2 = Projeto(
         subprograma="ENEM-2025",
         nome="Exame Nacional do Ensino Médio",
+        ordem_producao="OP10",
         data_aplicacao=datetime(2025, 11, 5).date(),
         data_termino=datetime(2025, 11, 12).date(),
         etapas="1º dia, 2º dia",
@@ -52,6 +54,7 @@ with app.app_context():
     projeto3 = Projeto(
         subprograma="PISA-2025",
         nome="Avaliação Internacional PISA",
+        ordem_producao="OP10",
         data_aplicacao=datetime(2025, 5, 10).date(),
         data_termino=datetime(2025, 5, 15).date(),
         etapas="Etapa única",
