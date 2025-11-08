@@ -1,4 +1,6 @@
 import React from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChartLine, faClipboardList, faUsers, faListCheck } from '@fortawesome/free-solid-svg-icons';
 import { BrowserRouter as Router, Routes, Route, Link, NavLink } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Projetos from './pages/Projetos';
@@ -19,24 +21,28 @@ function App() {
                 className={({ isActive }) => isActive ? 'active' : ''}
                 end
               >
+                <FontAwesomeIcon icon={faChartLine} />
                 Dashboard
               </NavLink>
               <NavLink 
                 to="/projetos" 
                 className={({ isActive }) => isActive ? 'active' : ''}
               >
-                Projetos
+                <FontAwesomeIcon icon={faClipboardList} />
+                Avaliações
               </NavLink>
               <NavLink 
                 to="/squads" 
                 className={({ isActive }) => isActive ? 'active' : ''}
               >
+                <FontAwesomeIcon icon={faUsers} />
                 Squads
               </NavLink>
               <NavLink 
                 to="/atividades" 
                 className={({ isActive }) => isActive ? 'active' : ''}
               >
+                <FontAwesomeIcon icon={faListCheck} />
                 Atividades
               </NavLink>
             </nav>

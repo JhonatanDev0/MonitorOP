@@ -46,6 +46,14 @@ body {
   padding: 8px 16px;
   border-radius: 4px;
   transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+.nav a svg {
+  font-size: 16px;
 }
 
 .nav a:hover,
