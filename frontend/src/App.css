@@ -306,6 +306,17 @@ select.form-control {
   text-align: center !important;
 }
 
+/* Força centralização TOTAL do texto da mensagem */
+.react-confirm-alert-body > div:not(.react-confirm-alert-button-group),
+.react-confirm-alert-body > div:not(.react-confirm-alert-button-group) > *,
+.react-confirm-alert-body > div:not(.react-confirm-alert-button-group) p,
+.react-confirm-alert-body > div:not(.react-confirm-alert-button-group) span,
+.react-confirm-alert-body > div:not(.react-confirm-alert-button-group) div {
+  text-align: center !important;
+  display: block !important;
+  width: 100% !important;
+}
+
 .react-confirm-alert-button-group button {
   padding: 12px 24px !important;
   border: none !important;

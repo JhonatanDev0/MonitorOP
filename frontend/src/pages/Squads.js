@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { confirmAlert } from 'react-confirm-alert';
-import { toast } from 'react-toastify';
 import { squadService } from '../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { toast } from 'react-toastify';
+import { confirmAlert } from 'react-confirm-alert';
 
 function Squads() {
   const [squads, setSquads] = useState([]);
@@ -61,32 +61,95 @@ function Squads() {
 
   const handleDelete = async (id) => {
     confirmAlert({
-      title: 'Confirmar Exclusão',
-      message: 'Tem certeza que deseja deletar esta squad? Esta ação não pode ser desfeita.',
-      buttons: [
-        {
-          label: 'Sim, deletar',
-          onClick: async () => {
-            try {
-              await squadService.deletar(id);
-              toast.success('Squad deletada com sucesso!');
-              carregarSquads();
-            } catch (error) {
-              console.error('Erro ao deletar squad:', error);
-              toast.error('Erro ao deletar: ' + (error.response?.data?.error || error.message));
-            }
-          },
-          className: 'custom-confirm-button-yes'
-        },
-        {
-          label: 'Cancelar',
-          onClick: () => {},
-          className: 'custom-confirm-button-no'
-        }
-      ],
+      customUI: ({ onClose }) => (
+        <div style={{
+          fontFamily: 'inherit',
+          width: '480px',
+          maxWidth: '90vw',
+          borderRadius: '12px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+          background: 'white',
+          overflow: 'hidden'
+        }}>
+          <h1 style={{
+            margin: 0,
+            padding: '20px 25px',
+            background: '#e74c3c',
+            color: 'white',
+            fontSize: '18px',
+            fontWeight: 600,
+            textAlign: 'center'
+          }}>
+            Confirmar Exclusão
+          </h1>
+          <div style={{
+            padding: '45px 35px',
+            textAlign: 'center',
+            fontSize: '15px',
+            color: '#2c3e50',
+            lineHeight: '1.8'
+          }}>
+            Tem certeza que deseja deletar esta squad? Esta ação não pode ser desfeita.
+          </div>
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            padding: '0 25px 25px 25px',
+            justifyContent: 'center'
+          }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '12px 24px',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                minWidth: '120px',
+                background: '#95a5a6',
+                color: 'white',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#7f8c8d'}
+              onMouseLeave={(e) => e.target.style.background = '#95a5a6'}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={async () => {
+                onClose();
+                try {
+                  await squadService.deletar(id);
+                  toast.success('Squad deletada com sucesso!');
+                  carregarSquads();
+                } catch (error) {
+                  console.error('Erro ao deletar squad:', error);
+                  toast.error('Erro ao deletar: ' + (error.response?.data?.error || error.message));
+                }
+              }}
+              style={{
+                padding: '12px 24px',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                minWidth: '120px',
+                background: '#e74c3c',
+                color: 'white',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#c0392b'}
+              onMouseLeave={(e) => e.target.style.background = '#e74c3c'}
+            >
+              Sim, deletar
+            </button>
+          </div>
+        </div>
+      ),
       closeOnEscape: true,
-      closeOnClickOutside: true,
-      overlayClassName: 'custom-confirm-overlay'
+      closeOnClickOutside: true
     });
   };
 
