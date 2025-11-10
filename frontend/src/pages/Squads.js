@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { confirmAlert } from 'react-confirm-alert';
+import { toast } from 'react-toastify';
 import { squadService } from '../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
@@ -24,7 +26,7 @@ function Squads() {
       setSquads(response.data);
     } catch (error) {
       console.error('Erro ao carregar squads:', error);
-      alert('Erro ao carregar squads');
+      toast.error('Erro ao carregar squads');
     } finally {
       setLoading(false);
     }
@@ -35,16 +37,16 @@ function Squads() {
     try {
       if (editando) {
         await squadService.atualizar(editando.id, formData);
-        alert('Squad atualizada com sucesso!');
+        toast.success('Squad atualizada com sucesso!');
       } else {
         await squadService.criar(formData);
-        alert('Squad criada com sucesso!');
+        toast.success('Squad criada com sucesso!');
       }
       resetForm();
       carregarSquads();
     } catch (error) {
       console.error('Erro ao salvar squad:', error);
-      alert('Erro ao salvar squad: ' + (error.response?.data?.error || error.message));
+      toast.error('Erro ao salvar: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -58,16 +60,34 @@ function Squads() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja deletar esta squad?')) {
-      try {
-        await squadService.deletar(id);
-        alert('Squad deletada com sucesso!');
-        carregarSquads();
-      } catch (error) {
-        console.error('Erro ao deletar squad:', error);
-        alert('Erro ao deletar squad: ' + (error.response?.data?.error || error.message));
-      }
-    }
+    confirmAlert({
+      title: 'Confirmar Exclusão',
+      message: 'Tem certeza que deseja deletar esta squad? Esta ação não pode ser desfeita.',
+      buttons: [
+        {
+          label: 'Sim, deletar',
+          onClick: async () => {
+            try {
+              await squadService.deletar(id);
+              toast.success('Squad deletada com sucesso!');
+              carregarSquads();
+            } catch (error) {
+              console.error('Erro ao deletar squad:', error);
+              toast.error('Erro ao deletar: ' + (error.response?.data?.error || error.message));
+            }
+          },
+          className: 'custom-confirm-button-yes'
+        },
+        {
+          label: 'Cancelar',
+          onClick: () => {},
+          className: 'custom-confirm-button-no'
+        }
+      ],
+      closeOnEscape: true,
+      closeOnClickOutside: true,
+      overlayClassName: 'custom-confirm-overlay'
+    });
   };
 
   const resetForm = () => {

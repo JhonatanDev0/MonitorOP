@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { confirmAlert } from 'react-confirm-alert';
+import { toast } from 'react-toastify';
 import { atividadeService, projetoService, squadService } from '../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSave, faTimes, faFilterCircleXmark } from '@fortawesome/free-solid-svg-icons';
@@ -45,7 +47,7 @@ function Atividades() {
       carregarAtividades();
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-      alert('Erro ao carregar dados');
+      toast.error('Erro ao carregar dados');
     }
   };
 
@@ -59,7 +61,7 @@ function Atividades() {
       setAtividades(response.data);
     } catch (error) {
       console.error('Erro ao carregar atividades:', error);
-      alert('Erro ao carregar atividades');
+      toast.error('Erro ao carregar atividades');
     } finally {
       setLoading(false);
     }
@@ -70,16 +72,16 @@ function Atividades() {
     try {
       if (editando) {
         await atividadeService.atualizar(editando.id, formData);
-        alert('Atividade atualizada com sucesso!');
+        toast.success('Atividade atualizada com sucesso!');
       } else {
         await atividadeService.criar(formData);
-        alert('Atividade criada com sucesso!');
+        toast.success('Atividade criada com sucesso!');
       }
       resetForm();
       carregarAtividades();
     } catch (error) {
       console.error('Erro ao salvar atividade:', error);
-      alert('Erro ao salvar atividade: ' + (error.response?.data?.error || error.message));
+      toast.error('Erro ao salvar: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -98,18 +100,36 @@ function Atividades() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja deletar esta atividade?')) {
-      try {
-        await atividadeService.deletar(id);
-        alert('Atividade deletada com sucesso!');
-        carregarAtividades();
-      } catch (error) {
-        console.error('Erro ao deletar atividade:', error);
-        alert('Erro ao deletar atividade: ' + (error.response?.data?.error || error.message));
-      }
-    }
+    confirmAlert({
+      title: 'Confirmar Exclusão',
+      message: 'Tem certeza que deseja deletar esta atividade? Esta ação não pode ser desfeita.',
+      buttons: [
+        {
+          label: 'Sim, deletar',
+          onClick: async () => {
+            try {
+              await atividadeService.deletar(id);
+              toast.success('Atividade deletada com sucesso!');
+              carregarAtividades();
+            } catch (error) {
+              console.error('Erro ao deletar atividade:', error);
+              toast.error('Erro ao deletar: ' + (error.response?.data?.error || error.message));
+            }
+          },
+          className: 'custom-confirm-button-yes'
+        },
+        {
+          label: 'Cancelar',
+          onClick: () => {},
+          className: 'custom-confirm-button-no'
+        }
+      ],
+      closeOnEscape: true,
+      closeOnClickOutside: true,
+      overlayClassName: 'custom-confirm-overlay'
+    });
   };
-
+  
   const resetForm = () => {
     setFormData({
       titulo: '',

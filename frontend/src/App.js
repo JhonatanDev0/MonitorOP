@@ -1,4 +1,7 @@
 import React from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-confirm-alert/src/react-confirm-alert.css';
+import 'react-toastify/dist/ReactToastify.css';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartLine, faClipboardList, faUsers, faListCheck } from '@fortawesome/free-solid-svg-icons';
 import { BrowserRouter as Router, Routes, Route, Link, NavLink } from 'react-router-dom';
@@ -13,8 +16,12 @@ function App() {
     <Router>
       <div className="app">
         <header className="header">
-          <div className="container">
-            <h1>Monitoramento de Atividades da Ordem de Produção</h1>
+          <div className="header-container">
+            <div className="header-logo">
+              <img src="/logo.png" alt="CAEd UFJF Logo" className="logo-img" />
+              <h1>Monitoramento de Atividades da Ordem de Produção</h1>
+            </div>
+            
             <nav className="nav">
               <NavLink 
                 to="/" 
@@ -61,6 +68,18 @@ function App() {
         <footer style={{textAlign: 'center', padding: '40px 20px', color: '#7f8c8d'}}>
           <p>Desenvolvido pela Squad Ordem de Produção</p>
         </footer>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={true}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="colored"
+        />
       </div>
     </Router>
   );

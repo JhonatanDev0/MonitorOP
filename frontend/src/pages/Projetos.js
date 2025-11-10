@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { confirmAlert } from 'react-confirm-alert';
 import { projetoService, squadService } from '../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { toast } from 'react-toastify';
 
 function Projetos() {
   const [projetos, setProjetos] = useState([]);
@@ -37,7 +39,7 @@ function Projetos() {
       setSquads(squadsRes.data);
     } catch (error) {
       console.error('Erro ao carregar projetos:', error);
-      alert('Erro ao carregar projetos');
+      toast.error('Erro ao carregar avaliações');
     } finally {
       setLoading(false);
     }
@@ -48,16 +50,16 @@ function Projetos() {
     try {
       if (editando) {
         await projetoService.atualizar(editando.id, formData);
-        alert('Projeto atualizado com sucesso!');
+        toast.success('Avaliação atualizada com sucesso!');
       } else {
         await projetoService.criar(formData);
-        alert('Projeto criado com sucesso!');
+        toast.success('Avaliação criada com sucesso!');
       }
       resetForm();
       carregarDados();
     } catch (error) {
       console.error('Erro ao salvar projeto:', error);
-      alert('Erro ao salvar projeto: ' + (error.response?.data?.error || error.message));
+      toast.error('Erro ao salvar: ' + (error.response?.data?.error || error.message));
     }
   };
 
@@ -79,16 +81,34 @@ function Projetos() {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja deletar este projeto?')) {
-      try {
-        await projetoService.deletar(id);
-        alert('Projeto deletado com sucesso!');
-        carregarDados();
-      } catch (error) {
-        console.error('Erro ao deletar projeto:', error);
-        alert('Erro ao deletar projeto: ' + (error.response?.data?.error || error.message));
-      }
-    }
+    confirmAlert({
+      title: 'Confirmar Exclusão',
+      message: 'Tem certeza que deseja deletar esta avaliação? Esta ação não pode ser desfeita.',
+      buttons: [
+        {
+          label: 'Sim, deletar',
+          onClick: async () => {
+            try {
+              await projetoService.deletar(id);
+              toast.success('Avaliação deletada com sucesso!');
+              carregarDados();
+            } catch (error) {
+              console.error('Erro ao deletar projeto:', error);
+              toast.error('Erro ao deletar: ' + (error.response?.data?.error || error.message));
+            }
+          },
+          className: 'custom-confirm-button-yes'
+        },
+        {
+          label: 'Cancelar',
+          onClick: () => {},
+          className: 'custom-confirm-button-no'
+        }
+      ],
+      closeOnEscape: true,
+      closeOnClickOutside: true,
+      overlayClassName: 'custom-confirm-overlay'
+    });
   };
 
   const resetForm = () => {
