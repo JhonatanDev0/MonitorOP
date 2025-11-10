@@ -16,25 +16,31 @@ with app.app_context():
     
     # Criar Squads
     print("Criando squads...")
-    squad1 = Squad(nome="Squad Alpha", descricao="Equipe de desenvolvimento frontend")
-    squad2 = Squad(nome="Squad Beta", descricao="Equipe de desenvolvimento backend")
-    squad3 = Squad(nome="Squad Gamma", descricao="Equipe de infraestrutura")
+    squad1 = Squad(nome="Auditoria", descricao="Squad de auditoria")
+    squad2 = Squad(nome="Recodificação", descricao="Squad de Recodificação")
+    squad3 = Squad(nome="Processamento", descricao="Squad de Processamento")
+    squad4 = Squad(nome="Categorização", descricao="Squad de Categorização")
+    squad5 = Squad(nome="Medidas", descricao="Squad de Medidas")
+    squad6 = Squad(nome="Cálculo", descricao="Squad de Cálculo")
+    squad7 = Squad(nome="Validação", descricao="Squad de Validação")
+    squad8 = Squad(nome="Recursos", descricao="Squad de Recursos")
     
-    db.session.add_all([squad1, squad2, squad3])
+    
+    db.session.add_all([squad1, squad2, squad3, squad5, squad6, squad7, squad8])
     db.session.commit()
     
     # Criar Projetos
     print("Criando projetos (avaliações)...")
     projeto1 = Projeto(
-        subprograma="SAEB-2023",
-        nome="Avaliação SAEB Ensino Fundamental",
+        subprograma="2026",
+        nome="MG BELO HORIZONTE - 3ª AV.SOMATIVA 2025 (SIMULADO)",
         ordem_producao="OP10",
-        data_aplicacao=datetime(2025, 3, 15).date(),
-        data_termino=datetime(2025, 3, 20).date(),
-        etapas="5º ano, 9º ano",
-        disciplinas="Língua Portuguesa, Matemática",
-        tipos_processamento="Destaque, Transcrição",
-        observacao="Avaliação nacional de larga escala"
+        data_aplicacao=datetime(2025, 10, 20).date(),
+        data_termino=datetime(2025, 10, 24).date(),
+        etapas="2º ano",
+        disciplinas="Escrita, Matemática",
+        tipos_processamento="Transcrição",
+        observacao=""
     )
     projeto1.squads = [squad1, squad2]
     
