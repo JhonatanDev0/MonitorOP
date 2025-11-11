@@ -19,7 +19,7 @@ function App() {
           <div className="header-container">
             <div className="header-logo">
               <img src="/logo.png" alt="CAEd UFJF Logo" className="logo-img" />
-              <h1>Monitoramento de Atividades da Ordem de Produção</h1>
+              <h1>Monitoramento Ordem de Produção</h1>
             </div>
             
             <nav className="nav">
