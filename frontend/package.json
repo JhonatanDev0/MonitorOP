@@ -16,7 +16,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:trabalho": "env-cmd -f .env.trabalho react-scripts start",
     "build": "react-scripts build",
+    "build:trabalho": "env-cmd -f .env.trabalho react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -37,5 +39,8 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "http://localhost:5000",
+  "devDependencies": {
+    "env-cmd": "^11.0.0"
+  }
 }
