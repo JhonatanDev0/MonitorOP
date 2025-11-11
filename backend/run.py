@@ -1,5 +1,5 @@
 from app import create_app, db
-from app.models import Projeto, Squad, Atividade
+from app.models import Projeto, Squad, Atividade, Usuario
 
 app = create_app('development')
 
@@ -11,7 +11,8 @@ def make_shell_context():
         'db': db,
         'Projeto': Projeto,
         'Squad': Squad,
-        'Atividade': Atividade
+        'Atividade': Atividade,
+        'Usuario': Usuario
     }
 
 
@@ -24,7 +25,9 @@ def index():
         'endpoints': {
             'projetos': '/api/projetos',
             'squads': '/api/squads',
-            'atividades': '/api/atividades'
+            'atividades': '/api/atividades',
+            'auth': '/api/auth/login',
+            'usuarios': '/api/usuarios'
         }
     }
 

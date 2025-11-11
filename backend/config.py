@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from datetime import timedelta
 
 basedir = Path(__file__).parent
 
@@ -13,6 +14,10 @@ class Config:
     
     # CORS
     CORS_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
+    
+    # JWT
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or SECRET_KEY
+    JWT_ACCESS_TOKEN_EXPIRES = False  # Sessão do navegador (não expira automaticamente)
 
 
 class DevelopmentConfig(Config):
@@ -25,6 +30,8 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Configurações de produção"""
     DEBUG = False
+    # Em produção, definir JWT_SECRET_KEY diferente via variável de ambiente
+    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'change-this-in-production-to-random-string'
 
 
 config = {
