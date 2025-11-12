@@ -475,9 +475,9 @@ select.form-control {
 
 /* Botão de Logout */
 .btn-logout {
-  color: #495057;
+  color: #6c757d;
   background: transparent;
-  border: 2px solid #e9ecef;
+  border: none;
   padding: 10px 18px;
   border-radius: 8px;
   cursor: pointer;
@@ -488,15 +488,22 @@ select.form-control {
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
+  margin-left: 10px;  /* ← Pequeno espaço extra */
 }
 
 .btn-logout svg {
   font-size: 16px;
+  color: #6c757d;
+  transition: color 0.3s ease;
 }
 
 .btn-logout:hover {
-  background-color: #fee;
-  border-color: #e74c3c;
+  background-color: #fee2e2;  /* ← Fundo vermelho suave */
+  color: #e74c3c;
+  transform: translateY(-2px);
+}
+
+.btn-logout:hover svg {
   color: #e74c3c;
 }
 
