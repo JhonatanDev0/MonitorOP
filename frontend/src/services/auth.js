@@ -20,7 +20,16 @@ axios.interceptors.request.use(
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    // Só redireciona para login se:
+    // 1. O erro for 401
+    // 2. A requisição NÃO for de login
+    // 3. O usuário NÃO estiver na página de login
+    if (
+      error.response && 
+      error.response.status === 401 &&
+      !error.config.url.includes('/auth/login') &&
+      window.location.pathname !== '/login'
+    ) {
       // Token inválido ou expirado
       localStorage.removeItem('token');
       localStorage.removeItem('usuario');

@@ -30,8 +30,6 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Configurações de produção"""
     DEBUG = False
-    # Em produção, definir JWT_SECRET_KEY diferente via variável de ambiente
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'change-this-in-production-to-random-string'
 
 
 config = {

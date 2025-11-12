@@ -39,7 +39,7 @@ def login():
         if lembrar:
             expires = timedelta(days=30)
         else:
-            expires = timedelta(hours=8)
+            expires = False
         
         # Criar token JWT
         access_token = create_access_token(
