@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faClipboardList, faUsers, faListCheck, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faClipboardList, faUsers, faListCheck, faSignOutAlt, faUserShield } from '@fortawesome/free-solid-svg-icons';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-confirm-alert/src/react-confirm-alert.css';
@@ -12,12 +12,13 @@ import Projetos from './pages/Projetos';
 import Squads from './pages/Squads';
 import Atividades from './pages/Atividades';
 import Login from './pages/Login';
+import Usuarios from './pages/Usuarios';
 import PrivateRoute from './components/PrivateRoute';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 function AppContent() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, isAdmin, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -66,6 +67,16 @@ function AppContent() {
                 Atividades
               </NavLink>
               
+              {isAdmin() && (
+                <NavLink 
+                  to="/usuarios" 
+                  className={({ isActive }) => isActive ? 'active' : ''}
+                >
+                  <FontAwesomeIcon icon={faUserShield} />
+                  Usuários
+                </NavLink>
+              )}
+              
               <button 
                 className="btn-logout"
                 onClick={handleLogout}
@@ -103,6 +114,12 @@ function AppContent() {
           <Route path="/atividades" element={
             <PrivateRoute>
               <Atividades />
+            </PrivateRoute>
+          } />
+          
+          <Route path="/usuarios" element={
+            <PrivateRoute adminOnly={true}>
+              <Usuarios />
             </PrivateRoute>
           } />
         </Routes>

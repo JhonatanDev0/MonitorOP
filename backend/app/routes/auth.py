@@ -39,11 +39,11 @@ def login():
         if lembrar:
             expires = timedelta(days=30)
         else:
-            expires = False
+            expires = False  # Sessão do navegador
         
-        # Criar token JWT
+        # Criar token JWT (identity como string)
         access_token = create_access_token(
-            identity=usuario.id,
+            identity=str(usuario.id),  # ← String
             additional_claims={'role': usuario.role},
             expires_delta=expires
         )
@@ -62,7 +62,7 @@ def login():
 def get_usuario_logado():
     """Retorna dados do usuário logado"""
     try:
-        usuario_id = get_jwt_identity()
+        usuario_id = int(get_jwt_identity())  # ← Converter para int
         usuario = Usuario.query.get(usuario_id)
         
         if not usuario:
@@ -79,7 +79,7 @@ def get_usuario_logado():
 def check_token():
     """Verifica se o token é válido"""
     try:
-        usuario_id = get_jwt_identity()
+        usuario_id = int(get_jwt_identity())  # ← Converter para int
         claims = get_jwt()
         
         return jsonify({

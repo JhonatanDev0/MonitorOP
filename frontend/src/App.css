@@ -507,6 +507,32 @@ select.form-control {
   color: #e74c3c;
 }
 
+/* Badges de Role */
+.badge-role-admin {
+  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  color: white;
+  border: 1px solid #8e44ad;
+}
+
+.badge-role-analista {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border: 1px solid #2980b9;
+}
+
+/* Badges de Status (Ativo/Inativo) */
+.badge-status-ativo {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  border: 1px solid #27ae60;
+}
+
+.badge-status-inativo {
+  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+  color: white;
+  border: 1px solid #7f8c8d;
+}
+
 /* Footer */
 footer {
   color: #6c757d !important;

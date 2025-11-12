@@ -48,7 +48,8 @@ def criar_usuario():
         usuario = Usuario(
             nome=data['nome'],
             login=data['login'],
-            role=data.get('role', 'analista')
+            role=data.get('role', 'analista'),
+            ativo=data.get('ativo', True)  # ← ADICIONAR ESTA LINHA
         )
         usuario.set_senha(data['senha'])
         
@@ -59,6 +60,7 @@ def criar_usuario():
         
     except Exception as e:
         db.session.rollback()
+        print(f"Erro ao criar usuário: {str(e)}")  # ← Log para debug
         return jsonify({'error': str(e)}), 500
 
 
@@ -85,7 +87,7 @@ def atualizar_usuario(id):
         if 'role' in data:
             usuario.role = data['role']
         if 'ativo' in data:
-            usuario.ativo = data['ativo']
+            usuario.ativo = bool(data['ativo'])  # ← Garantir que é boolean
         if 'senha' in data and data['senha']:
             usuario.set_senha(data['senha'])
         
@@ -94,6 +96,7 @@ def atualizar_usuario(id):
         
     except Exception as e:
         db.session.rollback()
+        print(f"Erro ao atualizar usuário: {str(e)}")  # ← Log para debug
         return jsonify({'error': str(e)}), 500
 
 
@@ -105,7 +108,7 @@ def deletar_usuario(id):
         if not admin_required():
             return jsonify({'error': 'Acesso negado'}), 403
         
-        usuario_logado_id = get_jwt_identity()
+        usuario_logado_id = int(get_jwt_identity())
         if usuario_logado_id == id:
             return jsonify({'error': 'Não é possível deletar seu próprio usuário'}), 400
         

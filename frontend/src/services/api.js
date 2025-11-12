@@ -48,4 +48,11 @@ export const atividadeService = {
   estatisticas: () => api.get('/atividades/estatisticas'),
 };
 
+export const usuarioService = {
+  listar: () => axios.get(`${API_URL}/usuarios`),
+  criar: (data) => axios.post(`${API_URL}/usuarios`, data),
+  atualizar: (id, data) => axios.put(`${API_URL}/usuarios/${id}`, data),
+  deletar: (id) => axios.delete(`${API_URL}/usuarios/${id}`)
+};
+
 export default api;
