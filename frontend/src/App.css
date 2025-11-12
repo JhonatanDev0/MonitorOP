@@ -473,6 +473,33 @@ select.form-control {
   height: 4px;
 }
 
+/* Botão de Logout */
+.btn-logout {
+  color: #495057;
+  background: transparent;
+  border: 2px solid #e9ecef;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn-logout svg {
+  font-size: 16px;
+}
+
+.btn-logout:hover {
+  background-color: #fee;
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
 /* Footer */
 footer {
   color: #6c757d !important;
