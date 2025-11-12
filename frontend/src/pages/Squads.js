@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { squadService } from '../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
@@ -6,6 +7,7 @@ import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
 
 function Squads() {
+  const { isAdmin } = useAuth();
   const [squads, setSquads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -168,13 +170,15 @@ function Squads() {
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Squads</h2>
-          <button 
-            className="btn btn-primary" 
-            onClick={() => setShowForm(!showForm)}
-          >
-            <FontAwesomeIcon icon={showForm ? faTimes : faPlus} />
-            {showForm ? ' Cancelar' : ' Nova Squad'}
-          </button>
+          {isAdmin() && (
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setShowForm(!showForm)}
+            >
+              <FontAwesomeIcon icon={showForm ? faTimes : faPlus} />
+              {showForm ? ' Cancelar' : ' Nova Squad'}
+            </button>
+          )}
         </div>
 
         {showForm && (
@@ -234,20 +238,24 @@ function Squads() {
                   <td>{squad.total_projetos}</td>
                   <td>{squad.total_atividades}</td>
                   <td>
-                    <div style={{display: 'flex', gap: '5px'}}>
-                      <button 
-                        className="btn btn-primary btn-small" 
-                        onClick={() => handleEdit(squad)}
-                      >
-                        <FontAwesomeIcon icon={faEdit} /> Editar
-                      </button>
-                      <button 
-                        className="btn btn-danger btn-small" 
-                        onClick={() => handleDelete(squad.id)}
-                      >
-                        <FontAwesomeIcon icon={faTrash} /> Deletar
-                      </button>
-                    </div>
+                    {isAdmin() ? (
+                      <div style={{display: 'flex', gap: '5px'}}>
+                        <button 
+                          className="btn btn-primary btn-small" 
+                          onClick={() => handleEdit(squad)}
+                        >
+                          <FontAwesomeIcon icon={faEdit} /> Editar
+                        </button>
+                        <button 
+                          className="btn btn-danger btn-small" 
+                          onClick={() => handleDelete(squad.id)}
+                        >
+                          <FontAwesomeIcon icon={faTrash} /> Deletar
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                    )}
                   </td>
                 </tr>
               ))}

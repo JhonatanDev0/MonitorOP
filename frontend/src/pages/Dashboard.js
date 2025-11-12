@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faClipboardList, faUsers, faListCheck } from '@fortawesome/free-solid-svg-icons';
 import { atividadeService, projetoService, squadService } from '../services/api';
 import { Link } from 'react-router-dom';
 
 function Dashboard() {
+  const { isAdmin } = useAuth();
   const [estatisticas, setEstatisticas] = useState(null);
   const [resumo, setResumo] = useState({ projetos: 0, squads: 0, atividades: 0 });
   const [loading, setLoading] = useState(true);

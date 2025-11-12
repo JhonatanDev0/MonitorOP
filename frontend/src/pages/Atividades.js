@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { atividadeService, projetoService, squadService } from '../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSave, faTimes, faFilterCircleXmark } from '@fortawesome/free-solid-svg-icons';
@@ -6,6 +7,7 @@ import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
 
 function Atividades() {
+  const { isAdmin } = useAuth();
   const [atividades, setAtividades] = useState([]);
   const [projetos, setProjetos] = useState([]);
   const [squads, setSquads] = useState([]);
@@ -238,13 +240,15 @@ function Atividades() {
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Atividades</h2>
-          <button 
-            className="btn btn-primary" 
-            onClick={() => setShowForm(!showForm)}
-          >
-            <FontAwesomeIcon icon={showForm ? faTimes : faPlus} />
-            {showForm ? ' Cancelar' : ' Nova Atividade'}
-          </button>
+          {isAdmin() && (
+            <button 
+              className="btn btn-primary" 
+              onClick={() => setShowForm(!showForm)}
+            >
+              <FontAwesomeIcon icon={showForm ? faTimes : faPlus} />
+              {showForm ? ' Cancelar' : ' Nova Atividade'}
+            </button>
+          )}
         </div>
 
         {showForm && (
@@ -450,20 +454,24 @@ function Atividades() {
                   <td>{getStatusBadge(atividade.status)}</td>
                   <td>{getPrioridadeBadge(atividade.prioridade)}</td>
                   <td>
-                    <div style={{display: 'flex', gap: '5px'}}>
-                      <button 
-                        className="btn btn-primary btn-small" 
-                        onClick={() => handleEdit(atividade)}
-                      >
-                        <FontAwesomeIcon icon={faEdit} /> Editar
-                      </button>
-                      <button 
-                        className="btn btn-danger btn-small" 
-                        onClick={() => handleDelete(atividade.id)}
-                      >
-                        <FontAwesomeIcon icon={faTrash} /> Deletar
-                      </button>
-                    </div>
+                    {isAdmin() ? (
+                      <div style={{display: 'flex', gap: '5px'}}>
+                        <button 
+                          className="btn btn-primary btn-small" 
+                          onClick={() => handleEdit(atividade)}
+                        >
+                          <FontAwesomeIcon icon={faEdit} /> Editar
+                        </button>
+                        <button 
+                          className="btn btn-danger btn-small" 
+                          onClick={() => handleDelete(atividade.id)}
+                        >
+                          <FontAwesomeIcon icon={faTrash} /> Deletar
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                    )}
                   </td>
                 </tr>
               ))}
