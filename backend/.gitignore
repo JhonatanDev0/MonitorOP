@@ -23,6 +23,9 @@ wheels/
 .installed.cfg
 *.egg
 
+# Node modules
+node_modules/
+
 # Flask
 instance/
 .webassets-cache
