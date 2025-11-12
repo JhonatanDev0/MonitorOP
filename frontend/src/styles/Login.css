@@ -3,18 +3,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f8f9fa;
   padding: 20px;
 }
 
 .login-box {
   background: white;
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
   width: 100%;
   max-width: 450px;
   overflow: hidden;
   animation: slideUp 0.5s ease;
+  border: 1px solid #e9ecef;
 }
 
 @keyframes slideUp {
@@ -29,27 +30,41 @@
 }
 
 .login-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
   padding: 40px 30px;
   text-align: center;
-  color: white;
+  border-bottom: 3px solid #3498db;
+  position: relative;
+}
+
+.login-header::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, #3498db 0%, transparent 100%);
 }
 
 .login-logo {
   height: 30px;
   width: auto;
   margin-bottom: 20px;
+  filter: none;
 }
 
 .login-header h1 {
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 600;
   margin: 0;
   line-height: 1.4;
+  color: #2c3e50;
 }
 
 .login-form {
   padding: 40px 30px;
+  background: white;
 }
 
 .login-form .form-group {
@@ -71,17 +86,20 @@
   border-radius: 8px;
   font-size: 14px;
   transition: all 0.3s;
+  background-color: #ffffff;
+  color: #2c3e50;
 }
 
 .login-form .form-control:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
 .login-form .form-control:disabled {
   background-color: #f8f9fa;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .checkbox-group {
@@ -103,6 +121,7 @@
   height: 18px;
   margin-right: 8px;
   cursor: pointer;
+  accent-color: #3498db;
 }
 
 .checkbox-group span {
@@ -115,15 +134,35 @@
   padding: 14px;
   font-size: 16px;
   font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.3s ease;
 }
 
-.btn-primary:disabled {
+.login-form .btn-primary {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.login-form .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2980b9 0%, #21618c 100%);
+  box-shadow: 0 6px 16px rgba(52, 152, 219, 0.4);
+  transform: translateY(-2px);
+}
+
+.login-form .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 /* Responsivo */
 @media (max-width: 768px) {
+  .login-container {
+    padding: 15px;
+  }
+
   .login-box {
     max-width: 100%;
     border-radius: 12px;
@@ -134,7 +173,7 @@
   }
 
   .login-logo {
-    height: 60px;
+    height: 45px;
   }
 
   .login-header h1 {
