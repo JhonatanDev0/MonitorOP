@@ -428,55 +428,57 @@ function Atividades() {
             </p>
           </div>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Título</th>
-                <th>Projeto</th>
-                <th>Squad</th>
-                <th>Prazo</th>
-                <th>Status</th>
-                <th>Prioridade</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {atividades.map(atividade => (
-                <tr key={atividade.id}>
-                  <td><strong>{atividade.titulo}</strong></td>
-                  <td>{atividade.projeto.nome}</td>
-                  <td>{atividade.squad.nome}</td>
-                  <td>
-                    {atividade.prazo 
-                      ? new Date(atividade.prazo).toLocaleDateString()
-                      : '-'}
-                  </td>
-                  <td>{getStatusBadge(atividade.status)}</td>
-                  <td>{getPrioridadeBadge(atividade.prioridade)}</td>
-                  <td>
-                    {isAdmin() ? (
-                      <div style={{display: 'flex', gap: '5px'}}>
-                        <button 
-                          className="btn btn-primary btn-small" 
-                          onClick={() => handleEdit(atividade)}
-                        >
-                          <FontAwesomeIcon icon={faEdit} /> Editar
-                        </button>
-                        <button 
-                          className="btn btn-danger btn-small" 
-                          onClick={() => handleDelete(atividade.id)}
-                        >
-                          <FontAwesomeIcon icon={faTrash} /> Deletar
-                        </button>
-                      </div>
-                    ) : (
-                      <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
-                    )}
-                  </td>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Título</th>
+                  <th>Projeto</th>
+                  <th>Squad</th>
+                  <th>Prazo</th>
+                  <th>Status</th>
+                  <th>Prioridade</th>
+                  <th>Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {atividades.map(atividade => (
+                  <tr key={atividade.id}>
+                    <td><strong>{atividade.titulo}</strong></td>
+                    <td>{atividade.projeto.nome}</td>
+                    <td>{atividade.squad.nome}</td>
+                    <td>
+                      {atividade.prazo 
+                        ? new Date(atividade.prazo).toLocaleDateString()
+                        : '-'}
+                    </td>
+                    <td>{getStatusBadge(atividade.status)}</td>
+                    <td>{getPrioridadeBadge(atividade.prioridade)}</td>
+                    <td>
+                      {isAdmin() ? (
+                        <div style={{display: 'flex', gap: '5px'}}>
+                          <button 
+                            className="btn btn-primary btn-small" 
+                            onClick={() => handleEdit(atividade)}
+                          >
+                            <FontAwesomeIcon icon={faEdit} /> Editar
+                          </button>
+                          <button 
+                            className="btn btn-danger btn-small" 
+                            onClick={() => handleDelete(atividade.id)}
+                          >
+                            <FontAwesomeIcon icon={faTrash} /> Deletar
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>  
         )}
       </div>
     </div>

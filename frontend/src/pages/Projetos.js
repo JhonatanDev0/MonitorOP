@@ -360,65 +360,67 @@ function Projetos() {
             <p>Clique em "+ Nova Avaliação" para começar</p>
           </div>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Subprograma</th>
-                <th>Nome</th>
-                <th>Ordem Produção</th>
-                <th>Período de Aplicação</th>
-                <th>Etapas</th>
-                <th>Disciplinas</th>
-                <th>Tipo Processamento</th>
-                <th>Squads</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {projetos.map(projeto => (
-                <tr key={projeto.id}>
-                  <td><strong>{projeto.subprograma || '-'}</strong></td>
-                  <td>{projeto.nome}</td>
-                  <td>{projeto.ordem_producao || '-'}</td>
-                  <td>
-                    {projeto.data_aplicacao && projeto.data_termino
-                      ? `${new Date(projeto.data_aplicacao).toLocaleDateString()} - ${new Date(projeto.data_termino).toLocaleDateString()}`
-                      : projeto.data_aplicacao
-                      ? new Date(projeto.data_aplicacao).toLocaleDateString()
-                      : '-'}
-                  </td>
-                  <td>{projeto.etapas || '-'}</td>
-                  <td>{projeto.disciplinas || '-'}</td>
-                  <td>{projeto.tipos_processamento || '-'}</td>
-                  <td>
-                    {projeto.squads.length > 0
-                      ? projeto.squads.map(s => s.nome).join(', ')
-                      : '-'}
-                  </td>
-                  <td>
-                    {isAdmin() ? (
-                      <div style={{display: 'flex', gap: '5px'}}>
-                        <button 
-                          className="btn btn-primary btn-small" 
-                          onClick={() => handleEdit(projeto)}
-                        >
-                          <FontAwesomeIcon icon={faEdit} /> Editar
-                        </button>
-                        <button 
-                          className="btn btn-danger btn-small" 
-                          onClick={() => handleDelete(projeto.id)}
-                        >
-                          <FontAwesomeIcon icon={faTrash} /> Deletar
-                        </button>
-                      </div>
-                    ) : (
-                      <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
-                    )}
-                  </td>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Subprograma</th>
+                  <th>Nome</th>
+                  <th>Ordem Produção</th>
+                  <th>Período de Aplicação</th>
+                  <th>Etapas</th>
+                  <th>Disciplinas</th>
+                  <th>Tipo Processamento</th>
+                  <th>Squads</th>
+                  <th>Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {projetos.map(projeto => (
+                  <tr key={projeto.id}>
+                    <td><strong>{projeto.subprograma || '-'}</strong></td>
+                    <td>{projeto.nome}</td>
+                    <td>{projeto.ordem_producao || '-'}</td>
+                    <td>
+                      {projeto.data_aplicacao && projeto.data_termino
+                        ? `${new Date(projeto.data_aplicacao).toLocaleDateString()} - ${new Date(projeto.data_termino).toLocaleDateString()}`
+                        : projeto.data_aplicacao
+                        ? new Date(projeto.data_aplicacao).toLocaleDateString()
+                        : '-'}
+                    </td>
+                    <td>{projeto.etapas || '-'}</td>
+                    <td>{projeto.disciplinas || '-'}</td>
+                    <td>{projeto.tipos_processamento || '-'}</td>
+                    <td>
+                      {projeto.squads.length > 0
+                        ? projeto.squads.map(s => s.nome).join(', ')
+                        : '-'}
+                    </td>
+                    <td>
+                      {isAdmin() ? (
+                        <div style={{display: 'flex', gap: '5px'}}>
+                          <button 
+                            className="btn btn-primary btn-small" 
+                            onClick={() => handleEdit(projeto)}
+                          >
+                            <FontAwesomeIcon icon={faEdit} /> Editar
+                          </button>
+                          <button 
+                            className="btn btn-danger btn-small" 
+                            onClick={() => handleDelete(projeto.id)}
+                          >
+                            <FontAwesomeIcon icon={faTrash} /> Deletar
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

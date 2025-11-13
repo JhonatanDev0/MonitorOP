@@ -333,51 +333,53 @@ function Usuarios() {
             <p>Clique em "+ Novo Usuário" para começar</p>
           </div>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Login</th>
-                <th>Perfil</th>
-                <th>Status</th>
-                <th>Cadastro</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usuarios.map(usuario => (
-                <tr key={usuario.id}>
-                  <td><strong>{usuario.nome}</strong></td>
-                  <td>{usuario.login}</td>
-                  <td>{getRoleBadge(usuario.role)}</td>
-                  <td>{getStatusBadge(usuario.ativo)}</td>
-                  <td>
-                    {usuario.created_at 
-                      ? new Date(usuario.created_at).toLocaleDateString('pt-BR')
-                      : '-'}
-                  </td>
-                  <td>
-                    <div style={{display: 'flex', gap: '5px'}}>
-                      <button 
-                        className="btn btn-primary btn-small" 
-                        onClick={() => handleEdit(usuario)}
-                      >
-                        <FontAwesomeIcon icon={faEdit} /> Editar
-                      </button>
-                      {usuario.id !== user.id && (
-                        <button 
-                          className="btn btn-danger btn-small" 
-                          onClick={() => handleDelete(usuario.id, usuario.nome)}
-                        >
-                          <FontAwesomeIcon icon={faTrash} /> Deletar
-                        </button>
-                      )}
-                    </div>
-                  </td>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Login</th>
+                  <th>Perfil</th>
+                  <th>Status</th>
+                  <th>Cadastro</th>
+                  <th>Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {usuarios.map(usuario => (
+                  <tr key={usuario.id}>
+                    <td><strong>{usuario.nome}</strong></td>
+                    <td>{usuario.login}</td>
+                    <td>{getRoleBadge(usuario.role)}</td>
+                    <td>{getStatusBadge(usuario.ativo)}</td>
+                    <td>
+                      {usuario.created_at 
+                        ? new Date(usuario.created_at).toLocaleDateString('pt-BR')
+                        : '-'}
+                    </td>
+                    <td>
+                      <div style={{display: 'flex', gap: '5px'}}>
+                        <button 
+                          className="btn btn-primary btn-small" 
+                          onClick={() => handleEdit(usuario)}
+                        >
+                          <FontAwesomeIcon icon={faEdit} /> Editar
+                        </button>
+                        {usuario.id !== user.id && (
+                          <button 
+                            className="btn btn-danger btn-small" 
+                            onClick={() => handleDelete(usuario.id, usuario.nome)}
+                          >
+                            <FontAwesomeIcon icon={faTrash} /> Deletar
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>  
         )}
       </div>
     </div>

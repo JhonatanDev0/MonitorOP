@@ -220,47 +220,49 @@ function Squads() {
             <p>Clique em "Nova Squad" para começar</p>
           </div>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Descrição</th>
-                <th>Projetos</th>
-                <th>Atividades</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {squads.map(squad => (
-                <tr key={squad.id}>
-                  <td><strong>{squad.nome}</strong></td>
-                  <td>{squad.descricao || '-'}</td>
-                  <td>{squad.total_projetos}</td>
-                  <td>{squad.total_atividades}</td>
-                  <td>
-                    {isAdmin() ? (
-                      <div style={{display: 'flex', gap: '5px'}}>
-                        <button 
-                          className="btn btn-primary btn-small" 
-                          onClick={() => handleEdit(squad)}
-                        >
-                          <FontAwesomeIcon icon={faEdit} /> Editar
-                        </button>
-                        <button 
-                          className="btn btn-danger btn-small" 
-                          onClick={() => handleDelete(squad.id)}
-                        >
-                          <FontAwesomeIcon icon={faTrash} /> Deletar
-                        </button>
-                      </div>
-                    ) : (
-                      <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
-                    )}
-                  </td>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Descrição</th>
+                  <th>Projetos</th>
+                  <th>Atividades</th>
+                  <th>Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {squads.map(squad => (
+                  <tr key={squad.id}>
+                    <td><strong>{squad.nome}</strong></td>
+                    <td>{squad.descricao || '-'}</td>
+                    <td>{squad.total_projetos}</td>
+                    <td>{squad.total_atividades}</td>
+                    <td>
+                      {isAdmin() ? (
+                        <div style={{display: 'flex', gap: '5px'}}>
+                          <button 
+                            className="btn btn-primary btn-small" 
+                            onClick={() => handleEdit(squad)}
+                          >
+                            <FontAwesomeIcon icon={faEdit} /> Editar
+                          </button>
+                          <button 
+                            className="btn btn-danger btn-small" 
+                            onClick={() => handleDelete(squad.id)}
+                          >
+                            <FontAwesomeIcon icon={faTrash} /> Deletar
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>  
         )}
       </div>
     </div>
