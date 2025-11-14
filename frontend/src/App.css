@@ -286,14 +286,14 @@ select.form-control {
 /* Tabelas Modernas - Tema Claro */
 .table {
   width: 100%;
-  min-width: 800px;  /* ← ADICIONAR: largura mínima */
+  min-width: 800px;
   border-collapse: separate;
   border-spacing: 0;
-  margin-top: 0;  /* ← MUDAR de 20px para 0 */
+  margin-top: 0;
   background: white;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: none;  /* ← MUDAR: remover sombra (vai estar no container) */
+  box-shadow: none;
 }
 
 .table thead {
@@ -303,13 +303,15 @@ select.form-control {
 .table th {
   padding: 16px 12px;
   text-align: left;
-  border-bottom: 2px solid #3498db;
+  border-bottom: 3px solid #3498db;
   font-weight: 600;
   color: #2c3e50;
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   position: relative;
+  box-shadow: 0 3px 6px rgba(52, 152, 219, 0.15);
+  background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
 }
 
 .table th:first-child {
@@ -516,7 +518,7 @@ select.form-control {
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
-  margin-left: 10px;  /* ← Pequeno espaço extra */
+  margin-left: 10px;
 }
 
 .btn-logout svg {
@@ -526,7 +528,7 @@ select.form-control {
 }
 
 .btn-logout:hover {
-  background-color: #fee2e2;  /* ← Fundo vermelho suave */
+  background-color: #fee2e2;
   color: #e74c3c;
   transform: translateY(-2px);
 }
