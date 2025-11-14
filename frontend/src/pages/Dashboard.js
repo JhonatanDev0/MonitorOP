@@ -23,7 +23,8 @@ function Dashboard() {
   
   // Estados para filtros
   const [filtros, setFiltros] = useState({
-    subprograma: '',
+    ordem_producao: '',
+    projeto_id: '',
     squad_id: '',
     tipo_atividade: ''
   });
@@ -37,12 +38,18 @@ function Dashboard() {
     recodificacao: []
   });
 
+  // Estados para opções filtradas dos selects
+  const [opcoesOrdemProducao, setOpcoesOrdemProducao] = useState([]);
+  const [opcoesSquads, setOpcoesSquads] = useState([]);
+  const [opcoesTiposAtividades, setOpcoesTiposAtividades] = useState([]);
+
   useEffect(() => {
     carregarDados();
   }, []);
 
   useEffect(() => {
     if (projetos.length > 0 && squads.length > 0 && atividades.length > 0) {
+      atualizarOpcoesFiltros();
       aplicarFiltros();
     }
   }, [filtros, projetos, squads, atividades]);
@@ -68,17 +75,88 @@ function Dashboard() {
     }
   };
 
-  const aplicarFiltros = () => {
+  const atualizarOpcoesFiltros = () => {
     let atividadesFiltradas = [...atividades];
 
-    // Filtro por subprograma (código do projeto)
-    if (filtros.subprograma) {
+    // Filtrar por ordem de produção
+    if (filtros.ordem_producao) {
       const projetosFiltrados = projetos
-        .filter(p => p.subprograma === filtros.subprograma)
+        .filter(p => p.ordem_producao === filtros.ordem_producao)
         .map(p => p.id);
       
       atividadesFiltradas = atividadesFiltradas.filter(a => 
         projetosFiltrados.includes(a.projeto.id)
+      );
+    }
+
+    // Filtrar por projeto
+    if (filtros.projeto_id) {
+      atividadesFiltradas = atividadesFiltradas.filter(a => 
+        a.projeto.id === parseInt(filtros.projeto_id)
+      );
+    }
+
+    // Filtrar por squad
+    if (filtros.squad_id) {
+      atividadesFiltradas = atividadesFiltradas.filter(a => 
+        a.squad.id === parseInt(filtros.squad_id)
+      );
+    }
+
+    // Atualizar opções de Projetos baseado na Ordem de Produção selecionada
+    let projetosDisponiveis = [...projetos];
+    if (filtros.ordem_producao) {
+      projetosDisponiveis = projetos.filter(p => p.ordem_producao === filtros.ordem_producao);
+    }
+    
+    // Atualizar opções de Ordem de Produção baseado no Projeto selecionado
+    if (filtros.projeto_id) {
+      const projetoSelecionado = projetos.find(p => p.id === parseInt(filtros.projeto_id));
+      if (projetoSelecionado && projetoSelecionado.ordem_producao) {
+        setOpcoesOrdemProducao([projetoSelecionado.ordem_producao]);
+      } else {
+        setOpcoesOrdemProducao([]);
+      }
+    } else {
+      // Todas as ordens de produção disponíveis
+      const ordensUnicas = [...new Set(
+        projetos
+          .map(p => p.ordem_producao)
+          .filter(op => op && op.trim() !== '')
+      )].sort();
+      setOpcoesOrdemProducao(ordensUnicas);
+    }
+
+    // Atualizar opções de Squads baseado nas atividades filtradas
+    const squadIdsDisponiveis = [...new Set(atividadesFiltradas.map(a => a.squad.id))];
+    const squadsDisponiveis = squads.filter(s => squadIdsDisponiveis.includes(s.id));
+    setOpcoesSquads(squadsDisponiveis);
+
+    // Atualizar opções de Tipos de Atividades baseado nas atividades filtradas
+    const tiposDisponiveis = [...new Set(
+      atividadesFiltradas.map(a => a.titulo)
+    )].sort();
+    setOpcoesTiposAtividades(tiposDisponiveis);
+  };
+
+  const aplicarFiltros = () => {
+    let atividadesFiltradas = [...atividades];
+
+    // Filtro por ordem de produção
+    if (filtros.ordem_producao) {
+      const projetosFiltrados = projetos
+        .filter(p => p.ordem_producao === filtros.ordem_producao)
+        .map(p => p.id);
+      
+      atividadesFiltradas = atividadesFiltradas.filter(a => 
+        projetosFiltrados.includes(a.projeto.id)
+      );
+    }
+
+    // Filtro por projeto
+    if (filtros.projeto_id) {
+      atividadesFiltradas = atividadesFiltradas.filter(a => 
+        a.projeto.id === parseInt(filtros.projeto_id)
       );
     }
 
@@ -92,7 +170,7 @@ function Dashboard() {
     // Filtro por tipo de atividade (título)
     if (filtros.tipo_atividade) {
       atividadesFiltradas = atividadesFiltradas.filter(a => 
-        a.titulo.toLowerCase().includes(filtros.tipo_atividade.toLowerCase())
+        a.titulo === filtros.tipo_atividade
       );
     }
 
@@ -112,24 +190,27 @@ function Dashboard() {
 
   const limparFiltros = () => {
     setFiltros({
-      subprograma: '',
+      ordem_producao: '',
+      projeto_id: '',
       squad_id: '',
       tipo_atividade: ''
     });
   };
 
-  const obterSubprogramasUnicos = () => {
-    const subprogramas = projetos
-      .map(p => p.subprograma)
-      .filter(s => s && s.trim() !== '');
-    return [...new Set(subprogramas)].sort();
-  };
-
-  const obterTiposAtividades = () => {
-    const tipos = atividades
-      .map(a => a.titulo)
-      .filter(t => t && t.trim() !== '');
-    return [...new Set(tipos)].sort();
+  const obterProjetosFormatados = () => {
+    let projetosFiltrados = projetos.filter(p => p.subprograma && p.subprograma.trim() !== '');
+    
+    // Se há ordem de produção selecionada, filtrar projetos
+    if (filtros.ordem_producao) {
+      projetosFiltrados = projetosFiltrados.filter(p => p.ordem_producao === filtros.ordem_producao);
+    }
+    
+    return projetosFiltrados
+      .map(p => ({
+        id: p.id,
+        label: `${p.subprograma} - ${p.nome}`
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   };
 
   const calcularIndicadores = (atividadesSquad, tipoAtividade) => {
@@ -153,6 +234,9 @@ function Dashboard() {
   };
 
   const renderIndicadorAtividade = (titulo, dados, icone, cor) => {
+    // Não renderizar se não houver atividades
+    if (dados.total === 0) return null;
+
     return (
       <div className="indicador-atividade" style={{ borderLeftColor: cor }}>
         <div className="indicador-header">
@@ -195,6 +279,20 @@ function Dashboard() {
     );
   };
 
+  const deveExibirSquadAuditoria = () => {
+    // Se não há filtro de squad, ou se o filtro é Auditoria, exibir
+    if (!filtros.squad_id) return true;
+    const auditoriaSquad = squads.find(s => s.nome === 'Auditoria');
+    return auditoriaSquad && parseInt(filtros.squad_id) === auditoriaSquad.id;
+  };
+
+  const deveExibirSquadRecodificacao = () => {
+    // Se não há filtro de squad, ou se o filtro é Recodificação, exibir
+    if (!filtros.squad_id) return true;
+    const recodificacaoSquad = squads.find(s => s.nome === 'Recodificação');
+    return recodificacaoSquad && parseInt(filtros.squad_id) === recodificacaoSquad.id;
+  };
+
   if (loading) {
     return <div className="loading">Carregando dashboard...</div>;
   }
@@ -212,15 +310,29 @@ function Dashboard() {
         <div className="dashboard-filters">
           <div className="filter-row">
             <div className="filter-item">
-              <label>Código do Projeto (Subprograma)</label>
+              <label>Ordem de Produção</label>
               <select
                 className="form-control"
-                value={filtros.subprograma}
-                onChange={(e) => setFiltros({...filtros, subprograma: e.target.value})}
+                value={filtros.ordem_producao}
+                onChange={(e) => setFiltros({...filtros, ordem_producao: e.target.value, projeto_id: ''})}
+              >
+                <option value="">Todas as ordens</option>
+                {opcoesOrdemProducao.map(op => (
+                  <option key={op} value={op}>{op}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-item">
+              <label>Projeto</label>
+              <select
+                className="form-control"
+                value={filtros.projeto_id}
+                onChange={(e) => setFiltros({...filtros, projeto_id: e.target.value})}
               >
                 <option value="">Todos os projetos</option>
-                {obterSubprogramasUnicos().map(sub => (
-                  <option key={sub} value={sub}>{sub}</option>
+                {obterProjetosFormatados().map(p => (
+                  <option key={p.id} value={p.id}>{p.label}</option>
                 ))}
               </select>
             </div>
@@ -233,7 +345,7 @@ function Dashboard() {
                 onChange={(e) => setFiltros({...filtros, squad_id: e.target.value})}
               >
                 <option value="">Todas as squads</option>
-                {squads.map(s => (
+                {opcoesSquads.map(s => (
                   <option key={s.id} value={s.id}>{s.nome}</option>
                 ))}
               </select>
@@ -247,7 +359,7 @@ function Dashboard() {
                 onChange={(e) => setFiltros({...filtros, tipo_atividade: e.target.value})}
               >
                 <option value="">Todas as atividades</option>
-                {obterTiposAtividades().map(tipo => (
+                {opcoesTiposAtividades.map(tipo => (
                   <option key={tipo} value={tipo}>{tipo}</option>
                 ))}
               </select>
@@ -296,92 +408,94 @@ function Dashboard() {
         )}
 
         {/* Squad Auditoria */}
-        <div className="squad-section">
-          <h3 className="squad-title">
-            <FontAwesomeIcon icon={faCheckCircle} /> Squad Auditoria
-          </h3>
-          
-          {dadosFiltrados.auditoria.length === 0 ? (
-            <div className="empty-state">
-              <p>Nenhuma atividade encontrada para os filtros aplicados</p>
-            </div>
-          ) : (
-            <div className="indicadores-grid">
-              {/* Aqui você poderá adicionar indicadores específicos para cada tipo de atividade */}
-              {renderIndicadorAtividade(
-                'Destaque',
-                calcularIndicadores(dadosFiltrados.auditoria, 'Destaque'),
-                faChartBar,
-                '#3498db'
-              )}
-              {renderIndicadorAtividade(
-                'Transcrição',
-                calcularIndicadores(dadosFiltrados.auditoria, 'Transcrição'),
-                faChartBar,
-                '#9b59b6'
-              )}
-            </div>
-          )}
-        </div>
+        {deveExibirSquadAuditoria() && (
+          <div className="squad-section">
+            <h3 className="squad-title">
+              <FontAwesomeIcon icon={faCheckCircle} /> Squad Auditoria
+            </h3>
+            
+            {dadosFiltrados.auditoria.length === 0 ? (
+              <div className="empty-state">
+                <p>Nenhuma atividade encontrada para os filtros aplicados</p>
+              </div>
+            ) : (
+              <div className="indicadores-grid">
+                {renderIndicadorAtividade(
+                  'Destaque',
+                  calcularIndicadores(dadosFiltrados.auditoria, 'Destaque'),
+                  faChartBar,
+                  '#3498db'
+                )}
+                {renderIndicadorAtividade(
+                  'Transcrição',
+                  calcularIndicadores(dadosFiltrados.auditoria, 'Transcrição'),
+                  faChartBar,
+                  '#9b59b6'
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Squad Recodificação */}
-        <div className="squad-section">
-          <h3 className="squad-title">
-            <FontAwesomeIcon icon={faSpinner} /> Squad Recodificação
-          </h3>
-          
-          {dadosFiltrados.recodificacao.length === 0 ? (
-            <div className="empty-state">
-              <p>Nenhuma atividade encontrada para os filtros aplicados</p>
-            </div>
-          ) : (
-            <div className="indicadores-grid">
-              {/* Indicadores para Recodificação */}
-              {renderIndicadorAtividade(
-                'CR Reserva',
-                calcularIndicadores(dadosFiltrados.recodificacao, 'CR Reserva'),
-                faChartBar,
-                '#e67e22'
-              )}
-              {renderIndicadorAtividade(
-                'CR Anulado',
-                calcularIndicadores(dadosFiltrados.recodificacao, 'CR Anulado'),
-                faChartBar,
-                '#e74c3c'
-              )}
-              {renderIndicadorAtividade(
-                'CR Duplicado',
-                calcularIndicadores(dadosFiltrados.recodificacao, 'CR Duplicado'),
-                faChartBar,
-                '#f39c12'
-              )}
-              {renderIndicadorAtividade(
-                'CR Genérico',
-                calcularIndicadores(dadosFiltrados.recodificacao, 'CR Genérico'),
-                faChartBar,
-                '#16a085'
-              )}
-              {renderIndicadorAtividade(
-                'Sujeito C1',
-                calcularIndicadores(dadosFiltrados.recodificacao, 'Sujeito C1'),
-                faChartBar,
-                '#2ecc71'
-              )}
-              {renderIndicadorAtividade(
-                'Sujeito C2',
-                calcularIndicadores(dadosFiltrados.recodificacao, 'Sujeito C2'),
-                faChartBar,
-                '#27ae60'
-              )}
-              {renderIndicadorAtividade(
-                'Público Alvo',
-                calcularIndicadores(dadosFiltrados.recodificacao, 'Público Alvo'),
-                faChartBar,
-                '#8e44ad'
-              )}
-            </div>
-          )}
-        </div>
+        {deveExibirSquadRecodificacao() && (
+          <div className="squad-section">
+            <h3 className="squad-title">
+              <FontAwesomeIcon icon={faSpinner} /> Squad Recodificação
+            </h3>
+            
+            {dadosFiltrados.recodificacao.length === 0 ? (
+              <div className="empty-state">
+                <p>Nenhuma atividade encontrada para os filtros aplicados</p>
+              </div>
+            ) : (
+              <div className="indicadores-grid">
+                {renderIndicadorAtividade(
+                  'CR Reserva',
+                  calcularIndicadores(dadosFiltrados.recodificacao, 'CR Reserva'),
+                  faChartBar,
+                  '#e67e22'
+                )}
+                {renderIndicadorAtividade(
+                  'CR Anulado',
+                  calcularIndicadores(dadosFiltrados.recodificacao, 'CR Anulado'),
+                  faChartBar,
+                  '#e74c3c'
+                )}
+                {renderIndicadorAtividade(
+                  'CR Duplicado',
+                  calcularIndicadores(dadosFiltrados.recodificacao, 'CR Duplicado'),
+                  faChartBar,
+                  '#f39c12'
+                )}
+                {renderIndicadorAtividade(
+                  'CR Genérico',
+                  calcularIndicadores(dadosFiltrados.recodificacao, 'CR Genérico'),
+                  faChartBar,
+                  '#16a085'
+                )}
+                {renderIndicadorAtividade(
+                  'Sujeito C1',
+                  calcularIndicadores(dadosFiltrados.recodificacao, 'Sujeito C1'),
+                  faChartBar,
+                  '#2ecc71'
+                )}
+                {renderIndicadorAtividade(
+                  'Sujeito C2',
+                  calcularIndicadores(dadosFiltrados.recodificacao, 'Sujeito C2'),
+                  faChartBar,
+                  '#27ae60'
+                )}
+                {renderIndicadorAtividade(
+                  'Público Alvo',
+                  calcularIndicadores(dadosFiltrados.recodificacao, 'Público Alvo'),
+                  faChartBar,
+                  '#8e44ad'
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
