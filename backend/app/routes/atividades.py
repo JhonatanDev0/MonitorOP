@@ -9,18 +9,11 @@ bp = Blueprint('atividades', __name__, url_prefix='/api/atividades')
 
 @bp.route('', methods=['GET'])
 def listar_atividades():
-    """Lista todas as atividades com filtros opcionais, busca e paginação"""
+    """Lista todas as atividades com filtros opcionais e paginação"""
     try:
         query = Atividade.query
         
-        # Filtros de busca por texto
-        if request.args.get('search_titulo'):
-            query = query.filter(Atividade.titulo.ilike(f"%{request.args.get('search_titulo')}%"))
-        
-        if request.args.get('search_descricao'):
-            query = query.filter(Atividade.descricao.ilike(f"%{request.args.get('search_descricao')}%"))
-        
-        # Filtros dropdown (já existentes)
+        # Filtros opcionais via query params
         projeto_id = request.args.get('projeto_id', type=int)
         squad_id = request.args.get('squad_id', type=int)
         status = request.args.get('status')
@@ -41,7 +34,7 @@ def listar_atividades():
         # Verificar se a paginação foi solicitada
         if request.args.get('page'):
             # Com paginação
-            result = paginate_query(query, default_per_page=10)
+            result = paginate_query(query, default_per_page=5)
             return jsonify({
                 'items': [atividade.to_dict() for atividade in result['items']],
                 'pagination': result['pagination']

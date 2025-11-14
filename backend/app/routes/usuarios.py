@@ -15,35 +15,17 @@ def admin_required():
 @usuarios_bp.route('', methods=['GET'])
 @jwt_required()
 def listar_usuarios():
-    """Lista todos os usuários (apenas Admin) com paginação e busca opcional"""
+    """Lista todos os usuários (apenas Admin) com paginação opcional"""
     try:
         if not admin_required():
             return jsonify({'error': 'Acesso negado'}), 403
         
-        query = Usuario.query
-        
-        # Filtros de busca por texto
-        if request.args.get('search_nome'):
-            query = query.filter(Usuario.nome.ilike(f"%{request.args.get('search_nome')}%"))
-        
-        if request.args.get('search_login'):
-            query = query.filter(Usuario.login.ilike(f"%{request.args.get('search_login')}%"))
-        
-        # Filtros dropdown
-        if request.args.get('filter_role'):
-            query = query.filter_by(role=request.args.get('filter_role'))
-        
-        if request.args.get('filter_ativo'):
-            ativo_value = request.args.get('filter_ativo').lower() == 'true'
-            query = query.filter_by(ativo=ativo_value)
-        
-        # Ordenar
-        query = query.order_by(Usuario.nome)
+        query = Usuario.query.order_by(Usuario.nome)
         
         # Verificar se a paginação foi solicitada
         if request.args.get('page'):
             # Com paginação
-            result = paginate_query(query, default_per_page=10)
+            result = paginate_query(query, default_per_page=5)
             return jsonify({
                 'items': [u.to_dict() for u in result['items']],
                 'pagination': result['pagination']
