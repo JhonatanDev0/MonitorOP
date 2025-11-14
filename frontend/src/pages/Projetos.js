@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
+import Pagination from '../components/Pagination';
 
 function Projetos() {
   const { isAdmin } = useAuth();
@@ -13,6 +14,12 @@ function Projetos() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
+  
+  // Estados de paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(5);  // Alterado para 5 para visualizar com poucos itens
+  const [pagination, setPagination] = useState(null);
+  
   const [formData, setFormData] = useState({
     subprograma: '',
     nome: '',
@@ -27,23 +34,50 @@ function Projetos() {
   });
 
   useEffect(() => {
-    carregarDados();
+    carregarSquads();
   }, []);
 
-  const carregarDados = async () => {
+  useEffect(() => {
+    carregarProjetos();
+  }, [currentPage, perPage]);
+
+  const carregarSquads = async () => {
+    try {
+      const response = await squadService.listar();
+      setSquads(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar squads:', error);
+      toast.error('Erro ao carregar squads');
+    }
+  };
+
+  const carregarProjetos = async () => {
     try {
       setLoading(true);
-      const [projetosRes, squadsRes] = await Promise.all([
-        projetoService.listar(),
-        squadService.listar()
-      ]);
-      setProjetos(projetosRes.data);
-      setSquads(squadsRes.data);
+      const response = await projetoService.listar(currentPage, perPage);
+      
+      if (response.data.items) {
+        // Com paginação
+        setProjetos(response.data.items);
+        setPagination(response.data.pagination);
+      } else {
+        // Sem paginação (fallback)
+        setProjetos(response.data);
+        setPagination(null);
+      }
     } catch (error) {
       console.error('Erro ao carregar projetos:', error);
       toast.error('Erro ao carregar avaliações');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage, newPerPage = perPage) => {
+    setCurrentPage(newPage);
+    if (newPerPage !== perPage) {
+      setPerPage(newPerPage);
+      setCurrentPage(1); // Voltar para primeira página ao mudar itens por página
     }
   };
 
@@ -58,7 +92,7 @@ function Projetos() {
         toast.success('Avaliação criada com sucesso!');
       }
       resetForm();
-      carregarDados();
+      carregarProjetos();
     } catch (error) {
       console.error('Erro ao salvar projeto:', error);
       toast.error('Erro ao salvar: ' + (error.response?.data?.error || error.message));
@@ -145,7 +179,7 @@ function Projetos() {
                 try {
                   await projetoService.deletar(id);
                   toast.success('Avaliação deletada com sucesso!');
-                  carregarDados();
+                  carregarProjetos();
                 } catch (error) {
                   console.error('Erro ao deletar projeto:', error);
                   toast.error('Erro ao deletar: ' + (error.response?.data?.error || error.message));
@@ -202,7 +236,7 @@ function Projetos() {
     }));
   };
 
-  if (loading) {
+  if (loading && projetos.length === 0) {
     return <div className="loading">Carregando...</div>;
   }
 
@@ -360,67 +394,75 @@ function Projetos() {
             <p>Clique em "+ Nova Avaliação" para começar</p>
           </div>
         ) : (
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Subprograma</th>
-                  <th>Nome</th>
-                  <th>Ordem Produção</th>
-                  <th>Período de Aplicação</th>
-                  <th>Etapas</th>
-                  <th>Disciplinas</th>
-                  <th>Tipo Processamento</th>
-                  <th>Squads</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projetos.map(projeto => (
-                  <tr key={projeto.id}>
-                    <td><strong>{projeto.subprograma || '-'}</strong></td>
-                    <td>{projeto.nome}</td>
-                    <td>{projeto.ordem_producao || '-'}</td>
-                    <td>
-                      {projeto.data_aplicacao && projeto.data_termino
-                        ? `${new Date(projeto.data_aplicacao).toLocaleDateString()} - ${new Date(projeto.data_termino).toLocaleDateString()}`
-                        : projeto.data_aplicacao
-                        ? new Date(projeto.data_aplicacao).toLocaleDateString()
-                        : '-'}
-                    </td>
-                    <td>{projeto.etapas || '-'}</td>
-                    <td>{projeto.disciplinas || '-'}</td>
-                    <td>{projeto.tipos_processamento || '-'}</td>
-                    <td>
-                      {projeto.squads.length > 0
-                        ? projeto.squads.map(s => s.nome).join(', ')
-                        : '-'}
-                    </td>
-                    <td>
-                      {isAdmin() ? (
-                        <div style={{display: 'flex', gap: '5px'}}>
-                          <button 
-                            className="btn btn-primary btn-small" 
-                            onClick={() => handleEdit(projeto)}
-                          >
-                            <FontAwesomeIcon icon={faEdit} /> Editar
-                          </button>
-                          <button 
-                            className="btn btn-danger btn-small" 
-                            onClick={() => handleDelete(projeto.id)}
-                          >
-                            <FontAwesomeIcon icon={faTrash} /> Deletar
-                          </button>
-                        </div>
-                      ) : (
-                        <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
-                      )}
-                    </td>
+          <>
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Subprograma</th>
+                    <th>Nome</th>
+                    <th>Ordem Produção</th>
+                    <th>Período de Aplicação</th>
+                    <th>Etapas</th>
+                    <th>Disciplinas</th>
+                    <th>Tipo Processamento</th>
+                    <th>Squads</th>
+                    <th>Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {projetos.map(projeto => (
+                    <tr key={projeto.id}>
+                      <td><strong>{projeto.subprograma || '-'}</strong></td>
+                      <td>{projeto.nome}</td>
+                      <td>{projeto.ordem_producao || '-'}</td>
+                      <td>
+                        {projeto.data_aplicacao && projeto.data_termino
+                          ? `${new Date(projeto.data_aplicacao).toLocaleDateString()} - ${new Date(projeto.data_termino).toLocaleDateString()}`
+                          : projeto.data_aplicacao
+                          ? new Date(projeto.data_aplicacao).toLocaleDateString()
+                          : '-'}
+                      </td>
+                      <td>{projeto.etapas || '-'}</td>
+                      <td>{projeto.disciplinas || '-'}</td>
+                      <td>{projeto.tipos_processamento || '-'}</td>
+                      <td>
+                        {projeto.squads.length > 0
+                          ? projeto.squads.map(s => s.nome).join(', ')
+                          : '-'}
+                      </td>
+                      <td>
+                        {isAdmin() ? (
+                          <div style={{display: 'flex', gap: '5px'}}>
+                            <button 
+                              className="btn btn-primary btn-small" 
+                              onClick={() => handleEdit(projeto)}
+                            >
+                              <FontAwesomeIcon icon={faEdit} /> Editar
+                            </button>
+                            <button 
+                              className="btn btn-danger btn-small" 
+                              onClick={() => handleDelete(projeto.id)}
+                            >
+                              <FontAwesomeIcon icon={faTrash} /> Deletar
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Componente de Paginação */}
+            <Pagination 
+              pagination={pagination}
+              onPageChange={handlePageChange}
+            />
+          </>
         )}
       </div>
     </div>

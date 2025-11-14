@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSave, faTimes, faFilterCircleXmark } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
+import Pagination from '../components/Pagination';
 
 function Atividades() {
   const { isAdmin } = useAuth();
@@ -14,12 +15,19 @@ function Atividades() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
+  
+  // Estados de paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(5);
+  const [pagination, setPagination] = useState(null);
+  
   const [filtros, setFiltros] = useState({
     projeto_id: '',
     squad_id: '',
     status: '',
     prioridade: ''
   });
+  
   const [formData, setFormData] = useState({
     titulo: '',
     descricao: '',
@@ -36,7 +44,7 @@ function Atividades() {
 
   useEffect(() => {
     carregarAtividades();
-  }, [filtros]);
+  }, [currentPage, perPage, filtros]);
 
   const carregarDados = async () => {
     try {
@@ -44,9 +52,8 @@ function Atividades() {
         projetoService.listar(),
         squadService.listar()
       ]);
-      setProjetos(projetosRes.data);
-      setSquads(squadsRes.data);
-      carregarAtividades();
+      setProjetos(projetosRes.data.items || projetosRes.data);
+      setSquads(squadsRes.data.items || squadsRes.data);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       toast.error('Erro ao carregar dados');
@@ -59,13 +66,30 @@ function Atividades() {
       const filtrosLimpos = Object.fromEntries(
         Object.entries(filtros).filter(([_, v]) => v !== '')
       );
-      const response = await atividadeService.listar(filtrosLimpos);
-      setAtividades(response.data);
+      const response = await atividadeService.listar(filtrosLimpos, currentPage, perPage);
+      
+      if (response.data.items) {
+        // Com paginação
+        setAtividades(response.data.items);
+        setPagination(response.data.pagination);
+      } else {
+        // Sem paginação (fallback)
+        setAtividades(response.data);
+        setPagination(null);
+      }
     } catch (error) {
       console.error('Erro ao carregar atividades:', error);
       toast.error('Erro ao carregar atividades');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage, newPerPage = perPage) => {
+    setCurrentPage(newPage);
+    if (newPerPage !== perPage) {
+      setPerPage(newPerPage);
+      setCurrentPage(1);
     }
   };
 
@@ -216,6 +240,7 @@ function Atividades() {
       status: '',
       prioridade: ''
     });
+    setCurrentPage(1); // Voltar para primeira página
   };
 
   const getStatusBadge = (status) => {
@@ -360,7 +385,10 @@ function Atividades() {
             <select
               className="form-control"
               value={filtros.projeto_id}
-              onChange={(e) => setFiltros({...filtros, projeto_id: e.target.value})}
+              onChange={(e) => {
+                setFiltros({...filtros, projeto_id: e.target.value});
+                setCurrentPage(1); // Voltar para primeira página ao filtrar
+              }}
             >
               <option value="">Todos</option>
               {projetos.map(p => (
@@ -374,7 +402,10 @@ function Atividades() {
             <select
               className="form-control"
               value={filtros.squad_id}
-              onChange={(e) => setFiltros({...filtros, squad_id: e.target.value})}
+              onChange={(e) => {
+                setFiltros({...filtros, squad_id: e.target.value});
+                setCurrentPage(1);
+              }}
             >
               <option value="">Todas</option>
               {squads.map(s => (
@@ -388,7 +419,10 @@ function Atividades() {
             <select
               className="form-control"
               value={filtros.status}
-              onChange={(e) => setFiltros({...filtros, status: e.target.value})}
+              onChange={(e) => {
+                setFiltros({...filtros, status: e.target.value});
+                setCurrentPage(1);
+              }}
             >
               <option value="">Todos</option>
               <option value="pendente">Pendente</option>
@@ -402,7 +436,10 @@ function Atividades() {
             <select
               className="form-control"
               value={filtros.prioridade}
-              onChange={(e) => setFiltros({...filtros, prioridade: e.target.value})}
+              onChange={(e) => {
+                setFiltros({...filtros, prioridade: e.target.value});
+                setCurrentPage(1);
+              }}
             >
               <option value="">Todas</option>
               <option value="baixa">Baixa</option>
@@ -428,57 +465,65 @@ function Atividades() {
             </p>
           </div>
         ) : (
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Título</th>
-                  <th>Projeto</th>
-                  <th>Squad</th>
-                  <th>Prazo</th>
-                  <th>Status</th>
-                  <th>Prioridade</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {atividades.map(atividade => (
-                  <tr key={atividade.id}>
-                    <td><strong>{atividade.titulo}</strong></td>
-                    <td>{atividade.projeto.nome}</td>
-                    <td>{atividade.squad.nome}</td>
-                    <td>
-                      {atividade.prazo 
-                        ? new Date(atividade.prazo).toLocaleDateString()
-                        : '-'}
-                    </td>
-                    <td>{getStatusBadge(atividade.status)}</td>
-                    <td>{getPrioridadeBadge(atividade.prioridade)}</td>
-                    <td>
-                      {isAdmin() ? (
-                        <div style={{display: 'flex', gap: '5px'}}>
-                          <button 
-                            className="btn btn-primary btn-small" 
-                            onClick={() => handleEdit(atividade)}
-                          >
-                            <FontAwesomeIcon icon={faEdit} /> Editar
-                          </button>
-                          <button 
-                            className="btn btn-danger btn-small" 
-                            onClick={() => handleDelete(atividade.id)}
-                          >
-                            <FontAwesomeIcon icon={faTrash} /> Deletar
-                          </button>
-                        </div>
-                      ) : (
-                        <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
-                      )}
-                    </td>
+          <>
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Título</th>
+                    <th>Projeto</th>
+                    <th>Squad</th>
+                    <th>Prazo</th>
+                    <th>Status</th>
+                    <th>Prioridade</th>
+                    <th>Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>  
+                </thead>
+                <tbody>
+                  {atividades.map(atividade => (
+                    <tr key={atividade.id}>
+                      <td><strong>{atividade.titulo}</strong></td>
+                      <td>{atividade.projeto.nome}</td>
+                      <td>{atividade.squad.nome}</td>
+                      <td>
+                        {atividade.prazo 
+                          ? new Date(atividade.prazo).toLocaleDateString()
+                          : '-'}
+                      </td>
+                      <td>{getStatusBadge(atividade.status)}</td>
+                      <td>{getPrioridadeBadge(atividade.prioridade)}</td>
+                      <td>
+                        {isAdmin() ? (
+                          <div style={{display: 'flex', gap: '5px'}}>
+                            <button 
+                              className="btn btn-primary btn-small" 
+                              onClick={() => handleEdit(atividade)}
+                            >
+                              <FontAwesomeIcon icon={faEdit} /> Editar
+                            </button>
+                            <button 
+                              className="btn btn-danger btn-small" 
+                              onClick={() => handleDelete(atividade.id)}
+                            >
+                              <FontAwesomeIcon icon={faTrash} /> Deletar
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Componente de Paginação */}
+            <Pagination 
+              pagination={pagination}
+              onPageChange={handlePageChange}
+            />
+          </>
         )}
       </div>
     </div>

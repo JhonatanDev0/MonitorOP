@@ -1,16 +1,29 @@
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models import Squad, Projeto
+from app.utils.pagination import paginate_query
 
 bp = Blueprint('squads', __name__, url_prefix='/api/squads')
 
 
 @bp.route('', methods=['GET'])
 def listar_squads():
-    """Lista todas as squads"""
+    """Lista todas as squads com paginação opcional"""
     try:
-        squads = Squad.query.all()
-        return jsonify([squad.to_dict() for squad in squads]), 200
+        query = Squad.query.order_by(Squad.nome)
+        
+        # Verificar se a paginação foi solicitada
+        if request.args.get('page'):
+            # Com paginação
+            result = paginate_query(query, default_per_page=5)
+            return jsonify({
+                'items': [squad.to_dict() for squad in result['items']],
+                'pagination': result['pagination']
+            }), 200
+        else:
+            # Sem paginação (compatibilidade com código antigo)
+            squads = query.all()
+            return jsonify([squad.to_dict() for squad in squads]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

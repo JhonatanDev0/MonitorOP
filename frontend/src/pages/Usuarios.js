@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSave, faTimes, faUserShield, faUser, faToggleOn, faToggleOff } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
+import Pagination from '../components/Pagination';
 
 function Usuarios() {
   const { user } = useAuth();
@@ -12,6 +13,12 @@ function Usuarios() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
+  
+  // Estados de paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(5);
+  const [pagination, setPagination] = useState(null);
+  
   const [formData, setFormData] = useState({
     nome: '',
     login: '',
@@ -22,13 +29,22 @@ function Usuarios() {
 
   useEffect(() => {
     carregarUsuarios();
-  }, []);
+  }, [currentPage, perPage]);
 
   const carregarUsuarios = async () => {
     try {
       setLoading(true);
-      const response = await usuarioService.listar();
-      setUsuarios(response.data);
+      const response = await usuarioService.listar(currentPage, perPage);
+      
+      if (response.data.items) {
+        // Com paginação
+        setUsuarios(response.data.items);
+        setPagination(response.data.pagination);
+      } else {
+        // Sem paginação (fallback)
+        setUsuarios(response.data);
+        setPagination(null);
+      }
     } catch (error) {
       console.error('Erro ao carregar usuários:', error);
       toast.error('Erro ao carregar usuários');
@@ -37,54 +53,56 @@ function Usuarios() {
     }
   };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        
-        if (!formData.nome || !formData.login) {
-        toast.error('Nome e login são obrigatórios');
-        return;
-        }
+  const handlePageChange = (newPage, newPerPage = perPage) => {
+    setCurrentPage(newPage);
+    if (newPerPage !== perPage) {
+      setPerPage(newPerPage);
+      setCurrentPage(1);
+    }
+  };
 
-        if (!editando && !formData.senha) {
-        toast.error('Senha é obrigatória para novos usuários');
-        return;
-        }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.nome || !formData.login) {
+      toast.error('Nome e login são obrigatórios');
+      return;
+    }
 
-        try {
-        // Garantir que os dados estão no formato correto
-        const dataToSend = {
-            nome: formData.nome.trim(),
-            login: formData.login.trim(),
-            role: formData.role,
-            ativo: Boolean(formData.ativo) // Garantir que é boolean
-        };
+    if (!editando && !formData.senha) {
+      toast.error('Senha é obrigatória para novos usuários');
+      return;
+    }
 
-        if (editando) {
-            // Só adiciona senha se foi preenchida
-            if (formData.senha && formData.senha.trim()) {
-            dataToSend.senha = formData.senha;
-            }
-            
-            console.log('Atualizando usuário:', dataToSend);
-            await usuarioService.atualizar(editando.id, dataToSend);
-            toast.success('Usuário atualizado com sucesso!');
-        } else {
-            // Ao criar, senha é obrigatória
-            dataToSend.senha = formData.senha;
-            
-            console.log('Criando novo usuário:', dataToSend);
-            await usuarioService.criar(dataToSend);
-            toast.success('Usuário criado com sucesso!');
+    try {
+      const dataToSend = {
+        nome: formData.nome.trim(),
+        login: formData.login.trim(),
+        role: formData.role,
+        ativo: Boolean(formData.ativo)
+      };
+
+      if (editando) {
+        if (formData.senha && formData.senha.trim()) {
+          dataToSend.senha = formData.senha;
         }
         
-        resetForm();
-        carregarUsuarios();
-        } catch (error) {
-        console.error('Erro ao salvar usuário:', error);
-        console.error('Response:', error.response?.data);
-        toast.error(error.response?.data?.error || 'Erro ao salvar usuário');
-        }
-    };
+        await usuarioService.atualizar(editando.id, dataToSend);
+        toast.success('Usuário atualizado com sucesso!');
+      } else {
+        dataToSend.senha = formData.senha;
+        
+        await usuarioService.criar(dataToSend);
+        toast.success('Usuário criado com sucesso!');
+      }
+      
+      resetForm();
+      carregarUsuarios();
+    } catch (error) {
+      console.error('Erro ao salvar usuário:', error);
+      toast.error(error.response?.data?.error || 'Erro ao salvar usuário');
+    }
+  };
 
   const handleEdit = (usuario) => {
     setEditando(usuario);
@@ -234,7 +252,7 @@ function Usuarios() {
     );
   };
 
-  if (loading) {
+  if (loading && usuarios.length === 0) {
     return <div className="loading">Carregando...</div>;
   }
 
@@ -333,53 +351,61 @@ function Usuarios() {
             <p>Clique em "+ Novo Usuário" para começar</p>
           </div>
         ) : (
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Login</th>
-                  <th>Perfil</th>
-                  <th>Status</th>
-                  <th>Cadastro</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {usuarios.map(usuario => (
-                  <tr key={usuario.id}>
-                    <td><strong>{usuario.nome}</strong></td>
-                    <td>{usuario.login}</td>
-                    <td>{getRoleBadge(usuario.role)}</td>
-                    <td>{getStatusBadge(usuario.ativo)}</td>
-                    <td>
-                      {usuario.created_at 
-                        ? new Date(usuario.created_at).toLocaleDateString('pt-BR')
-                        : '-'}
-                    </td>
-                    <td>
-                      <div style={{display: 'flex', gap: '5px'}}>
-                        <button 
-                          className="btn btn-primary btn-small" 
-                          onClick={() => handleEdit(usuario)}
-                        >
-                          <FontAwesomeIcon icon={faEdit} /> Editar
-                        </button>
-                        {usuario.id !== user.id && (
-                          <button 
-                            className="btn btn-danger btn-small" 
-                            onClick={() => handleDelete(usuario.id, usuario.nome)}
-                          >
-                            <FontAwesomeIcon icon={faTrash} /> Deletar
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          <>
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Login</th>
+                    <th>Perfil</th>
+                    <th>Status</th>
+                    <th>Cadastro</th>
+                    <th>Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>  
+                </thead>
+                <tbody>
+                  {usuarios.map(usuario => (
+                    <tr key={usuario.id}>
+                      <td><strong>{usuario.nome}</strong></td>
+                      <td>{usuario.login}</td>
+                      <td>{getRoleBadge(usuario.role)}</td>
+                      <td>{getStatusBadge(usuario.ativo)}</td>
+                      <td>
+                        {usuario.created_at 
+                          ? new Date(usuario.created_at).toLocaleDateString('pt-BR')
+                          : '-'}
+                      </td>
+                      <td>
+                        <div style={{display: 'flex', gap: '5px'}}>
+                          <button 
+                            className="btn btn-primary btn-small" 
+                            onClick={() => handleEdit(usuario)}
+                          >
+                            <FontAwesomeIcon icon={faEdit} /> Editar
+                          </button>
+                          {usuario.id !== user.id && (
+                            <button 
+                              className="btn btn-danger btn-small" 
+                              onClick={() => handleDelete(usuario.id, usuario.nome)}
+                            >
+                              <FontAwesomeIcon icon={faTrash} /> Deletar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Componente de Paginação */}
+            <Pagination 
+              pagination={pagination}
+              onPageChange={handlePageChange}
+            />
+          </>
         )}
       </div>
     </div>

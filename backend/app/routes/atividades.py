@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models import Atividade, Projeto, Squad
+from app.utils.pagination import paginate_query
 from datetime import datetime
 
 bp = Blueprint('atividades', __name__, url_prefix='/api/atividades')
@@ -8,7 +9,7 @@ bp = Blueprint('atividades', __name__, url_prefix='/api/atividades')
 
 @bp.route('', methods=['GET'])
 def listar_atividades():
-    """Lista todas as atividades com filtros opcionais"""
+    """Lista todas as atividades com filtros opcionais e paginação"""
     try:
         query = Atividade.query
         
@@ -27,8 +28,21 @@ def listar_atividades():
         if prioridade:
             query = query.filter_by(prioridade=prioridade)
         
-        atividades = query.all()
-        return jsonify([atividade.to_dict() for atividade in atividades]), 200
+        # Ordenar por data de criação (mais recentes primeiro)
+        query = query.order_by(Atividade.created_at.desc())
+        
+        # Verificar se a paginação foi solicitada
+        if request.args.get('page'):
+            # Com paginação
+            result = paginate_query(query, default_per_page=5)
+            return jsonify({
+                'items': [atividade.to_dict() for atividade in result['items']],
+                'pagination': result['pagination']
+            }), 200
+        else:
+            # Sem paginação (compatibilidade com código antigo)
+            atividades = query.all()
+            return jsonify([atividade.to_dict() for atividade in atividades]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

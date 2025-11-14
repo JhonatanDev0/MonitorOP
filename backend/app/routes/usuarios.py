@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.models import db, Usuario
+from app.utils.pagination import paginate_query
 
 usuarios_bp = Blueprint('usuarios', __name__, url_prefix='/api/usuarios')
 
@@ -14,13 +15,25 @@ def admin_required():
 @usuarios_bp.route('', methods=['GET'])
 @jwt_required()
 def listar_usuarios():
-    """Lista todos os usuários (apenas Admin)"""
+    """Lista todos os usuários (apenas Admin) com paginação opcional"""
     try:
         if not admin_required():
             return jsonify({'error': 'Acesso negado'}), 403
         
-        usuarios = Usuario.query.all()
-        return jsonify([u.to_dict() for u in usuarios]), 200
+        query = Usuario.query.order_by(Usuario.nome)
+        
+        # Verificar se a paginação foi solicitada
+        if request.args.get('page'):
+            # Com paginação
+            result = paginate_query(query, default_per_page=5)
+            return jsonify({
+                'items': [u.to_dict() for u in result['items']],
+                'pagination': result['pagination']
+            }), 200
+        else:
+            # Sem paginação (compatibilidade com código antigo)
+            usuarios = query.all()
+            return jsonify([u.to_dict() for u in usuarios]), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -49,7 +62,7 @@ def criar_usuario():
             nome=data['nome'],
             login=data['login'],
             role=data.get('role', 'analista'),
-            ativo=data.get('ativo', True)  # ← ADICIONAR ESTA LINHA
+            ativo=data.get('ativo', True)
         )
         usuario.set_senha(data['senha'])
         
@@ -60,7 +73,7 @@ def criar_usuario():
         
     except Exception as e:
         db.session.rollback()
-        print(f"Erro ao criar usuário: {str(e)}")  # ← Log para debug
+        print(f"Erro ao criar usuário: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -87,7 +100,7 @@ def atualizar_usuario(id):
         if 'role' in data:
             usuario.role = data['role']
         if 'ativo' in data:
-            usuario.ativo = bool(data['ativo'])  # ← Garantir que é boolean
+            usuario.ativo = bool(data['ativo'])
         if 'senha' in data and data['senha']:
             usuario.set_senha(data['senha'])
         
@@ -96,7 +109,7 @@ def atualizar_usuario(id):
         
     except Exception as e:
         db.session.rollback()
-        print(f"Erro ao atualizar usuário: {str(e)}")  # ← Log para debug
+        print(f"Erro ao atualizar usuário: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 

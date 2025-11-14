@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
+import Pagination from '../components/Pagination';
 
 function Squads() {
   const { isAdmin } = useAuth();
@@ -12,6 +13,12 @@ function Squads() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
+  
+  // Estados de paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [perPage, setPerPage] = useState(5);
+  const [pagination, setPagination] = useState(null);
+  
   const [formData, setFormData] = useState({
     nome: '',
     descricao: ''
@@ -19,18 +26,35 @@ function Squads() {
 
   useEffect(() => {
     carregarSquads();
-  }, []);
+  }, [currentPage, perPage]);
 
   const carregarSquads = async () => {
     try {
       setLoading(true);
-      const response = await squadService.listar();
-      setSquads(response.data);
+      const response = await squadService.listar(currentPage, perPage);
+      
+      if (response.data.items) {
+        // Com paginação
+        setSquads(response.data.items);
+        setPagination(response.data.pagination);
+      } else {
+        // Sem paginação (fallback)
+        setSquads(response.data);
+        setPagination(null);
+      }
     } catch (error) {
       console.error('Erro ao carregar squads:', error);
       toast.error('Erro ao carregar squads');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage, newPerPage = perPage) => {
+    setCurrentPage(newPage);
+    if (newPerPage !== perPage) {
+      setPerPage(newPerPage);
+      setCurrentPage(1); // Voltar para primeira página ao mudar itens por página
     }
   };
 
@@ -161,7 +185,7 @@ function Squads() {
     setShowForm(false);
   };
 
-  if (loading) {
+  if (loading && squads.length === 0) {
     return <div className="loading">Carregando...</div>;
   }
 
@@ -220,49 +244,57 @@ function Squads() {
             <p>Clique em "Nova Squad" para começar</p>
           </div>
         ) : (
-          <div className="table-container">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Nome</th>
-                  <th>Descrição</th>
-                  <th>Projetos</th>
-                  <th>Atividades</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {squads.map(squad => (
-                  <tr key={squad.id}>
-                    <td><strong>{squad.nome}</strong></td>
-                    <td>{squad.descricao || '-'}</td>
-                    <td>{squad.total_projetos}</td>
-                    <td>{squad.total_atividades}</td>
-                    <td>
-                      {isAdmin() ? (
-                        <div style={{display: 'flex', gap: '5px'}}>
-                          <button 
-                            className="btn btn-primary btn-small" 
-                            onClick={() => handleEdit(squad)}
-                          >
-                            <FontAwesomeIcon icon={faEdit} /> Editar
-                          </button>
-                          <button 
-                            className="btn btn-danger btn-small" 
-                            onClick={() => handleDelete(squad.id)}
-                          >
-                            <FontAwesomeIcon icon={faTrash} /> Deletar
-                          </button>
-                        </div>
-                      ) : (
-                        <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
-                      )}
-                    </td>
+          <>
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Descrição</th>
+                    <th>Projetos</th>
+                    <th>Atividades</th>
+                    <th>Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>  
+                </thead>
+                <tbody>
+                  {squads.map(squad => (
+                    <tr key={squad.id}>
+                      <td><strong>{squad.nome}</strong></td>
+                      <td>{squad.descricao || '-'}</td>
+                      <td>{squad.total_projetos}</td>
+                      <td>{squad.total_atividades}</td>
+                      <td>
+                        {isAdmin() ? (
+                          <div style={{display: 'flex', gap: '5px'}}>
+                            <button 
+                              className="btn btn-primary btn-small" 
+                              onClick={() => handleEdit(squad)}
+                            >
+                              <FontAwesomeIcon icon={faEdit} /> Editar
+                            </button>
+                            <button 
+                              className="btn btn-danger btn-small" 
+                              onClick={() => handleDelete(squad.id)}
+                            >
+                              <FontAwesomeIcon icon={faTrash} /> Deletar
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            
+            {/* Componente de Paginação */}
+            <Pagination 
+              pagination={pagination}
+              onPageChange={handlePageChange}
+            />
+          </>
         )}
       </div>
     </div>

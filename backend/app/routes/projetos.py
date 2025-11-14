@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from app import db
 from app.models import Projeto, Squad
+from app.utils.pagination import paginate_query
 from datetime import datetime
 
 bp = Blueprint('projetos', __name__, url_prefix='/api/projetos')
@@ -8,10 +9,22 @@ bp = Blueprint('projetos', __name__, url_prefix='/api/projetos')
 
 @bp.route('', methods=['GET'])
 def listar_projetos():
-    """Lista todos os projetos"""
+    """Lista todos os projetos com paginação opcional"""
     try:
-        projetos = Projeto.query.all()
-        return jsonify([projeto.to_dict() for projeto in projetos]), 200
+        query = Projeto.query.order_by(Projeto.created_at.desc())
+        
+        # Verificar se a paginação foi solicitada
+        if request.args.get('page'):
+            # Com paginação
+            result = paginate_query(query, default_per_page=5)  # Alterado para 5 para visualizar com poucos itens
+            return jsonify({
+                'items': [projeto.to_dict() for projeto in result['items']],
+                'pagination': result['pagination']
+            }), 200
+        else:
+            # Sem paginação (compatibilidade com código antigo)
+            projetos = query.all()
+            return jsonify([projeto.to_dict() for projeto in projetos]), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -39,7 +52,7 @@ def criar_projeto():
         projeto = Projeto(
             subprograma=data.get('subprograma', ''),
             nome=data['nome'],
-            ordem_producao=data.get('ordem_producao', ''),  # ADICIONAR ESTA LINHA
+            ordem_producao=data.get('ordem_producao', ''),
             etapas=data.get('etapas', ''),
             disciplinas=data.get('disciplinas', ''),
             tipos_processamento=data.get('tipos_processamento', ''),
@@ -79,7 +92,7 @@ def atualizar_projeto(id):
         if 'nome' in data:
             projeto.nome = data['nome']
         if 'ordem_producao' in data:
-            projeto.ordem_producao = data['ordem_producao']  # ADICIONAR ESTA LINHA
+            projeto.ordem_producao = data['ordem_producao']
         if 'etapas' in data:
             projeto.etapas = data['etapas']
         if 'disciplinas' in data:
