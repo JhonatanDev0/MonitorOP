@@ -9,14 +9,33 @@ bp = Blueprint('projetos', __name__, url_prefix='/api/projetos')
 
 @bp.route('', methods=['GET'])
 def listar_projetos():
-    """Lista todos os projetos com paginação opcional"""
+    """Lista todos os projetos com paginação e busca opcional"""
     try:
-        query = Projeto.query.order_by(Projeto.created_at.desc())
+        query = Projeto.query
+        
+        # Filtros de busca
+        if request.args.get('search_subprograma'):
+            query = query.filter(Projeto.subprograma.ilike(f"%{request.args.get('search_subprograma')}%"))
+        
+        if request.args.get('search_nome'):
+            query = query.filter(Projeto.nome.ilike(f"%{request.args.get('search_nome')}%"))
+        
+        if request.args.get('search_ordem_producao'):
+            query = query.filter(Projeto.ordem_producao.ilike(f"%{request.args.get('search_ordem_producao')}%"))
+        
+        if request.args.get('search_disciplinas'):
+            query = query.filter(Projeto.disciplinas.ilike(f"%{request.args.get('search_disciplinas')}%"))
+        
+        if request.args.get('search_tipos_processamento'):
+            query = query.filter(Projeto.tipos_processamento.ilike(f"%{request.args.get('search_tipos_processamento')}%"))
+        
+        # Ordenar
+        query = query.order_by(Projeto.created_at.desc())
         
         # Verificar se a paginação foi solicitada
         if request.args.get('page'):
             # Com paginação
-            result = paginate_query(query, default_per_page=5)  # Alterado para 5 para visualizar com poucos itens
+            result = paginate_query(query, default_per_page=5)
             return jsonify({
                 'items': [projeto.to_dict() for projeto in result['items']],
                 'pagination': result['pagination']
