@@ -6,6 +6,7 @@ import { faPlus, faEdit, faTrash, faSave, faTimes, faFilterCircleXmark } from '@
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
 import Pagination from '../components/Pagination';
+import '../styles/Dashboard.css';
 
 function Atividades() {
   const { isAdmin } = useAuth();
@@ -30,8 +31,11 @@ function Atividades() {
   
   const [formData, setFormData] = useState({
     titulo: '',
-    descricao: '',
-    prazo: '',
+    observacao: '',
+    inicio_programado: '',
+    inicio_realizado: '',
+    fim_programado: '',
+    fim_realizado: '',
     prioridade: 'media',
     status: 'pendente',
     projeto_id: '',
@@ -69,11 +73,9 @@ function Atividades() {
       const response = await atividadeService.listar(filtrosLimpos, currentPage, perPage);
       
       if (response.data.items) {
-        // Com paginação
         setAtividades(response.data.items);
         setPagination(response.data.pagination);
       } else {
-        // Sem paginação (fallback)
         setAtividades(response.data);
         setPagination(null);
       }
@@ -115,8 +117,11 @@ function Atividades() {
     setEditando(atividade);
     setFormData({
       titulo: atividade.titulo,
-      descricao: atividade.descricao || '',
-      prazo: atividade.prazo || '',
+      observacao: atividade.observacao || '',
+      inicio_programado: atividade.inicio_programado || '',
+      inicio_realizado: atividade.inicio_realizado || '',
+      fim_programado: atividade.fim_programado || '',
+      fim_realizado: atividade.fim_realizado || '',
       prioridade: atividade.prioridade,
       status: atividade.status,
       projeto_id: atividade.projeto.id,
@@ -222,8 +227,11 @@ function Atividades() {
   const resetForm = () => {
     setFormData({
       titulo: '',
-      descricao: '',
-      prazo: '',
+      observacao: '',
+      inicio_programado: '',
+      inicio_realizado: '',
+      fim_programado: '',
+      fim_realizado: '',
       prioridade: 'media',
       status: 'pendente',
       projeto_id: '',
@@ -240,7 +248,7 @@ function Atividades() {
       status: '',
       prioridade: ''
     });
-    setCurrentPage(1); // Voltar para primeira página
+    setCurrentPage(1);
   };
 
   const getStatusBadge = (status) => {
@@ -290,11 +298,11 @@ function Atividades() {
             </div>
 
             <div className="form-group">
-              <label>Descrição</label>
+              <label>Observação</label>
               <textarea
                 className="form-control"
-                value={formData.descricao}
-                onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+                value={formData.observacao}
+                onChange={(e) => setFormData({...formData, observacao: e.target.value})}
               />
             </div>
 
@@ -330,17 +338,49 @@ function Atividades() {
               </div>
             </div>
 
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px'}}>
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px'}}>
               <div className="form-group">
-                <label>Prazo</label>
+                <label>Início Programado</label>
                 <input
                   type="date"
                   className="form-control"
-                  value={formData.prazo}
-                  onChange={(e) => setFormData({...formData, prazo: e.target.value})}
+                  value={formData.inicio_programado}
+                  onChange={(e) => setFormData({...formData, inicio_programado: e.target.value})}
                 />
               </div>
 
+              <div className="form-group">
+                <label>Início Realizado</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={formData.inicio_realizado}
+                  onChange={(e) => setFormData({...formData, inicio_realizado: e.target.value})}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Fim Programado</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={formData.fim_programado}
+                  onChange={(e) => setFormData({...formData, fim_programado: e.target.value})}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Fim Realizado</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  value={formData.fim_realizado}
+                  onChange={(e) => setFormData({...formData, fim_realizado: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
               <div className="form-group">
                 <label>Prioridade</label>
                 <select
@@ -379,81 +419,86 @@ function Atividades() {
           </form>
         )}
 
-        <div className="filters">
-          <div className="filter-item">
-            <label>Filtrar por Projeto</label>
-            <select
-              className="form-control"
-              value={filtros.projeto_id}
-              onChange={(e) => {
-                setFiltros({...filtros, projeto_id: e.target.value});
-                setCurrentPage(1); // Voltar para primeira página ao filtrar
-              }}
-            >
-              <option value="">Todos</option>
-              {projetos.map(p => (
-                <option key={p.id} value={p.id}>{p.nome}</option>
-              ))}
-            </select>
+        {/* Filtros com estilo do Dashboard */}
+        <div className="dashboard-filters" style={{marginTop: '20px'}}>
+          <div className="filter-row">
+            <div className="filter-item">
+              <label>Filtrar por Projeto</label>
+              <select
+                className="form-control"
+                value={filtros.projeto_id}
+                onChange={(e) => {
+                  setFiltros({...filtros, projeto_id: e.target.value});
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="">Todos</option>
+                {projetos.map(p => (
+                  <option key={p.id} value={p.id}>{p.nome}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-item">
+              <label>Filtrar por Squad</label>
+              <select
+                className="form-control"
+                value={filtros.squad_id}
+                onChange={(e) => {
+                  setFiltros({...filtros, squad_id: e.target.value});
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="">Todas</option>
+                {squads.map(s => (
+                  <option key={s.id} value={s.id}>{s.nome}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-item">
+              <label>Filtrar por Status</label>
+              <select
+                className="form-control"
+                value={filtros.status}
+                onChange={(e) => {
+                  setFiltros({...filtros, status: e.target.value});
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="">Todos</option>
+                <option value="pendente">Pendente</option>
+                <option value="em_andamento">Em Andamento</option>
+                <option value="concluida">Concluída</option>
+              </select>
+            </div>
+
+            <div className="filter-item">
+              <label>Filtrar por Prioridade</label>
+              <select
+                className="form-control"
+                value={filtros.prioridade}
+                onChange={(e) => {
+                  setFiltros({...filtros, prioridade: e.target.value});
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="">Todas</option>
+                <option value="baixa">Baixa</option>
+                <option value="media">Média</option>
+                <option value="alta">Alta</option>
+              </select>
+            </div>
           </div>
 
-          <div className="filter-item">
-            <label>Filtrar por Squad</label>
-            <select
-              className="form-control"
-              value={filtros.squad_id}
-              onChange={(e) => {
-                setFiltros({...filtros, squad_id: e.target.value});
-                setCurrentPage(1);
-              }}
-            >
-              <option value="">Todas</option>
-              {squads.map(s => (
-                <option key={s.id} value={s.id}>{s.nome}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-item">
-            <label>Filtrar por Status</label>
-            <select
-              className="form-control"
-              value={filtros.status}
-              onChange={(e) => {
-                setFiltros({...filtros, status: e.target.value});
-                setCurrentPage(1);
-              }}
-            >
-              <option value="">Todos</option>
-              <option value="pendente">Pendente</option>
-              <option value="em_andamento">Em Andamento</option>
-              <option value="concluida">Concluída</option>
-            </select>
-          </div>
-
-          <div className="filter-item">
-            <label>Filtrar por Prioridade</label>
-            <select
-              className="form-control"
-              value={filtros.prioridade}
-              onChange={(e) => {
-                setFiltros({...filtros, prioridade: e.target.value});
-                setCurrentPage(1);
-              }}
-            >
-              <option value="">Todas</option>
-              <option value="baixa">Baixa</option>
-              <option value="media">Média</option>
-              <option value="alta">Alta</option>
-            </select>
-          </div>
+          {(filtros.projeto_id || filtros.squad_id || filtros.status || filtros.prioridade) && (
+            <div className="filter-actions">
+              <button className="btn btn-secondary btn-small" onClick={limparFiltros}>
+                <FontAwesomeIcon icon={faFilterCircleXmark} /> Limpar Filtros
+              </button>
+            </div>
+          )}
         </div>
-
-        {(filtros.projeto_id || filtros.squad_id || filtros.status || filtros.prioridade) && (
-          <button className="btn btn-secondary btn-small" onClick={limparFiltros}>
-            <FontAwesomeIcon icon={faFilterCircleXmark} /> Limpar Filtros
-          </button>
-        )}
 
         {atividades.length === 0 ? (
           <div className="empty-state">
@@ -473,7 +518,10 @@ function Atividades() {
                     <th>Título</th>
                     <th>Projeto</th>
                     <th>Squad</th>
-                    <th>Prazo</th>
+                    <th>Início Prog.</th>
+                    <th>Início Real.</th>
+                    <th>Fim Prog.</th>
+                    <th>Fim Real.</th>
                     <th>Status</th>
                     <th>Prioridade</th>
                     <th>Ações</th>
@@ -486,8 +534,23 @@ function Atividades() {
                       <td>{atividade.projeto.nome}</td>
                       <td>{atividade.squad.nome}</td>
                       <td>
-                        {atividade.prazo 
-                          ? new Date(atividade.prazo).toLocaleDateString()
+                        {atividade.inicio_programado 
+                          ? new Date(atividade.inicio_programado).toLocaleDateString()
+                          : '-'}
+                      </td>
+                      <td>
+                        {atividade.inicio_realizado 
+                          ? new Date(atividade.inicio_realizado).toLocaleDateString()
+                          : '-'}
+                      </td>
+                      <td>
+                        {atividade.fim_programado 
+                          ? new Date(atividade.fim_programado).toLocaleDateString()
+                          : '-'}
+                      </td>
+                      <td>
+                        {atividade.fim_realizado 
+                          ? new Date(atividade.fim_realizado).toLocaleDateString()
                           : '-'}
                       </td>
                       <td>{getStatusBadge(atividade.status)}</td>
@@ -518,7 +581,6 @@ function Atividades() {
               </table>
             </div>
             
-            {/* Componente de Paginação */}
             <Pagination 
               pagination={pagination}
               onPageChange={handlePageChange}

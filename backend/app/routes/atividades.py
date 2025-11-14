@@ -83,16 +83,22 @@ def criar_atividade():
         
         atividade = Atividade(
             titulo=data['titulo'],
-            descricao=data.get('descricao', ''),
+            observacao=data.get('observacao', ''),
             prioridade=data.get('prioridade', 'media'),
             status=data.get('status', 'pendente'),
             projeto_id=data['projeto_id'],
             squad_id=data['squad_id']
         )
         
-        # Prazo opcional
-        if data.get('prazo'):
-            atividade.prazo = datetime.strptime(data['prazo'], '%Y-%m-%d').date()
+        # Datas opcionais
+        if data.get('inicio_programado'):
+            atividade.inicio_programado = datetime.strptime(data['inicio_programado'], '%Y-%m-%d').date()
+        if data.get('inicio_realizado'):
+            atividade.inicio_realizado = datetime.strptime(data['inicio_realizado'], '%Y-%m-%d').date()
+        if data.get('fim_programado'):
+            atividade.fim_programado = datetime.strptime(data['fim_programado'], '%Y-%m-%d').date()
+        if data.get('fim_realizado'):
+            atividade.fim_realizado = datetime.strptime(data['fim_realizado'], '%Y-%m-%d').date()
         
         db.session.add(atividade)
         db.session.commit()
@@ -113,8 +119,8 @@ def atualizar_atividade(id):
         # Atualizar campos
         if 'titulo' in data:
             atividade.titulo = data['titulo']
-        if 'descricao' in data:
-            atividade.descricao = data['descricao']
+        if 'observacao' in data:
+            atividade.observacao = data['observacao']
         if 'prioridade' in data:
             if data['prioridade'] not in ['baixa', 'media', 'alta']:
                 return jsonify({'error': 'Prioridade inválida. Use: baixa, media ou alta'}), 400
@@ -123,8 +129,14 @@ def atualizar_atividade(id):
             if data['status'] not in ['pendente', 'em_andamento', 'concluida']:
                 return jsonify({'error': 'Status inválido. Use: pendente, em_andamento ou concluida'}), 400
             atividade.status = data['status']
-        if 'prazo' in data:
-            atividade.prazo = datetime.strptime(data['prazo'], '%Y-%m-%d').date() if data['prazo'] else None
+        if 'inicio_programado' in data:
+            atividade.inicio_programado = datetime.strptime(data['inicio_programado'], '%Y-%m-%d').date() if data['inicio_programado'] else None
+        if 'inicio_realizado' in data:
+            atividade.inicio_realizado = datetime.strptime(data['inicio_realizado'], '%Y-%m-%d').date() if data['inicio_realizado'] else None
+        if 'fim_programado' in data:
+            atividade.fim_programado = datetime.strptime(data['fim_programado'], '%Y-%m-%d').date() if data['fim_programado'] else None
+        if 'fim_realizado' in data:
+            atividade.fim_realizado = datetime.strptime(data['fim_realizado'], '%Y-%m-%d').date() if data['fim_realizado'] else None
         if 'projeto_id' in data:
             projeto = Projeto.query.get(data['projeto_id'])
             if not projeto:

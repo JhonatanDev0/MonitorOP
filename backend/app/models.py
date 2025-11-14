@@ -74,8 +74,11 @@ class Atividade(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     titulo = db.Column(db.String(200), nullable=False)
-    descricao = db.Column(db.Text)
-    prazo = db.Column(db.Date)
+    observacao = db.Column(db.Text)
+    inicio_programado = db.Column(db.Date)
+    inicio_realizado = db.Column(db.Date)
+    fim_programado = db.Column(db.Date)
+    fim_realizado = db.Column(db.Date)
     prioridade = db.Column(db.String(20), default='media')  # baixa, media, alta
     status = db.Column(db.String(20), default='pendente')  # pendente, em_andamento, concluida
     projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
@@ -90,8 +93,11 @@ class Atividade(db.Model):
         return {
             'id': self.id,
             'titulo': self.titulo,
-            'descricao': self.descricao,
-            'prazo': self.prazo.isoformat() if self.prazo else None,
+            'observacao': self.observacao,
+            'inicio_programado': self.inicio_programado.isoformat() if self.inicio_programado else None,
+            'inicio_realizado': self.inicio_realizado.isoformat() if self.inicio_realizado else None,
+            'fim_programado': self.fim_programado.isoformat() if self.fim_programado else None,
+            'fim_realizado': self.fim_realizado.isoformat() if self.fim_realizado else None,
             'prioridade': self.prioridade,
             'status': self.status,
             'projeto': {'id': self.projeto.id, 'nome': self.projeto.nome},
