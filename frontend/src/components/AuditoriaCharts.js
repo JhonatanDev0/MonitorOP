@@ -13,7 +13,7 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartPie, faCalendarCheck } from '@fortawesome/free-solid-svg-icons';
+import { faChartPie, faChartBar, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import '../styles/AuditoriaCharts.css';
 
 // Registrar componentes do Chart.js
@@ -30,7 +30,7 @@ ChartJS.register(
 );
 
 function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
-  const [chartType, setChartType] = useState('pizza'); // pizza, prazo
+  const [chartType, setChartType] = useState('pizza'); // pizza, status
 
   // Função para formatar data
   const formatarData = (dataString) => {
@@ -95,88 +95,32 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
     };
   };
 
-  // Configuração do gráfico de prazo (comparação de datas)
-  const getPrazoChartData = () => {
+  // Gráfico de barras por STATUS das atividades
+  const getStatusChartData = () => {
     if (!atividadesSquad || atividadesSquad.length === 0) return null;
 
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    const atividades = atividadesSquad.slice(0, 5); // Pegar até 5 atividades
-
-    const labels = atividades.map(a => a.titulo);
-    const datasProgramadas = [];
-    const datasRealizadas = [];
-    const cores = [];
-    const coresBorda = [];
-
-    atividades.forEach(atividade => {
-      const fimProgramado = atividade.fim_programado ? new Date(atividade.fim_programado) : null;
-      const fimRealizado = atividade.fim_realizado ? new Date(atividade.fim_realizado) : null;
-
-      if (fimProgramado) {
-        fimProgramado.setHours(0, 0, 0, 0);
-      }
-      if (fimRealizado) {
-        fimRealizado.setHours(0, 0, 0, 0);
-      }
-
-      // Calcular dias desde hoje (ou até hoje)
-      const diasProgramado = fimProgramado 
-        ? Math.ceil((fimProgramado - hoje) / (1000 * 60 * 60 * 24))
-        : 0;
-      
-      const diasRealizado = fimRealizado 
-        ? Math.ceil((fimRealizado - hoje) / (1000 * 60 * 60 * 24))
-        : null;
-
-      datasProgramadas.push(diasProgramado);
-      datasRealizadas.push(diasRealizado);
-
-      // Definir cores baseado no status
-      if (atividade.status === 'concluida') {
-        // Atividade concluída
-        if (fimRealizado && fimProgramado && fimRealizado <= fimProgramado) {
-          // Concluída no prazo
-          cores.push('rgba(46, 204, 113, 0.8)');
-          coresBorda.push('rgba(46, 204, 113, 1)');
-        } else {
-          // Concluída com atraso
-          cores.push('rgba(243, 156, 18, 0.8)');
-          coresBorda.push('rgba(243, 156, 18, 1)');
-        }
-      } else {
-        // Atividade não concluída
-        if (fimProgramado && hoje > fimProgramado) {
-          // Atrasada
-          cores.push('rgba(231, 76, 60, 0.8)');
-          coresBorda.push('rgba(231, 76, 60, 1)');
-        } else {
-          // No prazo
-          cores.push('rgba(52, 152, 219, 0.8)');
-          coresBorda.push('rgba(52, 152, 219, 1)');
-        }
-      }
-    });
+    // Contar atividades por status
+    const pendentes = atividadesSquad.filter(a => a.status === 'pendente').length;
+    const emAndamento = atividadesSquad.filter(a => a.status === 'em_andamento').length;
+    const concluidas = atividadesSquad.filter(a => a.status === 'concluida').length;
 
     return {
-      labels,
-      datasets: [
-        {
-          label: 'Fim Programado (dias)',
-          data: datasProgramadas,
-          backgroundColor: 'rgba(155, 89, 182, 0.6)',
-          borderColor: 'rgba(155, 89, 182, 1)',
-          borderWidth: 2
-        },
-        {
-          label: 'Fim Realizado (dias)',
-          data: datasRealizadas,
-          backgroundColor: cores,
-          borderColor: coresBorda,
-          borderWidth: 2
-        }
-      ]
+      labels: ['Pendente', 'Em Andamento', 'Concluída'],
+      datasets: [{
+        label: 'Quantidade de Atividades',
+        data: [pendentes, emAndamento, concluidas],
+        backgroundColor: [
+          'rgba(231, 76, 60, 0.8)',   // Vermelho - Pendente
+          'rgba(52, 152, 219, 0.8)',  // Azul - Em Andamento
+          'rgba(46, 204, 113, 0.8)'   // Verde - Concluída
+        ],
+        borderColor: [
+          'rgba(231, 76, 60, 1)',
+          'rgba(52, 152, 219, 1)',
+          'rgba(46, 204, 113, 1)'
+        ],
+        borderWidth: 2
+      }]
     };
   };
 
@@ -207,7 +151,8 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
           tipo: 'atrasada',
           atividade: atividade.titulo,
           mensagem: `Atrasada há ${diasAtraso} dia(s)`,
-          cor: '#e74c3c'
+          cor: '#e74c3c',
+          observacao: atividade.observacao
         });
       }
       // Atividade concluída com atraso
@@ -217,7 +162,8 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
           tipo: 'concluida_atrasada',
           atividade: atividade.titulo,
           mensagem: `Concluída com ${diasAtraso} dia(s) de atraso`,
-          cor: '#f39c12'
+          cor: '#f39c12',
+          observacao: atividade.observacao
         });
       }
       // Atividade próxima do prazo (menos de 3 dias)
@@ -228,13 +174,28 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
             tipo: 'prazo_proximo',
             atividade: atividade.titulo,
             mensagem: `Vence em ${diasRestantes} dia(s)`,
-            cor: '#f39c12'
+            cor: '#f39c12',
+            observacao: atividade.observacao
           });
         }
       }
     });
 
     return alertas;
+  };
+
+  // NOVO: Criar lista de atividades com observação (mesmo sem alerta)
+  const getAtividadesComObservacao = () => {
+    if (!atividadesSquad || atividadesSquad.length === 0) return [];
+
+    // Pegar todas as atividades que têm observação
+    return atividadesSquad
+      .filter(a => a.observacao && a.observacao.trim() !== '')
+      .map(a => ({
+        titulo: a.titulo,
+        observacao: a.observacao,
+        status: a.status
+      }));
   };
 
   const chartOptions = {
@@ -255,31 +216,6 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
         },
         bodyFont: {
           size: 13
-        },
-        callbacks: {
-          label: function(context) {
-            let label = context.dataset.label || '';
-            if (label) {
-              label += ': ';
-            }
-            if (context.parsed.y !== null) {
-              const valor = context.parsed.y;
-              if (chartType === 'prazo') {
-                if (valor === null) {
-                  label += 'Não finalizada';
-                } else if (valor === 0) {
-                  label += 'Hoje';
-                } else if (valor > 0) {
-                  label += `Em ${valor} dia(s)`;
-                } else {
-                  label += `Há ${Math.abs(valor)} dia(s)`;
-                }
-              } else {
-                label += valor;
-              }
-            }
-            return label;
-          }
         }
       }
     }
@@ -295,28 +231,13 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
     }
   };
 
-  const prazoOptions = {
+  const barOptions = {
     ...chartOptions,
-    indexAxis: 'y', // Gráfico horizontal
     scales: {
-      x: {
-        title: {
-          display: true,
-          text: 'Dias (negativo = atrasado, positivo = futuro)'
-        },
-        grid: {
-          color: function(context) {
-            if (context.tick.value === 0) {
-              return 'rgba(0, 0, 0, 0.3)';
-            }
-            return 'rgba(0, 0, 0, 0.1)';
-          },
-          lineWidth: function(context) {
-            if (context.tick.value === 0) {
-              return 2;
-            }
-            return 1;
-          }
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1
         }
       }
     }
@@ -333,6 +254,7 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
   const dadoAtual = dados[dados.length - 1];
   const percentualConclusao = dadoAtual.PCT_PACOTE_TRANSCRICAO || 0;
   const alertasPrazo = getAlertasPrazo();
+  const atividadesComObservacao = getAtividadesComObservacao();
 
   return (
     <div className="auditoria-charts">
@@ -372,6 +294,38 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
         </div>
       </div>
 
+      {/* Observações das Atividades */}
+      {atividadesComObservacao.length > 0 && (
+        <div className="observacoes-container">
+          <h4 className="observacoes-title">
+            <FontAwesomeIcon icon={faInfoCircle} style={{ marginRight: '8px' }} />
+            Observações das Atividades
+          </h4>
+          <div className="observacoes-list">
+            {atividadesComObservacao.map((atividade, index) => (
+              <div key={index} className="observacao-item">
+                <div className="observacao-header">
+                  <strong>{atividade.titulo}</strong>
+                  <span className={`observacao-badge badge-status-${atividade.status}`}>
+                    {atividade.status === 'pendente' ? 'Pendente' : 
+                     atividade.status === 'em_andamento' ? 'Em Andamento' : 'Concluída'}
+                  </span>
+                </div>
+                <div className="observacao-tooltip-wrapper">
+                  <FontAwesomeIcon 
+                    icon={faInfoCircle} 
+                    className="observacao-icon"
+                  />
+                  <div className="observacao-tooltip">
+                    {atividade.observacao}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Alertas de Prazo */}
       {alertasPrazo.length > 0 && (
         <div className="alertas-container">
@@ -396,12 +350,12 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
           Resumo (Pizza)
         </button>
         <button 
-          className={`selector-btn ${chartType === 'prazo' ? 'active' : ''}`}
-          onClick={() => setChartType('prazo')}
+          className={`selector-btn ${chartType === 'status' ? 'active' : ''}`}
+          onClick={() => setChartType('status')}
           disabled={!atividadesSquad || atividadesSquad.length === 0}
         >
-          <FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '8px' }} />
-          Comparação de Prazos
+          <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '8px' }} />
+          Status das Atividades
         </button>
       </div>
 
@@ -419,31 +373,27 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
           </div>
         )}
 
-        {chartType === 'prazo' && atividadesSquad && atividadesSquad.length > 0 && (
+        {chartType === 'status' && atividadesSquad && atividadesSquad.length > 0 && (
           <div className="chart-wrapper">
             <h4 className="chart-title">
-              <FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '10px', color: '#3498db' }} />
-              Comparação: Prazo Programado vs Realizado
+              <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '10px', color: '#3498db' }} />
+              Atividades por Status
             </h4>
-            <div style={{ height: '400px' }}>
-              <Bar data={getPrazoChartData()} options={prazoOptions} />
+            <div style={{ height: '350px' }}>
+              <Bar data={getStatusChartData()} options={barOptions} />
             </div>
-            <div className="legenda-prazo">
+            <div className="legenda-status">
               <div className="legenda-item">
-                <span className="legenda-cor" style={{ backgroundColor: '#2ecc71' }}></span>
-                <span>Concluída no prazo</span>
-              </div>
-              <div className="legenda-item">
-                <span className="legenda-cor" style={{ backgroundColor: '#f39c12' }}></span>
-                <span>Concluída com atraso</span>
+                <span className="legenda-cor" style={{ backgroundColor: '#e74c3c' }}></span>
+                <span>Pendente - Não iniciada</span>
               </div>
               <div className="legenda-item">
                 <span className="legenda-cor" style={{ backgroundColor: '#3498db' }}></span>
-                <span>Em andamento (no prazo)</span>
+                <span>Em Andamento - Executando</span>
               </div>
               <div className="legenda-item">
-                <span className="legenda-cor" style={{ backgroundColor: '#e74c3c' }}></span>
-                <span>Atrasada</span>
+                <span className="legenda-cor" style={{ backgroundColor: '#2ecc71' }}></span>
+                <span>Concluída - Finalizada</span>
               </div>
             </div>
           </div>

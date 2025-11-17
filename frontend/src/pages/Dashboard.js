@@ -4,9 +4,6 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faFilterCircleXmark, 
   faChartLine,
-  faCheckCircle,
-  faExclamationTriangle,
-  faSpinner,
   faChartBar
 } from '@fortawesome/free-solid-svg-icons';
 import { atividadeService, projetoService, squadService } from '../services/api';
@@ -255,84 +252,11 @@ function Dashboard() {
       .sort((a, b) => a.label.localeCompare(b.label));
   };
 
-  const calcularIndicadores = (atividadesSquad, tipoAtividade) => {
-    const atividadesFiltradas = tipoAtividade 
-      ? atividadesSquad.filter(a => a.titulo === tipoAtividade)
-      : atividadesSquad;
-
-    const total = atividadesFiltradas.length;
-    const concluidas = atividadesFiltradas.filter(a => a.status === 'concluida').length;
-    const emAndamento = atividadesFiltradas.filter(a => a.status === 'em_andamento').length;
-    const pendentes = atividadesFiltradas.filter(a => a.status === 'pendente').length;
-    const percentualConclusao = total > 0 ? ((concluidas / total) * 100).toFixed(1) : 0;
-
-    return {
-      total,
-      concluidas,
-      emAndamento,
-      pendentes,
-      percentualConclusao
-    };
-  };
-
-  const renderIndicadorAtividade = (titulo, dados, icone, cor) => {
-    // Não renderizar se não houver atividades
-    if (dados.total === 0) return null;
-
-    return (
-      <div className="indicador-atividade" style={{ borderLeftColor: cor }}>
-        <div className="indicador-header">
-          <FontAwesomeIcon icon={icone} style={{ color: cor }} />
-          <h4>{titulo}</h4>
-        </div>
-        <div className="indicador-body">
-          <div className="indicador-stats">
-            <div className="stat-item">
-              <span className="stat-label">Total:</span>
-              <span className="stat-value">{dados.total}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Concluídas:</span>
-              <span className="stat-value" style={{ color: '#27ae60' }}>{dados.concluidas}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Em Andamento:</span>
-              <span className="stat-value" style={{ color: '#3498db' }}>{dados.emAndamento}</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-label">Pendentes:</span>
-              <span className="stat-value" style={{ color: '#e74c3c' }}>{dados.pendentes}</span>
-            </div>
-          </div>
-          <div className="indicador-progress">
-            <div className="progress-bar">
-              <div 
-                className="progress-fill" 
-                style={{ 
-                  width: `${dados.percentualConclusao}%`,
-                  backgroundColor: cor 
-                }}
-              />
-            </div>
-            <span className="progress-label">{dados.percentualConclusao}% Concluído</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const deveExibirSquadAuditoria = () => {
     // Se não há filtro de squad, ou se o filtro é Auditoria, exibir
     if (!filtros.squad_id) return true;
     const auditoriaSquad = squads.find(s => s.nome === 'Auditoria');
     return auditoriaSquad && parseInt(filtros.squad_id) === auditoriaSquad.id;
-  };
-
-  const deveExibirSquadRecodificacao = () => {
-    // Se não há filtro de squad, ou se o filtro é Recodificação, exibir
-    if (!filtros.squad_id) return true;
-    const recodificacaoSquad = squads.find(s => s.nome === 'Recodificação');
-    return recodificacaoSquad && parseInt(filtros.squad_id) === recodificacaoSquad.id;
   };
 
   if (loading) {
@@ -415,14 +339,6 @@ function Dashboard() {
             >
               <FontAwesomeIcon icon={faFilterCircleXmark} /> Limpar Filtros
             </button>
-            
-            <button 
-              className={`btn btn-small ${visualizacaoGeral ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setVisualizacaoGeral(!visualizacaoGeral)}
-            >
-              <FontAwesomeIcon icon={faChartBar} /> 
-              {visualizacaoGeral ? 'Visualização Geral' : 'Visualização Detalhada'}
-            </button>
           </div>
         </div>
 
@@ -449,16 +365,16 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Squad Auditoria */}
+        {/* Squad Auditoria - APENAS GRÁFICOS */}
         {deveExibirSquadAuditoria() && (
           <div className="squad-section">
             <h3 className="squad-title">
-              <FontAwesomeIcon icon={faCheckCircle} /> Squad Auditoria
+              <FontAwesomeIcon icon={faChartBar} /> Squad Auditoria
             </h3>
             
-            {dadosFiltrados.auditoria.length === 0 ? (
+            {dadosFiltrados.auditoria.length === 0 && !filtros.projeto_id ? (
               <div className="empty-state">
-                <p>Nenhuma atividade encontrada para os filtros aplicados</p>
+                <p>Selecione um projeto para visualizar os gráficos de auditoria</p>
               </div>
             ) : (
               <>
@@ -476,83 +392,7 @@ function Dashboard() {
                     )}
                   </div>
                 )}
-
-                {/* Indicadores originais */}
-                <div className="indicadores-grid">
-                  {renderIndicadorAtividade(
-                    'Destaque',
-                    calcularIndicadores(dadosFiltrados.auditoria, 'Destaque'),
-                    faChartBar,
-                    '#3498db'
-                  )}
-                  {renderIndicadorAtividade(
-                    'Transcrição',
-                    calcularIndicadores(dadosFiltrados.auditoria, 'Transcrição'),
-                    faChartBar,
-                    '#9b59b6'
-                  )}
-                </div>
               </>
-            )}
-          </div>
-        )}
-
-        {/* Squad Recodificação */}
-        {deveExibirSquadRecodificacao() && (
-          <div className="squad-section">
-            <h3 className="squad-title">
-              <FontAwesomeIcon icon={faSpinner} /> Squad Recodificação
-            </h3>
-            
-            {dadosFiltrados.recodificacao.length === 0 ? (
-              <div className="empty-state">
-                <p>Nenhuma atividade encontrada para os filtros aplicados</p>
-              </div>
-            ) : (
-              <div className="indicadores-grid">
-                {renderIndicadorAtividade(
-                  'CR Reserva',
-                  calcularIndicadores(dadosFiltrados.recodificacao, 'CR Reserva'),
-                  faChartBar,
-                  '#e67e22'
-                )}
-                {renderIndicadorAtividade(
-                  'CR Anulado',
-                  calcularIndicadores(dadosFiltrados.recodificacao, 'CR Anulado'),
-                  faChartBar,
-                  '#e74c3c'
-                )}
-                {renderIndicadorAtividade(
-                  'CR Duplicado',
-                  calcularIndicadores(dadosFiltrados.recodificacao, 'CR Duplicado'),
-                  faChartBar,
-                  '#f39c12'
-                )}
-                {renderIndicadorAtividade(
-                  'CR Genérico',
-                  calcularIndicadores(dadosFiltrados.recodificacao, 'CR Genérico'),
-                  faChartBar,
-                  '#16a085'
-                )}
-                {renderIndicadorAtividade(
-                  'Sujeito C1',
-                  calcularIndicadores(dadosFiltrados.recodificacao, 'Sujeito C1'),
-                  faChartBar,
-                  '#2ecc71'
-                )}
-                {renderIndicadorAtividade(
-                  'Sujeito C2',
-                  calcularIndicadores(dadosFiltrados.recodificacao, 'Sujeito C2'),
-                  faChartBar,
-                  '#27ae60'
-                )}
-                {renderIndicadorAtividade(
-                  'Público Alvo',
-                  calcularIndicadores(dadosFiltrados.recodificacao, 'Público Alvo'),
-                  faChartBar,
-                  '#8e44ad'
-                )}
-              </div>
             )}
           </div>
         )}
