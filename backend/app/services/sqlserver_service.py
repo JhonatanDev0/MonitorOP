@@ -10,13 +10,44 @@ class SQLServerService:
     """Serviço para gerenciar conexão com SQL Server"""
     
     def __init__(self):
-        # Configurações de conexão (ajuste conforme seu ambiente)
-        self.server = os.environ.get('SQLSERVER_HOST', 'localhost\\SQLEXPRESS')
+        # Possíveis hosts (prioridade da esquerda para a direita)
+        self.candidate_servers = [
+            os.environ.get('SQLSERVER_HOST_PRIMARY', '192.168.250.8,61433'),
+            os.environ.get('SQLSERVER_HOST_SECONDARY', 'localhost\\SQLEXPRESS'),
+        ]
+
+        # Configurações gerais
         self.database = os.environ.get('SQLSERVER_DATABASE', 'DB_MONITORAMENTO_OP')
-        # self.username = os.environ.get('SQLSERVER_USER', 'seu_usuario')
-        # self.password = os.environ.get('SQLSERVER_PASSWORD', 'sua_senha')
-        self.trusted_connection = os.environ.get('SQLSERVER_TRUSTED_CONNECTION', 'yes').lower() == 'yes'
-        self.driver = '{ODBC Driver 17 for SQL Server}'  # ou '{SQL Server}'
+        self.username = os.environ.get('SQLSERVER_USER','SDV')  # opcional se usar Trusted Connection
+        self.password = os.environ.get('SQLSERVER_PASSWORD','SDV_COA')
+        self.trusted_connection = os.environ.get('SQLSERVER_TRUSTED_CONNECTION', 'yes').lower() in ('yes', 'true', '1')
+        self.driver = os.environ.get('SQLSERVER_DRIVER', '{ODBC Driver 17 for SQL Server}')
+
+        # Escolher o primeiro servidor que aceitar conexão (tenta cada um rapidamente)
+        self.server = None
+        for candidate in self.candidate_servers:
+            try:
+                conn_str = (
+                    f'DRIVER={self.driver};'
+                    f'SERVER={candidate};'
+                    f'DATABASE={self.database};'
+                    f'Trusted_Connection={"Yes" if self.trusted_connection else "No"}'
+                )
+                if not self.trusted_connection and self.username and self.password:
+                    conn_str += f';UID={self.username};PWD={self.password}'
+
+                # tentativa rápida para validar o servidor
+                conn = pyodbc.connect(conn_str, timeout=5)
+                conn.close()
+                self.server = candidate
+                break
+            except Exception:
+                # tenta próximo candidato
+                continue
+
+        # Se nenhum candidato respondeu, usa o primeiro como fallback (a conexão real falhará em get_connection)
+        if not self.server:
+            self.server = self.candidate_servers[0]
         
     def get_connection(self):
         """Retorna uma conexão com o SQL Server"""
