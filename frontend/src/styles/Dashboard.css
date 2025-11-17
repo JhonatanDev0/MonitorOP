@@ -36,13 +36,24 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: space-between;
   flex-wrap: wrap;
 }
 
 .filter-actions .btn {
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* Toggle de Visualização */
+.visualizacao-toggle {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.visualizacao-toggle .btn {
+  min-width: 150px;
 }
 
 /* Resumo Geral */
@@ -110,6 +121,54 @@
 .squad-title svg {
   font-size: 22px;
   color: #3498db;
+}
+
+/* Container para múltiplos gráficos de projetos */
+.projetos-graficos-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.projeto-grafico-wrapper {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.projeto-grafico-wrapper:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Título do Projeto nos Gráficos */
+.projeto-titulo {
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-bottom: 3px solid #3498db;
+  position: relative;
+}
+
+.projeto-titulo::after {
+  content: "";
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, #3498db 0%, transparent 100%);
+}
+
+.projeto-titulo h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  display: flex;
+  align-items: center;
 }
 
 /* Grid de Indicadores */
@@ -276,6 +335,10 @@
   .squad-title {
     font-size: 20px;
   }
+  
+  .projeto-titulo h3 {
+    font-size: 16px;
+  }
 }
 
 /* Animações */
@@ -290,7 +353,8 @@
   }
 }
 
-.indicador-atividade {
+.indicador-atividade,
+.projeto-grafico-wrapper {
   animation: fadeIn 0.3s ease;
 }
 

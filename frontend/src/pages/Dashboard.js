@@ -4,7 +4,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faFilterCircleXmark, 
   faChartLine,
-  faChartBar
+  faChartBar,
+  faListUl
 } from '@fortawesome/free-solid-svg-icons';
 import { atividadeService, projetoService, squadService } from '../services/api';
 import { dashboardService } from '../services/dashboardApi';
@@ -28,8 +29,8 @@ function Dashboard() {
     tipo_atividade: ''
   });
   
-  // Estado para visualização geral
-  const [visualizacaoGeral, setVisualizacaoGeral] = useState(true);
+  // Estado para visualização geral/detalhada
+  const [modoVisualizacao, setModoVisualizacao] = useState('geral'); // 'geral' ou 'detalhado'
   
   // Estados para os dados filtrados
   const [dadosFiltrados, setDadosFiltrados] = useState({
@@ -42,8 +43,8 @@ function Dashboard() {
   const [opcoesSquads, setOpcoesSquads] = useState([]);
   const [opcoesTiposAtividades, setOpcoesTiposAtividades] = useState([]);
 
-  // Estados para dados SQL Server - Auditoria
-  const [dadosAuditoriaSQLServer, setDadosAuditoriaSQLServer] = useState([]);
+  // Estados para dados SQL Server - Auditoria (agora pode ser array de múltiplos projetos)
+  const [dadosAuditoriaSQLServer, setDadosAuditoriaSQLServer] = useState({});
   const [loadingAuditoria, setLoadingAuditoria] = useState(false);
 
   useEffect(() => {
@@ -58,13 +59,18 @@ function Dashboard() {
   }, [filtros, projetos, squads, atividades]);
 
   // Carregar dados de auditoria do SQL Server quando projeto for selecionado
+  // OU quando não houver filtro de projeto (carregar todos ou filtrados por OP)
   useEffect(() => {
     if (filtros.projeto_id) {
-      carregarDadosAuditoria();
+      // Um projeto específico selecionado
+      carregarDadosAuditoriaProjeto(filtros.projeto_id);
+    } else if (projetos.length > 0) {
+      // Nenhum projeto selecionado - carregar todos ou filtrados por ordem de produção
+      carregarDadosAuditoriaTodosProjetos();
     } else {
-      setDadosAuditoriaSQLServer([]);
+      setDadosAuditoriaSQLServer({});
     }
-  }, [filtros.projeto_id]);
+  }, [filtros.projeto_id, filtros.ordem_producao, projetos]);
 
   const carregarDados = async () => {
     try {
@@ -87,28 +93,67 @@ function Dashboard() {
     }
   };
 
-  const carregarDadosAuditoria = async () => {
+  const carregarDadosAuditoriaProjeto = async (projetoId) => {
     try {
       setLoadingAuditoria(true);
       
-      // Buscar o código do projeto (subprograma) do projeto selecionado
-      const projetoSelecionado = projetos.find(p => p.id === parseInt(filtros.projeto_id));
+      const projetoSelecionado = projetos.find(p => p.id === parseInt(projetoId));
       
       if (projetoSelecionado && projetoSelecionado.subprograma) {
         const cdProjeto = projetoSelecionado.subprograma;
         
-        // Buscar histórico de auditoria do SQL Server
         const response = await dashboardService.getAuditoriaHistorico(cdProjeto);
         
         if (response.data.success) {
-          setDadosAuditoriaSQLServer(response.data.data);
+          setDadosAuditoriaSQLServer({
+            [projetoId]: response.data.data
+          });
         } else {
-          setDadosAuditoriaSQLServer([]);
+          setDadosAuditoriaSQLServer({});
         }
       }
     } catch (error) {
       console.error('Erro ao carregar dados de auditoria:', error);
-      setDadosAuditoriaSQLServer([]);
+      setDadosAuditoriaSQLServer({});
+    } finally {
+      setLoadingAuditoria(false);
+    }
+  };
+
+  const carregarDadosAuditoriaTodosProjetos = async () => {
+    try {
+      setLoadingAuditoria(true);
+      
+      // Filtrar projetos com subprograma
+      let projetosComSubprograma = projetos.filter(p => p.subprograma && p.subprograma.trim() !== '');
+      
+      // Se há filtro de ordem de produção, aplicar
+      if (filtros.ordem_producao) {
+        projetosComSubprograma = projetosComSubprograma.filter(p => p.ordem_producao === filtros.ordem_producao);
+      }
+      
+      const dadosTodosProjetos = {};
+      
+      // Carregar dados de auditoria para cada projeto
+      await Promise.all(
+        projetosComSubprograma.map(async (projeto) => {
+          try {
+            const response = await dashboardService.getAuditoriaHistorico(projeto.subprograma);
+            
+            if (response.data.success && response.data.data.length > 0) {
+              dadosTodosProjetos[projeto.id] = response.data.data;
+            }
+          } catch (error) {
+            console.error(`Erro ao carregar dados do projeto ${projeto.id}:`, error);
+          }
+        })
+      );
+      
+      setDadosAuditoriaSQLServer(dadosTodosProjetos);
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados de auditoria de todos os projetos:', error);
+      setDadosAuditoriaSQLServer({});
     } finally {
       setLoadingAuditoria(false);
     }
@@ -259,9 +304,30 @@ function Dashboard() {
     return auditoriaSquad && parseInt(filtros.squad_id) === auditoriaSquad.id;
   };
 
+  // Obter lista de projetos para exibir gráficos
+  const obterProjetosParaExibir = () => {
+    if (filtros.projeto_id) {
+      // Se há projeto selecionado, retornar apenas ele
+      const projeto = projetos.find(p => p.id === parseInt(filtros.projeto_id));
+      return projeto ? [projeto] : [];
+    } else {
+      // Se não há projeto selecionado, retornar projetos que têm dados de auditoria
+      let projetosComDados = projetos.filter(p => dadosAuditoriaSQLServer[p.id] && dadosAuditoriaSQLServer[p.id].length > 0);
+      
+      // Se há filtro de ordem de produção, aplicar
+      if (filtros.ordem_producao) {
+        projetosComDados = projetosComDados.filter(p => p.ordem_producao === filtros.ordem_producao);
+      }
+      
+      return projetosComDados;
+    }
+  };
+
   if (loading) {
     return <div className="loading">Carregando dashboard...</div>;
   }
+
+  const projetosParaExibir = obterProjetosParaExibir();
 
   return (
     <div className="dashboard">
@@ -339,11 +405,26 @@ function Dashboard() {
             >
               <FontAwesomeIcon icon={faFilterCircleXmark} /> Limpar Filtros
             </button>
+            
+            <div className="visualizacao-toggle">
+              <button
+                className={`btn btn-small ${modoVisualizacao === 'geral' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setModoVisualizacao('geral')}
+              >
+                <FontAwesomeIcon icon={faChartBar} /> Resumo Geral
+              </button>
+              <button
+                className={`btn btn-small ${modoVisualizacao === 'detalhado' ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={() => setModoVisualizacao('detalhado')}
+              >
+                <FontAwesomeIcon icon={faListUl} /> Resumo Detalhado
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Resumo Geral */}
-        {visualizacaoGeral && (
+        {modoVisualizacao === 'geral' && (
           <div className="resumo-geral">
             <div className="resumo-card">
               <h3>Resumo Geral</h3>
@@ -365,34 +446,34 @@ function Dashboard() {
           </div>
         )}
 
-        {/* Squad Auditoria - APENAS GRÁFICOS */}
-        {deveExibirSquadAuditoria() && (
+        {/* Squad Auditoria - Gráficos (apenas em modo detalhado) */}
+        {modoVisualizacao === 'detalhado' && deveExibirSquadAuditoria() && (
           <div className="squad-section">
-            <h3 className="squad-title">
-              <FontAwesomeIcon icon={faChartBar} /> Squad Auditoria
-            </h3>
-            
-            {dadosFiltrados.auditoria.length === 0 && !filtros.projeto_id ? (
+            {loadingAuditoria ? (
+              <div className="loading">Carregando dados de auditoria...</div>
+            ) : projetosParaExibir.length === 0 ? (
               <div className="empty-state">
-                <p>Selecione um projeto para visualizar os gráficos de auditoria</p>
+                <p>Nenhum projeto com dados de auditoria disponível</p>
               </div>
             ) : (
-              <>
-                {/* Gráficos de Auditoria do SQL Server */}
-                {filtros.projeto_id && (
-                  <div style={{ marginBottom: '30px' }}>
-                    {loadingAuditoria ? (
-                      <div className="loading">Carregando dados de auditoria...</div>
-                    ) : (
+              <div className="projetos-graficos-container">
+                {projetosParaExibir.map(projeto => {
+                  const atividadesAuditoriaProjeto = dadosFiltrados.auditoria.filter(
+                    a => a.projeto.id === projeto.id
+                  );
+
+                  return (
+                    <div key={projeto.id} className="projeto-grafico-wrapper">
                       <AuditoriaCharts 
-                        cdProjeto={projetos.find(p => p.id === parseInt(filtros.projeto_id))?.subprograma}
-                        dados={dadosAuditoriaSQLServer}
-                        atividadesSquad={dadosFiltrados.auditoria}
+                        cdProjeto={projeto.subprograma}
+                        dados={dadosAuditoriaSQLServer[projeto.id] || []}
+                        atividadesSquad={atividadesAuditoriaProjeto}
+                        nomeProjeto={`${projeto.subprograma} - ${projeto.nome}`}
                       />
-                    )}
-                  </div>
-                )}
-              </>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}

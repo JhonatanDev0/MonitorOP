@@ -1,8 +1,21 @@
 .auditoria-charts {
   background: white;
   border-radius: 8px;
-  padding: 20px;
+  padding: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Adicionar padding aos elementos internos, exceto o título */
+.auditoria-charts .auditoria-metricas,
+.auditoria-charts .observacoes-container,
+.auditoria-charts .alertas-container,
+.auditoria-charts .chart-container {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.auditoria-charts .chart-container {
+  padding-bottom: 20px;
 }
 
 .auditoria-charts-empty {
@@ -293,65 +306,6 @@
   font-style: italic;
 }
 
-/* Seletor de gráficos */
-.chart-selector {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #e9ecef;
-  padding-bottom: 10px;
-}
-
-.selector-btn {
-  padding: 10px 20px;
-  border: none;
-  background: transparent;
-  color: #6c757d;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  border-radius: 6px 6px 0 0;
-  transition: all 0.3s ease;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.selector-btn svg {
-  font-size: 16px;
-  transition: all 0.3s ease;
-}
-
-.selector-btn:hover:not(:disabled) {
-  background: #f8f9fa;
-  color: #2c3e50;
-}
-
-.selector-btn.active {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  color: white;
-}
-
-.selector-btn.active::after {
-  content: '';
-  position: absolute;
-  bottom: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 8px solid #2980b9;
-}
-
-.selector-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 /* Container dos gráficos */
 .chart-container {
   margin-top: 20px;
@@ -440,19 +394,6 @@
 
   .metrica-valor {
     font-size: 24px;
-  }
-
-  .chart-selector {
-    flex-direction: column;
-  }
-
-  .selector-btn {
-    width: 100%;
-    border-radius: 6px;
-  }
-
-  .selector-btn.active::after {
-    display: none;
   }
 
   .legenda-prazo {

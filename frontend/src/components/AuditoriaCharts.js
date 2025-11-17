@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,9 +11,9 @@ import {
   Legend,
   ArcElement
 } from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
+import { Doughnut } from 'react-chartjs-2';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartPie, faChartBar, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import { faChartPie, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import '../styles/AuditoriaCharts.css';
 
 // Registrar componentes do Chart.js
@@ -29,8 +29,7 @@ ChartJS.register(
   Legend
 );
 
-function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
-  const [chartType, setChartType] = useState('pizza'); // pizza, status
+function AuditoriaCharts({ cdProjeto, dados, atividadesSquad, nomeProjeto }) {
 
   // Função para formatar data
   const formatarData = (dataString) => {
@@ -89,35 +88,6 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
         borderColor: [
           'rgba(46, 204, 113, 1)',
           'rgba(231, 76, 60, 1)'
-        ],
-        borderWidth: 2
-      }]
-    };
-  };
-
-  // Gráfico de barras por STATUS das atividades
-  const getStatusChartData = () => {
-    if (!atividadesSquad || atividadesSquad.length === 0) return null;
-
-    // Contar atividades por status
-    const pendentes = atividadesSquad.filter(a => a.status === 'pendente').length;
-    const emAndamento = atividadesSquad.filter(a => a.status === 'em_andamento').length;
-    const concluidas = atividadesSquad.filter(a => a.status === 'concluida').length;
-
-    return {
-      labels: ['Pendente', 'Em Andamento', 'Concluída'],
-      datasets: [{
-        label: 'Quantidade de Atividades',
-        data: [pendentes, emAndamento, concluidas],
-        backgroundColor: [
-          'rgba(231, 76, 60, 0.8)',   // Vermelho - Pendente
-          'rgba(52, 152, 219, 0.8)',  // Azul - Em Andamento
-          'rgba(46, 204, 113, 0.8)'   // Verde - Concluída
-        ],
-        borderColor: [
-          'rgba(231, 76, 60, 1)',
-          'rgba(52, 152, 219, 1)',
-          'rgba(46, 204, 113, 1)'
         ],
         borderWidth: 2
       }]
@@ -184,7 +154,7 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
     return alertas;
   };
 
-  // NOVO: Criar lista de atividades com observação (mesmo sem alerta)
+  // Criar lista de atividades com observação (mesmo sem alerta)
   const getAtividadesComObservacao = () => {
     if (!atividadesSquad || atividadesSquad.length === 0) return [];
 
@@ -198,12 +168,12 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
       }));
   };
 
-  const chartOptions = {
+  const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top',
+        position: 'bottom',
       },
       title: {
         display: false
@@ -216,28 +186,6 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
         },
         bodyFont: {
           size: 13
-        }
-      }
-    }
-  };
-
-  const doughnutOptions = {
-    ...chartOptions,
-    plugins: {
-      ...chartOptions.plugins,
-      legend: {
-        position: 'bottom',
-      }
-    }
-  };
-
-  const barOptions = {
-    ...chartOptions,
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          stepSize: 1
         }
       }
     }
@@ -258,13 +206,18 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
 
   return (
     <div className="auditoria-charts">
-      {/* Cabeçalho com métricas */}
-      <div className="auditoria-metricas">
-        <div className="metrica-card">
-          <div className="metrica-label">Pacotes Métrica</div>
-          <div className="metrica-valor">{dadoAtual.QT_PACOTE_METRICA}</div>
+      {/* Título do Projeto */}
+      {nomeProjeto && (
+        <div className="projeto-titulo">
+          <h3>
+            <FontAwesomeIcon icon={faChartPie} style={{ marginRight: '10px', color: '#3498db' }} />
+            {nomeProjeto}
+          </h3>
         </div>
-        
+      )}
+
+      {/* Cabeçalho com métricas - SEM PACOTES MÉTRICA */}
+      <div className="auditoria-metricas" style={{ marginTop: nomeProjeto ? '25px' : '0' }}>
         <div className="metrica-card">
           <div className="metrica-label">Previsto Transcrição</div>
           <div className="metrica-valor">{dadoAtual.QT_PACOTE_PREVISTO_TRANSCRICAO}</div>
@@ -340,64 +293,17 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
         </div>
       )}
 
-      {/* Seletor de visualização */}
-      <div className="chart-selector">
-        <button 
-          className={`selector-btn ${chartType === 'pizza' ? 'active' : ''}`}
-          onClick={() => setChartType('pizza')}
-        >
-          <FontAwesomeIcon icon={faChartPie} style={{ marginRight: '8px' }} />
-          Resumo (Pizza)
-        </button>
-        <button 
-          className={`selector-btn ${chartType === 'status' ? 'active' : ''}`}
-          onClick={() => setChartType('status')}
-          disabled={!atividadesSquad || atividadesSquad.length === 0}
-        >
-          <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '8px' }} />
-          Status das Atividades
-        </button>
-      </div>
-
-      {/* Gráficos */}
+      {/* Gráfico de Pizza */}
       <div className="chart-container">
-        {chartType === 'pizza' && (
-          <div className="chart-wrapper">
-            <h4 className="chart-title">
-              <FontAwesomeIcon icon={faChartPie} style={{ marginRight: '10px', color: '#3498db' }} />
-              Resumo de Transcrição
-            </h4>
-            <div style={{ height: '300px' }}>
-              <Doughnut data={getPizzaChartData()} options={doughnutOptions} />
-            </div>
+        <div className="chart-wrapper">
+          <h4 className="chart-title">
+            <FontAwesomeIcon icon={faChartPie} style={{ marginRight: '10px', color: '#3498db' }} />
+            Resumo de Transcrição
+          </h4>
+          <div style={{ height: '300px' }}>
+            <Doughnut data={getPizzaChartData()} options={doughnutOptions} />
           </div>
-        )}
-
-        {chartType === 'status' && atividadesSquad && atividadesSquad.length > 0 && (
-          <div className="chart-wrapper">
-            <h4 className="chart-title">
-              <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '10px', color: '#3498db' }} />
-              Atividades por Status
-            </h4>
-            <div style={{ height: '350px' }}>
-              <Bar data={getStatusChartData()} options={barOptions} />
-            </div>
-            <div className="legenda-status">
-              <div className="legenda-item">
-                <span className="legenda-cor" style={{ backgroundColor: '#e74c3c' }}></span>
-                <span>Pendente - Não iniciada</span>
-              </div>
-              <div className="legenda-item">
-                <span className="legenda-cor" style={{ backgroundColor: '#3498db' }}></span>
-                <span>Em Andamento - Executando</span>
-              </div>
-              <div className="legenda-item">
-                <span className="legenda-cor" style={{ backgroundColor: '#2ecc71' }}></span>
-                <span>Concluída - Finalizada</span>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
