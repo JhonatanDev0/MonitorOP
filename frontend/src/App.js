@@ -18,7 +18,7 @@ import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 function AppContent() {
-  const { isAuthenticated, isAdmin, logout } = useAuth();
+  const { isAuthenticated, canEdit, canAccessUsers, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -45,29 +45,34 @@ function AppContent() {
                 <FontAwesomeIcon icon={faChartLine} />
                 Dashboard
               </NavLink>
-              <NavLink 
-                to="/projetos" 
-                className={({ isActive }) => isActive ? 'active' : ''}
-              >
-                <FontAwesomeIcon icon={faClipboardList} />
-                Avaliações
-              </NavLink>
-              <NavLink 
-                to="/squads" 
-                className={({ isActive }) => isActive ? 'active' : ''}
-              >
-                <FontAwesomeIcon icon={faUsers} />
-                Squads
-              </NavLink>
-              <NavLink 
-                to="/atividades" 
-                className={({ isActive }) => isActive ? 'active' : ''}
-              >
-                <FontAwesomeIcon icon={faListCheck} />
-                Atividades
-              </NavLink>
               
-              {isAdmin() && (
+              {canEdit() && (
+                <>
+                  <NavLink 
+                    to="/projetos" 
+                    className={({ isActive }) => isActive ? 'active' : ''}
+                  >
+                    <FontAwesomeIcon icon={faClipboardList} />
+                    Avaliações
+                  </NavLink>
+                  <NavLink 
+                    to="/squads" 
+                    className={({ isActive }) => isActive ? 'active' : ''}
+                  >
+                    <FontAwesomeIcon icon={faUsers} />
+                    Squads
+                  </NavLink>
+                  <NavLink 
+                    to="/atividades" 
+                    className={({ isActive }) => isActive ? 'active' : ''}
+                  >
+                    <FontAwesomeIcon icon={faListCheck} />
+                    Atividades
+                  </NavLink>
+                </>
+              )}
+              
+              {canAccessUsers() && (
                 <NavLink 
                   to="/usuarios" 
                   className={({ isActive }) => isActive ? 'active' : ''}
@@ -100,19 +105,19 @@ function AppContent() {
           } />
           
           <Route path="/projetos" element={
-            <PrivateRoute>
+            <PrivateRoute requireEdit={true}>
               <Projetos />
             </PrivateRoute>
           } />
           
           <Route path="/squads" element={
-            <PrivateRoute>
+            <PrivateRoute requireEdit={true}>
               <Squads />
             </PrivateRoute>
           } />
           
           <Route path="/atividades" element={
-            <PrivateRoute>
+            <PrivateRoute requireEdit={true}>
               <Atividades />
             </PrivateRoute>
           } />

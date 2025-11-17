@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { usuarioService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faSave, faTimes, faUserShield, faUser, faToggleOn, faToggleOff } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEdit, faTrash, faSave, faTimes, faUserShield, faUser, faUserTie, faToggleOn, faToggleOff } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
 import Pagination from '../components/Pagination';
@@ -230,6 +230,13 @@ function Usuarios() {
         </span>
       );
     }
+    if (role === 'gestor') {
+      return (
+        <span className="badge badge-role-gestor">
+          <FontAwesomeIcon icon={faUserTie} /> Gestor
+        </span>
+      );
+    }
     return (
       <span className="badge badge-role-analista">
         <FontAwesomeIcon icon={faUser} /> Analista
@@ -316,8 +323,9 @@ function Usuarios() {
                   onChange={(e) => setFormData({...formData, role: e.target.value})}
                   required
                 >
-                  <option value="analista">Analista</option>
-                  <option value="admin">Administrador</option>
+                  <option value="analista">Analista (Apenas Visualização)</option>
+                  <option value="gestor">Gestor (Edição de Dados)</option>
+                  <option value="admin">Administrador (Acesso Total)</option>
                 </select>
               </div>
 

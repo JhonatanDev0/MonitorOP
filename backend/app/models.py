@@ -113,7 +113,7 @@ class Usuario(db.Model):
     nome = db.Column(db.String(100), nullable=False)
     login = db.Column(db.String(50), unique=True, nullable=False)
     senha_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='analista')  # 'admin' ou 'analista'
+    role = db.Column(db.String(20), nullable=False, default='analista')  # 'admin', 'gestor' ou 'analista'
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     

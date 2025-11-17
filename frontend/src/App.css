@@ -652,3 +652,10 @@ footer {
     padding-right: 12px;
   }
 }
+
+/* Badge de Role Gestor */
+.badge-role-gestor {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  border: 1px solid #e67e22;
+}

@@ -35,6 +35,22 @@ export function AuthProvider({ children }) {
     return user && user.role === 'admin';
   };
 
+  const isGestor = () => {
+    return user && user.role === 'gestor';
+  };
+
+  const isAnalista = () => {
+    return user && user.role === 'analista';
+  };
+
+  const canEdit = () => {
+    return user && (user.role === 'admin' || user.role === 'gestor');
+  };
+
+  const canAccessUsers = () => {
+    return user && user.role === 'admin';
+  };
+
   return (
     <AuthContext.Provider value={{ 
       user, 
@@ -42,6 +58,10 @@ export function AuthProvider({ children }) {
       logout, 
       isAuthenticated, 
       isAdmin,
+      isGestor,
+      isAnalista,
+      canEdit,
+      canAccessUsers,
       loading 
     }}>
       {children}
