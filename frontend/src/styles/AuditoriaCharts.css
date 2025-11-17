@@ -46,9 +46,9 @@
 }
 
 .metrica-card.info {
-  background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
-  color: white;
-  border: none;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  color: #2c3e50;
+  border: 1px solid #e9ecef;
 }
 
 .metrica-label {
@@ -66,8 +66,7 @@
   color: #2c3e50;
 }
 
-.metrica-card.destaque .metrica-valor,
-.metrica-card.info .metrica-valor {
+.metrica-card.destaque .metrica-valor {
   color: white;
 }
 
@@ -76,9 +75,9 @@
 }
 
 .metrica-valor-small {
-  font-size: 16px;
+  font-size: 24px;
   font-weight: 600;
-  color: white;
+  color: #2c3e50;
 }
 
 .progress-bar-mini {
@@ -97,13 +96,60 @@
   transition: width 0.5s ease;
 }
 
+/* Alertas de Prazo */
+.alertas-container {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+}
+
+.alertas-title {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #856404;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.alertas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alerta-item {
+  background: white;
+  padding: 12px 15px;
+  border-radius: 6px;
+  border-left: 4px solid #e74c3c;
+  font-size: 14px;
+  color: #2c3e50;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.alerta-item:hover {
+  transform: translateX(5px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.alerta-item strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
 /* Seletor de gráficos */
 .chart-selector {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
   border-bottom: 2px solid #e9ecef;
-  padding-bottom: 10px;
+  padding-bottom: 20px;
 }
 
 .selector-btn {
@@ -165,6 +211,35 @@
   font-weight: 600;
   color: #2c3e50;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Legenda do Gráfico de Prazo */
+.legenda-prazo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+  justify-content: center;
+}
+
+.legenda-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #495057;
+}
+
+.legenda-cor {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 2px solid #dee2e6;
 }
 
 /* Animações */
@@ -180,6 +255,10 @@
 }
 
 .chart-wrapper {
+  animation: fadeIn 0.3s ease;
+}
+
+.alertas-container {
   animation: fadeIn 0.3s ease;
 }
 
@@ -204,6 +283,11 @@
 
   .selector-btn.active::after {
     display: none;
+  }
+
+  .legenda-prazo {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,6 +12,8 @@ import {
   ArcElement
 } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChartPie, faCalendarCheck } from '@fortawesome/free-solid-svg-icons';
 import '../styles/AuditoriaCharts.css';
 
 // Registrar componentes do Chart.js
@@ -30,25 +32,36 @@ ChartJS.register(
 function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
   const [chartType, setChartType] = useState('pizza'); // pizza, prazo
 
-  // Função para formatar data com segurança
+  // Função para formatar data
   const formatarData = (dataString) => {
     if (!dataString) return '-';
     
     try {
-      // Se já estiver no formato YYYY-MM-DD
-      if (dataString.includes('-')) {
-        const [ano, mes, dia] = dataString.split('-');
+      // Se for string no formato YYYY-MM-DD
+      if (typeof dataString === 'string' && dataString.includes('-')) {
+        const partes = dataString.split('T')[0].split('-'); // Remove hora se tiver
+        const [ano, mes, dia] = partes;
         return `${dia}/${mes}/${ano}`;
       }
       
-      // Se for um objeto Date
+      // Se for string no formato DD/MM/YYYY (já formatada)
+      if (typeof dataString === 'string' && dataString.includes('/')) {
+        return dataString;
+      }
+      
+      // Tentar converter para Date
       const data = new Date(dataString);
-      if (isNaN(data.getTime())) return '-';
+      
+      if (isNaN(data.getTime())) {
+        return '-';
+      }
       
       const dia = String(data.getDate()).padStart(2, '0');
       const mes = String(data.getMonth() + 1).padStart(2, '0');
       const ano = data.getFullYear();
+      
       return `${dia}/${mes}/${ano}`;
+      
     } catch (error) {
       console.error('Erro ao formatar data:', error);
       return '-';
@@ -379,14 +392,16 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
           className={`selector-btn ${chartType === 'pizza' ? 'active' : ''}`}
           onClick={() => setChartType('pizza')}
         >
-          📊 Resumo (Pizza)
+          <FontAwesomeIcon icon={faChartPie} style={{ marginRight: '8px' }} />
+          Resumo (Pizza)
         </button>
         <button 
           className={`selector-btn ${chartType === 'prazo' ? 'active' : ''}`}
           onClick={() => setChartType('prazo')}
           disabled={!atividadesSquad || atividadesSquad.length === 0}
         >
-          📅 Comparação de Prazos
+          <FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '8px' }} />
+          Comparação de Prazos
         </button>
       </div>
 
@@ -394,7 +409,10 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
       <div className="chart-container">
         {chartType === 'pizza' && (
           <div className="chart-wrapper">
-            <h4 className="chart-title">Resumo de Transcrição</h4>
+            <h4 className="chart-title">
+              <FontAwesomeIcon icon={faChartPie} style={{ marginRight: '10px', color: '#3498db' }} />
+              Resumo de Transcrição
+            </h4>
             <div style={{ height: '300px' }}>
               <Doughnut data={getPizzaChartData()} options={doughnutOptions} />
             </div>
@@ -403,7 +421,10 @@ function AuditoriaCharts({ cdProjeto, dados, atividadesSquad }) {
 
         {chartType === 'prazo' && atividadesSquad && atividadesSquad.length > 0 && (
           <div className="chart-wrapper">
-            <h4 className="chart-title">Comparação: Prazo Programado vs Realizado</h4>
+            <h4 className="chart-title">
+              <FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '10px', color: '#3498db' }} />
+              Comparação: Prazo Programado vs Realizado
+            </h4>
             <div style={{ height: '400px' }}>
               <Bar data={getPrazoChartData()} options={prazoOptions} />
             </div>

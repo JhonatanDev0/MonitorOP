@@ -471,6 +471,7 @@ function Dashboard() {
                       <AuditoriaCharts 
                         cdProjeto={projetos.find(p => p.id === parseInt(filtros.projeto_id))?.subprograma}
                         dados={dadosAuditoriaSQLServer}
+                        atividadesSquad={dadosFiltrados.auditoria}
                       />
                     )}
                   </div>
