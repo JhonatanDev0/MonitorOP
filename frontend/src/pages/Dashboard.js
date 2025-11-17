@@ -10,7 +10,16 @@ import {
 import { atividadeService, projetoService, squadService } from '../services/api';
 import { dashboardService } from '../services/dashboardApi';
 import AuditoriaCharts from '../components/AuditoriaCharts';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend
+} from 'chart.js';
 import '../styles/Dashboard.css';
+
+// Registrar componentes do Chart.js
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 function Dashboard() {
   const { isAdmin } = useAuth();
@@ -57,6 +66,97 @@ function Dashboard() {
       aplicarFiltros();
     }
   }, [filtros, projetos, squads, atividades]);
+
+  // Criar gráfico de pizza do resumo geral
+  useEffect(() => {
+    if (modoVisualizacao === 'geral' && atividades.length > 0) {
+      const ctx = document.getElementById('resumoGeralChart');
+      if (ctx) {
+        // Destruir gráfico anterior se existir
+        const existingChart = ChartJS.getChart(ctx);
+        if (existingChart) {
+          existingChart.destroy();
+        }
+
+        // Aplicar filtros
+        let atividadesFiltradas = [...atividades];
+        
+        if (filtros.ordem_producao) {
+          const projetosFiltrados = projetos
+            .filter(p => p.ordem_producao === filtros.ordem_producao)
+            .map(p => p.id);
+          atividadesFiltradas = atividadesFiltradas.filter(a => projetosFiltrados.includes(a.projeto.id));
+        }
+        
+        if (filtros.projeto_id) {
+          atividadesFiltradas = atividadesFiltradas.filter(a => a.projeto.id === parseInt(filtros.projeto_id));
+        }
+        
+        if (filtros.squad_id) {
+          atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
+        }
+        
+        if (filtros.tipo_atividade) {
+          atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
+        }
+
+        // Calcular quantidades por status
+        const concluidas = atividadesFiltradas.filter(a => a.status === 'concluida').length;
+        const emAndamento = atividadesFiltradas.filter(a => a.status === 'em_andamento').length;
+        const pendentes = atividadesFiltradas.filter(a => a.status === 'pendente').length;
+
+        // Criar novo gráfico
+        new ChartJS(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Concluídas', 'Em Andamento', 'Pendentes'],
+            datasets: [{
+              data: [concluidas, emAndamento, pendentes],
+              backgroundColor: [
+                'rgba(46, 204, 113, 0.8)',
+                'rgba(52, 152, 219, 0.8)',
+                'rgba(231, 76, 60, 0.8)'
+              ],
+              borderColor: [
+                'rgba(46, 204, 113, 1)',
+                'rgba(52, 152, 219, 1)',
+                'rgba(231, 76, 60, 1)'
+              ],
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'bottom',
+              },
+              tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                titleFont: {
+                  size: 14
+                },
+                bodyFont: {
+                  size: 13
+                },
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                    return `${label}: ${value} (${percentage}%)`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+  }, [modoVisualizacao, atividades, filtros, projetos]);
 
   // Carregar dados de auditoria do SQL Server quando projeto for selecionado
   // OU quando não houver filtro de projeto (carregar todos ou filtrados por OP)
@@ -426,20 +526,355 @@ function Dashboard() {
         {/* Resumo Geral */}
         {modoVisualizacao === 'geral' && (
           <div className="resumo-geral">
-            <div className="resumo-card">
-              <h3>Resumo Geral</h3>
-              <div className="resumo-stats">
-                <div className="resumo-item">
-                  <span className="resumo-label">Total de Atividades:</span>
-                  <span className="resumo-value">{atividades.length}</span>
+            <div className="resumo-geral-header">
+              <h3>
+                <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '10px' }} />
+                Resumo Geral
+              </h3>
+              {(filtros.ordem_producao || filtros.projeto_id || filtros.squad_id || filtros.tipo_atividade) && (
+                <div className="resumo-filtro-ativo">
+                  <FontAwesomeIcon icon={faFilterCircleXmark} style={{ marginRight: '8px' }} />
+                  Filtros ativos aplicados
                 </div>
-                <div className="resumo-item">
-                  <span className="resumo-label">Projetos Ativos:</span>
-                  <span className="resumo-value">{projetos.length}</span>
+              )}
+            </div>
+
+            {/* Grid de Estatísticas Principais */}
+            <div className="resumo-stats-grid">
+              <div className="stat-card stat-card-total">
+                <div className="stat-card-icon">
+                  <FontAwesomeIcon icon={faListUl} />
                 </div>
-                <div className="resumo-item">
-                  <span className="resumo-label">Squads:</span>
-                  <span className="resumo-value">{squads.length}</span>
+                <div className="stat-card-content">
+                  <div className="stat-card-label">Total de Atividades</div>
+                  <div className="stat-card-value">
+                    {(() => {
+                      let atividadesFiltradas = [...atividades];
+                      
+                      if (filtros.ordem_producao) {
+                        const projetosFiltrados = projetos
+                          .filter(p => p.ordem_producao === filtros.ordem_producao)
+                          .map(p => p.id);
+                        atividadesFiltradas = atividadesFiltradas.filter(a => projetosFiltrados.includes(a.projeto.id));
+                      }
+                      
+                      if (filtros.projeto_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.projeto.id === parseInt(filtros.projeto_id));
+                      }
+                      
+                      if (filtros.squad_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
+                      }
+                      
+                      if (filtros.tipo_atividade) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
+                      }
+                      
+                      return atividadesFiltradas.length;
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="stat-card stat-card-concluidas">
+                <div className="stat-card-icon">
+                  <FontAwesomeIcon icon={faChartLine} />
+                </div>
+                <div className="stat-card-content">
+                  <div className="stat-card-label">Atividades Concluídas</div>
+                  <div className="stat-card-value">
+                    {(() => {
+                      let atividadesFiltradas = [...atividades];
+                      
+                      if (filtros.ordem_producao) {
+                        const projetosFiltrados = projetos
+                          .filter(p => p.ordem_producao === filtros.ordem_producao)
+                          .map(p => p.id);
+                        atividadesFiltradas = atividadesFiltradas.filter(a => projetosFiltrados.includes(a.projeto.id));
+                      }
+                      
+                      if (filtros.projeto_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.projeto.id === parseInt(filtros.projeto_id));
+                      }
+                      
+                      if (filtros.squad_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
+                      }
+                      
+                      if (filtros.tipo_atividade) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
+                      }
+                      
+                      return atividadesFiltradas.filter(a => a.status === 'concluida').length;
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="stat-card stat-card-pendentes">
+                <div className="stat-card-icon">
+                  <FontAwesomeIcon icon={faChartLine} />
+                </div>
+                <div className="stat-card-content">
+                  <div className="stat-card-label">Atividades Pendentes</div>
+                  <div className="stat-card-value">
+                    {(() => {
+                      let atividadesFiltradas = [...atividades];
+                      
+                      if (filtros.ordem_producao) {
+                        const projetosFiltrados = projetos
+                          .filter(p => p.ordem_producao === filtros.ordem_producao)
+                          .map(p => p.id);
+                        atividadesFiltradas = atividadesFiltradas.filter(a => projetosFiltrados.includes(a.projeto.id));
+                      }
+                      
+                      if (filtros.projeto_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.projeto.id === parseInt(filtros.projeto_id));
+                      }
+                      
+                      if (filtros.squad_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
+                      }
+                      
+                      if (filtros.tipo_atividade) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
+                      }
+                      
+                      return atividadesFiltradas.filter(a => a.status === 'pendente').length;
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="stat-card stat-card-andamento">
+                <div className="stat-card-icon">
+                  <FontAwesomeIcon icon={faChartLine} />
+                </div>
+                <div className="stat-card-content">
+                  <div className="stat-card-label">Em Andamento</div>
+                  <div className="stat-card-value">
+                    {(() => {
+                      let atividadesFiltradas = [...atividades];
+                      
+                      if (filtros.ordem_producao) {
+                        const projetosFiltrados = projetos
+                          .filter(p => p.ordem_producao === filtros.ordem_producao)
+                          .map(p => p.id);
+                        atividadesFiltradas = atividadesFiltradas.filter(a => projetosFiltrados.includes(a.projeto.id));
+                      }
+                      
+                      if (filtros.projeto_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.projeto.id === parseInt(filtros.projeto_id));
+                      }
+                      
+                      if (filtros.squad_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
+                      }
+                      
+                      if (filtros.tipo_atividade) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
+                      }
+                      
+                      return atividadesFiltradas.filter(a => a.status === 'em_andamento').length;
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Seção de Percentual e Gráfico */}
+            <div className="resumo-detalhes">
+              {/* Card de Percentual */}
+              <div className="percentual-card">
+                <h4>Taxa de Conclusão</h4>
+                <div className="percentual-display">
+                  <div className="percentual-valor">
+                    {(() => {
+                      let atividadesFiltradas = [...atividades];
+                      
+                      if (filtros.ordem_producao) {
+                        const projetosFiltrados = projetos
+                          .filter(p => p.ordem_producao === filtros.ordem_producao)
+                          .map(p => p.id);
+                        atividadesFiltradas = atividadesFiltradas.filter(a => projetosFiltrados.includes(a.projeto.id));
+                      }
+                      
+                      if (filtros.projeto_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.projeto.id === parseInt(filtros.projeto_id));
+                      }
+                      
+                      if (filtros.squad_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
+                      }
+                      
+                      if (filtros.tipo_atividade) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
+                      }
+                      
+                      const total = atividadesFiltradas.length;
+                      const concluidas = atividadesFiltradas.filter(a => a.status === 'concluida').length;
+                      
+                      return total > 0 ? ((concluidas / total) * 100).toFixed(1) : 0;
+                    })()}%
+                  </div>
+                  <div className="percentual-label">
+                    {(() => {
+                      let atividadesFiltradas = [...atividades];
+                      
+                      if (filtros.ordem_producao) {
+                        const projetosFiltrados = projetos
+                          .filter(p => p.ordem_producao === filtros.ordem_producao)
+                          .map(p => p.id);
+                        atividadesFiltradas = atividadesFiltradas.filter(a => projetosFiltrados.includes(a.projeto.id));
+                      }
+                      
+                      if (filtros.projeto_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.projeto.id === parseInt(filtros.projeto_id));
+                      }
+                      
+                      if (filtros.squad_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
+                      }
+                      
+                      if (filtros.tipo_atividade) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
+                      }
+                      
+                      const total = atividadesFiltradas.length;
+                      const concluidas = atividadesFiltradas.filter(a => a.status === 'concluida').length;
+                      
+                      return `${concluidas} de ${total} atividades`;
+                    })()}
+                  </div>
+                </div>
+                <div className="percentual-progress-bar">
+                  <div 
+                    className="percentual-progress-fill"
+                    style={{ 
+                      width: `${(() => {
+                        let atividadesFiltradas = [...atividades];
+                        
+                        if (filtros.ordem_producao) {
+                          const projetosFiltrados = projetos
+                            .filter(p => p.ordem_producao === filtros.ordem_producao)
+                            .map(p => p.id);
+                          atividadesFiltradas = atividadesFiltradas.filter(a => projetosFiltrados.includes(a.projeto.id));
+                        }
+                        
+                        if (filtros.projeto_id) {
+                          atividadesFiltradas = atividadesFiltradas.filter(a => a.projeto.id === parseInt(filtros.projeto_id));
+                        }
+                        
+                        if (filtros.squad_id) {
+                          atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
+                        }
+                        
+                        if (filtros.tipo_atividade) {
+                          atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
+                        }
+                        
+                        const total = atividadesFiltradas.length;
+                        const concluidas = atividadesFiltradas.filter(a => a.status === 'concluida').length;
+                        
+                        return total > 0 ? (concluidas / total) * 100 : 0;
+                      })()}%` 
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Card de Gráfico de Pizza */}
+              <div className="grafico-card">
+                <h4>Distribuição por Status</h4>
+                <div className="grafico-pizza-container">
+                  <canvas id="resumoGeralChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            {/* Cards de Informações Adicionais */}
+            <div className="resumo-info-adicional">
+              <div className="info-card">
+                <div className="info-card-icon">
+                  <FontAwesomeIcon icon={faChartLine} />
+                </div>
+                <div className="info-card-content">
+                  <div className="info-card-value">
+                    {(() => {
+                      if (filtros.ordem_producao) {
+                        return projetos.filter(p => p.ordem_producao === filtros.ordem_producao).length;
+                      }
+                      return projetos.length;
+                    })()}
+                  </div>
+                  <div className="info-card-label">
+                    {filtros.ordem_producao ? 'Projetos nesta OP' : 'Projetos Totais'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="info-card">
+                <div className="info-card-icon">
+                  <FontAwesomeIcon icon={faChartLine} />
+                </div>
+                <div className="info-card-content">
+                  <div className="info-card-value">
+                    {filtros.squad_id ? 1 : squads.length}
+                  </div>
+                  <div className="info-card-label">
+                    {filtros.squad_id ? 'Squad Selecionada' : 'Squads Totais'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="info-card">
+                <div className="info-card-icon">
+                  <FontAwesomeIcon icon={faChartLine} />
+                </div>
+                <div className="info-card-content">
+                  <div className="info-card-value">
+                    {(() => {
+                      if (filtros.tipo_atividade) {
+                        return 1;
+                      }
+                      
+                      let atividadesFiltradas = [...atividades];
+                      
+                      if (filtros.ordem_producao) {
+                        const projetosFiltrados = projetos
+                          .filter(p => p.ordem_producao === filtros.ordem_producao)
+                          .map(p => p.id);
+                        atividadesFiltradas = atividadesFiltradas.filter(a => projetosFiltrados.includes(a.projeto.id));
+                      }
+                      
+                      if (filtros.projeto_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.projeto.id === parseInt(filtros.projeto_id));
+                      }
+                      
+                      if (filtros.squad_id) {
+                        atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
+                      }
+                      
+                      return [...new Set(atividadesFiltradas.map(a => a.titulo))].length;
+                    })()}
+                  </div>
+                  <div className="info-card-label">
+                    {filtros.tipo_atividade ? 'Tipo Selecionado' : 'Tipos de Atividades'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="info-card">
+                <div className="info-card-icon">
+                  <FontAwesomeIcon icon={faChartLine} />
+                </div>
+                <div className="info-card-content">
+                  <div className="info-card-value">
+                    {filtros.ordem_producao ? 1 : [...new Set(projetos.map(p => p.ordem_producao).filter(op => op && op.trim() !== ''))].length}
+                  </div>
+                  <div className="info-card-label">
+                    {filtros.ordem_producao ? 'OP Selecionada' : 'Ordens de Produção'}
+                  </div>
                 </div>
               </div>
             </div>
