@@ -10,6 +10,8 @@ import {
   faChartBar
 } from '@fortawesome/free-solid-svg-icons';
 import { atividadeService, projetoService, squadService } from '../services/api';
+import { dashboardService } from '../services/dashboardApi';
+import AuditoriaCharts from '../components/AuditoriaCharts';
 import '../styles/Dashboard.css';
 
 function Dashboard() {
@@ -43,6 +45,10 @@ function Dashboard() {
   const [opcoesSquads, setOpcoesSquads] = useState([]);
   const [opcoesTiposAtividades, setOpcoesTiposAtividades] = useState([]);
 
+  // Estados para dados SQL Server - Auditoria
+  const [dadosAuditoriaSQLServer, setDadosAuditoriaSQLServer] = useState([]);
+  const [loadingAuditoria, setLoadingAuditoria] = useState(false);
+
   useEffect(() => {
     carregarDados();
   }, []);
@@ -53,6 +59,15 @@ function Dashboard() {
       aplicarFiltros();
     }
   }, [filtros, projetos, squads, atividades]);
+
+  // Carregar dados de auditoria do SQL Server quando projeto for selecionado
+  useEffect(() => {
+    if (filtros.projeto_id) {
+      carregarDadosAuditoria();
+    } else {
+      setDadosAuditoriaSQLServer([]);
+    }
+  }, [filtros.projeto_id]);
 
   const carregarDados = async () => {
     try {
@@ -72,6 +87,33 @@ function Dashboard() {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const carregarDadosAuditoria = async () => {
+    try {
+      setLoadingAuditoria(true);
+      
+      // Buscar o código do projeto (subprograma) do projeto selecionado
+      const projetoSelecionado = projetos.find(p => p.id === parseInt(filtros.projeto_id));
+      
+      if (projetoSelecionado && projetoSelecionado.subprograma) {
+        const cdProjeto = projetoSelecionado.subprograma;
+        
+        // Buscar histórico de auditoria do SQL Server
+        const response = await dashboardService.getAuditoriaHistorico(cdProjeto);
+        
+        if (response.data.success) {
+          setDadosAuditoriaSQLServer(response.data.data);
+        } else {
+          setDadosAuditoriaSQLServer([]);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados de auditoria:', error);
+      setDadosAuditoriaSQLServer([]);
+    } finally {
+      setLoadingAuditoria(false);
     }
   };
 
@@ -419,20 +461,37 @@ function Dashboard() {
                 <p>Nenhuma atividade encontrada para os filtros aplicados</p>
               </div>
             ) : (
-              <div className="indicadores-grid">
-                {renderIndicadorAtividade(
-                  'Destaque',
-                  calcularIndicadores(dadosFiltrados.auditoria, 'Destaque'),
-                  faChartBar,
-                  '#3498db'
+              <>
+                {/* Gráficos de Auditoria do SQL Server */}
+                {filtros.projeto_id && (
+                  <div style={{ marginBottom: '30px' }}>
+                    {loadingAuditoria ? (
+                      <div className="loading">Carregando dados de auditoria...</div>
+                    ) : (
+                      <AuditoriaCharts 
+                        cdProjeto={projetos.find(p => p.id === parseInt(filtros.projeto_id))?.subprograma}
+                        dados={dadosAuditoriaSQLServer}
+                      />
+                    )}
+                  </div>
                 )}
-                {renderIndicadorAtividade(
-                  'Transcrição',
-                  calcularIndicadores(dadosFiltrados.auditoria, 'Transcrição'),
-                  faChartBar,
-                  '#9b59b6'
-                )}
-              </div>
+
+                {/* Indicadores originais */}
+                <div className="indicadores-grid">
+                  {renderIndicadorAtividade(
+                    'Destaque',
+                    calcularIndicadores(dadosFiltrados.auditoria, 'Destaque'),
+                    faChartBar,
+                    '#3498db'
+                  )}
+                  {renderIndicadorAtividade(
+                    'Transcrição',
+                    calcularIndicadores(dadosFiltrados.auditoria, 'Transcrição'),
+                    faChartBar,
+                    '#9b59b6'
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
