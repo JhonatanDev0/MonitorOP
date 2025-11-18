@@ -13,6 +13,7 @@ import Squads from './pages/Squads';
 import Atividades from './pages/Atividades';
 import Login from './pages/Login';
 import Usuarios from './pages/Usuarios';
+import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -127,6 +128,9 @@ function AppContent() {
               <Usuarios />
             </PrivateRoute>
           } />
+
+          {/* Rota 404 - deve ser a última */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 
