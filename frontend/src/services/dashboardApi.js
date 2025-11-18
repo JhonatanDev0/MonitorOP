@@ -9,8 +9,10 @@ const dashboardApi = axios.create({
   },
 });
 
-// Dashboard - Auditoria
+// Dashboard - Auditoria e Recodificação
 export const dashboardService = {
+  // ==================== AUDITORIA ====================
+  
   // Buscar dados de auditoria
   getAuditoriaData: (cdProjeto = null) => {
     const params = cdProjeto ? { cd_projeto: cdProjeto } : {};
@@ -30,6 +32,24 @@ export const dashboardService = {
   // Buscar métricas calculadas de auditoria
   getAuditoriaMetricas: (cdProjeto) => {
     return dashboardApi.get(`/dashboard/auditoria/metricas/${cdProjeto}`);
+  },
+
+  // ==================== RECODIFICAÇÃO ====================
+  
+  // Buscar dados de recodificação
+  getRecodificacaoData: (cdProjeto = null) => {
+    const params = cdProjeto ? { cd_projeto: cdProjeto } : {};
+    return dashboardApi.get('/dashboard/recodificacao', { params });
+  },
+
+  // Buscar histórico de recodificação por projeto
+  getRecodificacaoHistorico: (cdProjeto) => {
+    return dashboardApi.get(`/dashboard/recodificacao/historico/${cdProjeto}`);
+  },
+
+  // Buscar métricas calculadas de recodificação
+  getRecodificacaoMetricas: (cdProjeto) => {
+    return dashboardApi.get(`/dashboard/recodificacao/metricas/${cdProjeto}`);
   },
 };
 

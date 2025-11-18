@@ -10,6 +10,7 @@ import {
 import { atividadeService, projetoService, squadService } from '../services/api';
 import { dashboardService } from '../services/dashboardApi';
 import AuditoriaCharts from '../components/AuditoriaCharts';
+import RecodificacaoCharts from '../components/RecodificacaoCharts';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -39,7 +40,7 @@ function Dashboard() {
   });
   
   // Estado para visualização geral/detalhada
-  const [modoVisualizacao, setModoVisualizacao] = useState('geral'); // 'geral' ou 'detalhado'
+  const [modoVisualizacao, setModoVisualizacao] = useState('geral');
   
   // Estados para os dados filtrados
   const [dadosFiltrados, setDadosFiltrados] = useState({
@@ -52,9 +53,13 @@ function Dashboard() {
   const [opcoesSquads, setOpcoesSquads] = useState([]);
   const [opcoesTiposAtividades, setOpcoesTiposAtividades] = useState([]);
 
-  // Estados para dados SQL Server - Auditoria (agora pode ser array de múltiplos projetos)
+  // Estados para dados SQL Server - Auditoria
   const [dadosAuditoriaSQLServer, setDadosAuditoriaSQLServer] = useState({});
   const [loadingAuditoria, setLoadingAuditoria] = useState(false);
+
+  // Estados para dados SQL Server - Recodificação
+  const [dadosRecodificacaoSQLServer, setDadosRecodificacaoSQLServer] = useState({});
+  const [loadingRecodificacao, setLoadingRecodificacao] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -72,13 +77,11 @@ function Dashboard() {
     if (modoVisualizacao === 'geral' && atividades.length > 0) {
       const ctx = document.getElementById('resumoGeralChart');
       if (ctx) {
-        // Destruir gráfico anterior se existir
         const existingChart = ChartJS.getChart(ctx);
         if (existingChart) {
           existingChart.destroy();
         }
 
-        // Aplicar filtros
         let atividadesFiltradas = [...atividades];
         
         if (filtros.ordem_producao) {
@@ -100,12 +103,10 @@ function Dashboard() {
           atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
         }
 
-        // Calcular quantidades por status
         const concluidas = atividadesFiltradas.filter(a => a.status === 'concluida').length;
         const emAndamento = atividadesFiltradas.filter(a => a.status === 'em_andamento').length;
         const pendentes = atividadesFiltradas.filter(a => a.status === 'pendente').length;
 
-        // Criar novo gráfico
         new ChartJS(ctx, {
           type: 'doughnut',
           data: {
@@ -159,16 +160,24 @@ function Dashboard() {
   }, [modoVisualizacao, atividades, filtros, projetos]);
 
   // Carregar dados de auditoria do SQL Server quando projeto for selecionado
-  // OU quando não houver filtro de projeto (carregar todos ou filtrados por OP)
   useEffect(() => {
     if (filtros.projeto_id) {
-      // Um projeto específico selecionado
       carregarDadosAuditoriaProjeto(filtros.projeto_id);
     } else if (projetos.length > 0) {
-      // Nenhum projeto selecionado - carregar todos ou filtrados por ordem de produção
       carregarDadosAuditoriaTodosProjetos();
     } else {
       setDadosAuditoriaSQLServer({});
+    }
+  }, [filtros.projeto_id, filtros.ordem_producao, projetos]);
+
+  // Carregar dados de recodificação do SQL Server quando projeto for selecionado
+  useEffect(() => {
+    if (filtros.projeto_id) {
+      carregarDadosRecodificacaoProjeto(filtros.projeto_id);
+    } else if (projetos.length > 0) {
+      carregarDadosRecodificacaoTodosProjetos();
+    } else {
+      setDadosRecodificacaoSQLServer({});
     }
   }, [filtros.projeto_id, filtros.ordem_producao, projetos]);
 
@@ -224,17 +233,14 @@ function Dashboard() {
     try {
       setLoadingAuditoria(true);
       
-      // Filtrar projetos com subprograma
       let projetosComSubprograma = projetos.filter(p => p.subprograma && p.subprograma.trim() !== '');
       
-      // Se há filtro de ordem de produção, aplicar
       if (filtros.ordem_producao) {
         projetosComSubprograma = projetosComSubprograma.filter(p => p.ordem_producao === filtros.ordem_producao);
       }
       
       const dadosTodosProjetos = {};
       
-      // Carregar dados de auditoria para cada projeto
       await Promise.all(
         projetosComSubprograma.map(async (projeto) => {
           try {
@@ -259,10 +265,72 @@ function Dashboard() {
     }
   };
 
+  const carregarDadosRecodificacaoProjeto = async (projetoId) => {
+    try {
+      setLoadingRecodificacao(true);
+      
+      const projetoSelecionado = projetos.find(p => p.id === parseInt(projetoId));
+      
+      if (projetoSelecionado && projetoSelecionado.subprograma) {
+        const cdProjeto = projetoSelecionado.subprograma;
+        
+        const response = await dashboardService.getRecodificacaoMetricas(cdProjeto);
+        
+        if (response.data.success) {
+          setDadosRecodificacaoSQLServer({
+            [projetoId]: response.data.data
+          });
+        } else {
+          setDadosRecodificacaoSQLServer({});
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados de recodificação:', error);
+      setDadosRecodificacaoSQLServer({});
+    } finally {
+      setLoadingRecodificacao(false);
+    }
+  };
+
+  const carregarDadosRecodificacaoTodosProjetos = async () => {
+    try {
+      setLoadingRecodificacao(true);
+      
+      let projetosComSubprograma = projetos.filter(p => p.subprograma && p.subprograma.trim() !== '');
+      
+      if (filtros.ordem_producao) {
+        projetosComSubprograma = projetosComSubprograma.filter(p => p.ordem_producao === filtros.ordem_producao);
+      }
+      
+      const dadosTodosProjetos = {};
+      
+      await Promise.all(
+        projetosComSubprograma.map(async (projeto) => {
+          try {
+            const response = await dashboardService.getRecodificacaoMetricas(projeto.subprograma);
+            
+            if (response.data.success && response.data.data.metricas && response.data.data.metricas.length > 0) {
+              dadosTodosProjetos[projeto.id] = response.data.data;
+            }
+          } catch (error) {
+            console.error(`Erro ao carregar dados de recodificação do projeto ${projeto.id}:`, error);
+          }
+        })
+      );
+      
+      setDadosRecodificacaoSQLServer(dadosTodosProjetos);
+      
+    } catch (error) {
+      console.error('Erro ao carregar dados de recodificação de todos os projetos:', error);
+      setDadosRecodificacaoSQLServer({});
+    } finally {
+      setLoadingRecodificacao(false);
+    }
+  };
+
   const atualizarOpcoesFiltros = () => {
     let atividadesFiltradas = [...atividades];
 
-    // Filtrar por ordem de produção
     if (filtros.ordem_producao) {
       const projetosFiltrados = projetos
         .filter(p => p.ordem_producao === filtros.ordem_producao)
@@ -273,27 +341,23 @@ function Dashboard() {
       );
     }
 
-    // Filtrar por projeto
     if (filtros.projeto_id) {
       atividadesFiltradas = atividadesFiltradas.filter(a => 
         a.projeto.id === parseInt(filtros.projeto_id)
       );
     }
 
-    // Filtrar por squad
     if (filtros.squad_id) {
       atividadesFiltradas = atividadesFiltradas.filter(a => 
         a.squad.id === parseInt(filtros.squad_id)
       );
     }
 
-    // Atualizar opções de Projetos baseado na Ordem de Produção selecionada
     let projetosDisponiveis = [...projetos];
     if (filtros.ordem_producao) {
       projetosDisponiveis = projetos.filter(p => p.ordem_producao === filtros.ordem_producao);
     }
     
-    // Atualizar opções de Ordem de Produção baseado no Projeto selecionado
     if (filtros.projeto_id) {
       const projetoSelecionado = projetos.find(p => p.id === parseInt(filtros.projeto_id));
       if (projetoSelecionado && projetoSelecionado.ordem_producao) {
@@ -302,7 +366,6 @@ function Dashboard() {
         setOpcoesOrdemProducao([]);
       }
     } else {
-      // Todas as ordens de produção disponíveis
       const ordensUnicas = [...new Set(
         projetos
           .map(p => p.ordem_producao)
@@ -311,12 +374,10 @@ function Dashboard() {
       setOpcoesOrdemProducao(ordensUnicas);
     }
 
-    // Atualizar opções de Squads baseado nas atividades filtradas
     const squadIdsDisponiveis = [...new Set(atividadesFiltradas.map(a => a.squad.id))];
     const squadsDisponiveis = squads.filter(s => squadIdsDisponiveis.includes(s.id));
     setOpcoesSquads(squadsDisponiveis);
 
-    // Atualizar opções de Tipos de Atividades baseado nas atividades filtradas
     const tiposDisponiveis = [...new Set(
       atividadesFiltradas.map(a => a.titulo)
     )].sort();
@@ -326,7 +387,6 @@ function Dashboard() {
   const aplicarFiltros = () => {
     let atividadesFiltradas = [...atividades];
 
-    // Filtro por ordem de produção
     if (filtros.ordem_producao) {
       const projetosFiltrados = projetos
         .filter(p => p.ordem_producao === filtros.ordem_producao)
@@ -337,28 +397,24 @@ function Dashboard() {
       );
     }
 
-    // Filtro por projeto
     if (filtros.projeto_id) {
       atividadesFiltradas = atividadesFiltradas.filter(a => 
         a.projeto.id === parseInt(filtros.projeto_id)
       );
     }
 
-    // Filtro por squad
     if (filtros.squad_id) {
       atividadesFiltradas = atividadesFiltradas.filter(a => 
         a.squad.id === parseInt(filtros.squad_id)
       );
     }
 
-    // Filtro por tipo de atividade (título)
     if (filtros.tipo_atividade) {
       atividadesFiltradas = atividadesFiltradas.filter(a => 
         a.titulo === filtros.tipo_atividade
       );
     }
 
-    // Separar por squads específicas (Auditoria e Recodificação)
     const auditoriaSquad = squads.find(s => s.nome === 'Auditoria');
     const recodificacaoSquad = squads.find(s => s.nome === 'Recodificação');
 
@@ -384,7 +440,6 @@ function Dashboard() {
   const obterProjetosFormatados = () => {
     let projetosFiltrados = projetos.filter(p => p.subprograma && p.subprograma.trim() !== '');
     
-    // Se há ordem de produção selecionada, filtrar projetos
     if (filtros.ordem_producao) {
       projetosFiltrados = projetosFiltrados.filter(p => p.ordem_producao === filtros.ordem_producao);
     }
@@ -398,23 +453,27 @@ function Dashboard() {
   };
 
   const deveExibirSquadAuditoria = () => {
-    // Se não há filtro de squad, ou se o filtro é Auditoria, exibir
     if (!filtros.squad_id) return true;
     const auditoriaSquad = squads.find(s => s.nome === 'Auditoria');
     return auditoriaSquad && parseInt(filtros.squad_id) === auditoriaSquad.id;
   };
 
-  // Obter lista de projetos para exibir gráficos
+  const deveExibirSquadRecodificacao = () => {
+    if (!filtros.squad_id) return true;
+    const recodificacaoSquad = squads.find(s => s.nome === 'Recodificação');
+    return recodificacaoSquad && parseInt(filtros.squad_id) === recodificacaoSquad.id;
+  };
+
   const obterProjetosParaExibir = () => {
     if (filtros.projeto_id) {
-      // Se há projeto selecionado, retornar apenas ele
       const projeto = projetos.find(p => p.id === parseInt(filtros.projeto_id));
       return projeto ? [projeto] : [];
     } else {
-      // Se não há projeto selecionado, retornar projetos que têm dados de auditoria
-      let projetosComDados = projetos.filter(p => dadosAuditoriaSQLServer[p.id] && dadosAuditoriaSQLServer[p.id].length > 0);
+      let projetosComDados = projetos.filter(p => 
+        (dadosAuditoriaSQLServer[p.id] && dadosAuditoriaSQLServer[p.id].length > 0) ||
+        (dadosRecodificacaoSQLServer[p.id] && dadosRecodificacaoSQLServer[p.id].metricas && dadosRecodificacaoSQLServer[p.id].metricas.length > 0)
+      );
       
-      // Se há filtro de ordem de produção, aplicar
       if (filtros.ordem_producao) {
         projetosComDados = projetosComDados.filter(p => p.ordem_producao === filtros.ordem_producao);
       }
@@ -684,7 +743,6 @@ function Dashboard() {
 
             {/* Seção de Percentual e Gráfico */}
             <div className="resumo-detalhes">
-              {/* Card de Percentual */}
               <div className="percentual-card">
                 <h4>Taxa de Conclusão</h4>
                 <div className="percentual-display">
@@ -783,7 +841,6 @@ function Dashboard() {
                 </div>
               </div>
 
-              {/* Card de Gráfico de Pizza */}
               <div className="grafico-card">
                 <h4>Distribuição por Status</h4>
                 <div className="grafico-pizza-container">
@@ -897,12 +954,56 @@ function Dashboard() {
                     a => a.projeto.id === projeto.id
                   );
 
+                  // Só renderiza se tiver dados de auditoria
+                  if (!dadosAuditoriaSQLServer[projeto.id] || dadosAuditoriaSQLServer[projeto.id].length === 0) {
+                    return null;
+                  }
+
                   return (
-                    <div key={projeto.id} className="projeto-grafico-wrapper">
+                    <div key={`auditoria-${projeto.id}`} className="projeto-grafico-wrapper">
                       <AuditoriaCharts 
                         cdProjeto={projeto.subprograma}
                         dados={dadosAuditoriaSQLServer[projeto.id] || []}
                         atividadesSquad={atividadesAuditoriaProjeto}
+                        nomeProjeto={`${projeto.subprograma} - ${projeto.nome}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Squad Recodificação - Gráficos (apenas em modo detalhado) */}
+        {modoVisualizacao === 'detalhado' && deveExibirSquadRecodificacao() && (
+          <div className="squad-section">
+            {loadingRecodificacao ? (
+              <div className="loading">Carregando dados de recodificação...</div>
+            ) : projetosParaExibir.length === 0 ? (
+              <div className="empty-state">
+                <p>Nenhum projeto com dados de recodificação disponível</p>
+              </div>
+            ) : (
+              <div className="projetos-graficos-container">
+                {projetosParaExibir.map(projeto => {
+                  const atividadesRecodificacaoProjeto = dadosFiltrados.recodificacao.filter(
+                    a => a.projeto.id === projeto.id
+                  );
+
+                  // Só renderiza se tiver dados de recodificação
+                  if (!dadosRecodificacaoSQLServer[projeto.id] || 
+                      !dadosRecodificacaoSQLServer[projeto.id].metricas || 
+                      dadosRecodificacaoSQLServer[projeto.id].metricas.length === 0) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={`recodificacao-${projeto.id}`} className="projeto-grafico-wrapper">
+                      <RecodificacaoCharts 
+                        cdProjeto={projeto.subprograma}
+                        metricas={dadosRecodificacaoSQLServer[projeto.id]}
+                        atividadesSquad={atividadesRecodificacaoProjeto}
                         nomeProjeto={`${projeto.subprograma} - ${projeto.nome}`}
                       />
                     </div>
