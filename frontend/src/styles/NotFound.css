@@ -1,132 +1,229 @@
 .notfound-container {
   min-height: 100vh;
+  height: 100vh;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  flex-direction: column;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
+  position: relative;
+  overflow: hidden;
 }
 
+.notfound-authenticated {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+/* ==================== LOGO OVERLAY ==================== */
+.notfound-logo-overlay {
+  position: absolute;
+  top: 30px;
+  left: 50px;
+  z-index: 10;
+}
+
+.notfound-logo-corner {
+  height: 45px;
+  width: auto;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* ==================== MAIN CONTENT - FULLSCREEN ==================== */
 .notfound-content {
-  max-width: 600px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  justify-items: center;
+  padding: 80px 50px;
   width: 100%;
-  text-align: center;
-  animation: fadeInUp 0.6s ease;
 }
 
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.notfound-left {
+  width: 100%;
+  max-width: 500px;
+  justify-self: end;
 }
 
-.notfound-icon {
-  font-size: 80px;
-  color: #e74c3c;
-  margin-bottom: 20px;
-  animation: pulse 2s ease-in-out infinite;
+.notfound-right {
+  width: 100%;
+  max-width: 500px;
+  justify-self: start;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
-  }
+/* ==================== TEXT SECTION ==================== */
+.notfound-text-section {
+  text-align: left;
 }
 
 .notfound-code {
-  font-size: 120px;
-  font-weight: bold;
-  color: #2c3e50;
+  font-size: 140px;
+  font-weight: 900;
+  color: #3498db;
+  margin: 0;
   line-height: 1;
-  margin-bottom: 20px;
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  letter-spacing: -3px;
+  font-family: 'Courier New', monospace;
+  text-shadow: 2px 2px 4px rgba(52, 152, 219, 0.1);
 }
 
 .notfound-title {
-  font-size: 32px;
-  font-weight: 600;
+  font-size: 48px;
+  font-weight: 700;
   color: #2c3e50;
-  margin-bottom: 15px;
+  margin: 15px 0 20px 0;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
 }
 
 .notfound-message {
   font-size: 16px;
   color: #6c757d;
-  margin-bottom: 40px;
-  line-height: 1.6;
+  line-height: 1.8;
+  margin: 0 0 40px 0;
+  max-width: 400px;
 }
 
-.notfound-illustration {
-  margin-bottom: 40px;
-  animation: float 3s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-.notfound-illustration svg {
-  max-width: 200px;
-  height: auto;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
-}
-
+/* ==================== ACTIONS ==================== */
 .notfound-actions {
   display: flex;
   gap: 15px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin-bottom: 40px;
+  flex-direction: column;
 }
 
-.btn-large {
-  padding: 14px 28px;
+.btn-notfound {
+  padding: 16px 32px;
   font-size: 16px;
   font-weight: 600;
-  min-width: 180px;
-}
-
-.notfound-help {
-  padding: 20px;
-  background: white;
+  border: none;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  text-decoration: none;
 }
 
-.notfound-help p {
-  margin: 0;
-  font-size: 14px;
-  color: #6c757d;
+.btn-notfound svg {
+  font-size: 18px;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .notfound-container {
-    padding: 20px;
+.btn-notfound.btn-primary {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  box-shadow: 0 8px 20px rgba(52, 152, 219, 0.25);
+}
+
+.btn-notfound.btn-primary:hover {
+  box-shadow: 0 12px 28px rgba(52, 152, 219, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-notfound.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.25);
+}
+
+.btn-notfound.btn-secondary {
+  background: white;
+  color: #3498db;
+  border: 2px solid #3498db;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.15);
+}
+
+.btn-notfound.btn-secondary:hover {
+  background: #f0f8ff;
+  box-shadow: 0 8px 20px rgba(52, 152, 219, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-notfound.btn-secondary:active {
+  transform: translateY(0);
+  background: white;
+}
+
+/* ==================== GRAPHIC ==================== */
+.notfound-graphic {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error-icon {
+  font-size: 350px;
+  color: #f5cb43;
+  filter: drop-shadow(0 15px 40px rgba(245, 203, 67, 0.25));
+  opacity: 0.85;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+/* Tablet - 1024px */
+@media (max-width: 1024px) {
+  .notfound-content {
+    gap: 40px;
+    padding: 60px 40px;
+    grid-template-columns: 1fr;
+    justify-items: center;
   }
 
-  .notfound-icon {
-    font-size: 60px;
+  .notfound-left {
+    max-width: 450px;
+    justify-self: center;
+  }
+
+  .notfound-right {
+    max-width: 400px;
+    justify-self: center;
+  }
+
+  .notfound-code {
+    font-size: 100px;
+  }
+
+  .notfound-title {
+    font-size: 36px;
+  }
+
+  .notfound-message {
+    font-size: 15px;
+  }
+
+  .error-icon {
+    font-size: 250px;
+  }
+
+  .notfound-logo-overlay {
+    top: 25px;
+    left: 40px;
+  }
+
+  .notfound-logo-corner {
+    height: 40px;
+  }
+}
+
+/* Mobile - 768px */
+@media (max-width: 768px) {
+  .notfound-logo-overlay {
+    top: 20px;
+    left: 30px;
+  }
+
+  .notfound-logo-corner {
+    height: 35px;
+  }
+
+  .notfound-content {
+    gap: 30px;
+    padding: 100px 30px 40px 30px;
+    grid-template-columns: 1fr;
   }
 
   .notfound-code {
@@ -134,38 +231,119 @@
   }
 
   .notfound-title {
-    font-size: 24px;
+    font-size: 28px;
+    margin: 12px 0 15px 0;
   }
 
   .notfound-message {
     font-size: 14px;
+    margin-bottom: 30px;
   }
 
   .notfound-actions {
-    flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 
-  .btn-large {
+  .btn-notfound {
+    padding: 14px 28px;
+    font-size: 15px;
     width: 100%;
-    min-width: auto;
+    justify-content: center;
   }
 
-  .notfound-illustration svg {
-    max-width: 150px;
+  .notfound-left {
+    max-width: 100%;
+  }
+
+  .notfound-right {
+    max-width: 100%;
+    order: -1;
+  }
+
+  .error-icon {
+    font-size: 180px;
   }
 }
 
+/* Mobile pequeno - 480px */
 @media (max-width: 480px) {
-  .notfound-icon {
-    font-size: 50px;
+  .notfound-logo-overlay {
+    top: 15px;
+    left: 20px;
+  }
+
+  .notfound-logo-corner {
+    height: 30px;
+  }
+
+  .notfound-content {
+    gap: 20px;
+    padding: 90px 20px 30px 20px;
+    grid-template-columns: 1fr;
   }
 
   .notfound-code {
     font-size: 60px;
+    letter-spacing: -2px;
   }
 
   .notfound-title {
-    font-size: 20px;
+    font-size: 22px;
+    margin: 10px 0 12px 0;
+  }
+
+  .notfound-message {
+    font-size: 13px;
+    margin-bottom: 25px;
+  }
+
+  .notfound-actions {
+    gap: 10px;
+  }
+
+  .btn-notfound {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  .notfound-left {
+    max-width: 100%;
+  }
+
+  .notfound-right {
+    max-width: 100%;
+  }
+
+  .error-icon {
+    font-size: 120px;
+  }
+}
+
+/* ==================== ACESSIBILIDADE ==================== */
+
+.btn-notfound:focus {
+  outline: 2px solid #3498db;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-notfound {
+    transition: none;
+  }
+
+  .btn-notfound:hover {
+    transform: none;
+  }
+}
+
+/* ==================== PRINT ==================== */
+
+@media print {
+  .notfound-container {
+    height: 100vh;
+  }
+
+  .btn-notfound {
+    border: 1px solid #2c3e50;
   }
 }

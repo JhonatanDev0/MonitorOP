@@ -25,7 +25,13 @@ function HeaderNav() {
   const location = useLocation();
 
   // ✅ NOVO: Não mostrar header na página 404
-  if (location.pathname === '*' || location.pathname.startsWith('/404')) {
+  // Verificar se a rota não existe (não está na lista de rotas válidas)
+  const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/usuarios', '/login'];
+  const ehRotaValida = rotasValidas.some(rota => 
+    location.pathname === rota || location.pathname.startsWith(rota + '/')
+  );
+  
+  if (!ehRotaValida) {
     return null;
   }
 
@@ -105,13 +111,19 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
+  // ✅ NOVO: Verificar se é uma rota válida
+  const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/usuarios', '/login'];
+  const ehRotaValida = rotasValidas.some(rota => 
+    location.pathname === rota || location.pathname.startsWith(rota + '/')
+  );
+
   return (
     <div className="App">
       {/* ✅ NOVO: Header renderizado condicionalmente */}
       <HeaderNav />
 
       {/* ✅ MODIFICADO: Condicional para mostrar/esconder container baseado na página */}
-      <main className={location.pathname === '*' || location.pathname.startsWith('/404') || !isAuthenticated() ? 'container-fullscreen' : 'container'}>
+      <main className={!ehRotaValida || !isAuthenticated() ? 'container-fullscreen' : 'container'}>
         <Routes>
           <Route path="/login" element={<Login />} />
           

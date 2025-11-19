@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faChartLine, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faHome, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import '../styles/NotFound.css';
 
 function NotFound() {
@@ -10,49 +10,46 @@ function NotFound() {
   const { isAuthenticated } = useAuth();
 
   return (
-    // ✅ NOVO: Esconder o menu quando logado na página 404
-    // A página 404 renderiza fora do layout principal, então o header já fica oculto
     <div className={isAuthenticated() ? 'notfound-container notfound-authenticated' : 'notfound-container'}>
+      {/* Logo no canto superior esquerdo */}
+      <div className="notfound-logo-overlay">
+        <img src="/logo.png" alt="Logo" className="notfound-logo-corner" />
+      </div>
+
+      {/* Main Content - Fullscreen */}
       <div className="notfound-content">
-        <div className="notfound-icon">
-          <FontAwesomeIcon icon={faExclamationTriangle} />
-        </div>
-        
-        <div className="notfound-code">404</div>
-        
-        <h1 className="notfound-title">Página Não Encontrada</h1>
-        
-        <p className="notfound-message">
-          Desculpe, a página que você está procurando não existe.
-        </p>
-
-        <div className="notfound-illustration">
-          <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="100" cy="100" r="80" fill="#e9ecef" />
-            <text x="100" y="120" fontSize="80" textAnchor="middle" fill="#95a5a6">?</text>
-          </svg>
-        </div>
-
-        <div className="notfound-actions">
-          <button 
-            className="btn btn-primary btn-large" 
-            onClick={() => navigate('/')}
-          >
-            <FontAwesomeIcon icon={faHome} style={{ marginRight: '10px' }} />
-            Voltar ao Início
-          </button>
-          
-          <button 
-            className="btn btn-secondary btn-large" 
-            onClick={() => navigate(-1)}
-          >
-            <FontAwesomeIcon icon={faChartLine} style={{ marginRight: '10px' }} />
-            Página Anterior
-          </button>
+        <div className="notfound-left">
+          <div className="notfound-text-section">
+            <div className="notfound-code">404</div>
+            <h1 className="notfound-title">Página Não Encontrada</h1>
+            <p className="notfound-message">
+              Desculpe, a página que você está procurando não existe ou foi movida.
+            </p>
+            
+            <div className="notfound-actions">
+              <button 
+                className="btn btn-notfound btn-primary" 
+                onClick={() => navigate('/')}
+              >
+                <FontAwesomeIcon icon={faHome} />
+                Dashboard
+              </button>
+              
+              <button 
+                className="btn btn-notfound btn-secondary" 
+                onClick={() => navigate(-1)}
+              >
+                <FontAwesomeIcon icon={faArrowLeft} />
+                Voltar
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div className="notfound-help">
-          <p>Se você acredita que isso é um erro, entre em contato com o suporte.</p>
+        <div className="notfound-right">
+          <div className="notfound-graphic">
+            <FontAwesomeIcon icon={faTriangleExclamation} className="error-icon" />
+          </div>
         </div>
       </div>
     </div>
