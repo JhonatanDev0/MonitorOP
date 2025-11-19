@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChartLine, faClipboardList, faUsers, faListCheck, faSignOutAlt, faUserShield } from '@fortawesome/free-solid-svg-icons';
 import { ToastContainer } from 'react-toastify';
@@ -18,84 +18,100 @@ import PrivateRoute from './components/PrivateRoute';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-function AppContent() {
+// ✅ NOVO: Componente interno para renderizar o header condicionalmente
+function HeaderNav() {
   const { isAuthenticated, canEdit, canAccessUsers, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ✅ NOVO: Não mostrar header na página 404
+  if (location.pathname === '*' || location.pathname.startsWith('/404')) {
+    return null;
+  }
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
+  return isAuthenticated() ? (
+    <header className="header">
+      <div className="header-container">
+        <div className="header-logo">
+          <img src="/logo.png" alt="Logo" className="logo-img" />
+          <h1>Monitoramento de Atividades da Ordem de Produção</h1>
+        </div>
+        
+        <nav className="nav">
+          <NavLink 
+            to="/" 
+            className={({ isActive }) => isActive ? 'active' : ''}
+            end
+          >
+            <FontAwesomeIcon icon={faChartLine} />
+            Dashboard
+          </NavLink>
+          
+          {canEdit() && (
+            <>
+              <NavLink 
+                to="/projetos" 
+                className={({ isActive }) => isActive ? 'active' : ''}
+              >
+                <FontAwesomeIcon icon={faClipboardList} />
+                Avaliações
+              </NavLink>
+              <NavLink 
+                to="/squads" 
+                className={({ isActive }) => isActive ? 'active' : ''}
+              >
+                <FontAwesomeIcon icon={faUsers} />
+                Squads
+              </NavLink>
+              <NavLink 
+                to="/atividades" 
+                className={({ isActive }) => isActive ? 'active' : ''}
+              >
+                <FontAwesomeIcon icon={faListCheck} />
+                Atividades
+              </NavLink>
+            </>
+          )}
+          
+          {canAccessUsers() && (
+            <NavLink 
+              to="/usuarios" 
+              className={({ isActive }) => isActive ? 'active' : ''}
+            >
+              <FontAwesomeIcon icon={faUserShield} />
+              Usuários
+            </NavLink>
+          )}
+          
+          <button 
+            className="btn-logout"
+            onClick={handleLogout}
+          >
+            <FontAwesomeIcon icon={faSignOutAlt} />
+            Sair
+          </button>
+        </nav>
+      </div>
+    </header>
+  ) : null;
+}
+
+function AppContent() {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+
   return (
     <div className="App">
-      {isAuthenticated() && (
-        <header className="header">
-          <div className="header-container">
-            <div className="header-logo">
-              <img src="/logo.png" alt="Logo" className="logo-img" />
-              <h1>Monitoramento de Atividades da Ordem de Produção</h1>
-            </div>
-            
-            <nav className="nav">
-              <NavLink 
-                to="/" 
-                className={({ isActive }) => isActive ? 'active' : ''}
-                end
-              >
-                <FontAwesomeIcon icon={faChartLine} />
-                Dashboard
-              </NavLink>
-              
-              {canEdit() && (
-                <>
-                  <NavLink 
-                    to="/projetos" 
-                    className={({ isActive }) => isActive ? 'active' : ''}
-                  >
-                    <FontAwesomeIcon icon={faClipboardList} />
-                    Avaliações
-                  </NavLink>
-                  <NavLink 
-                    to="/squads" 
-                    className={({ isActive }) => isActive ? 'active' : ''}
-                  >
-                    <FontAwesomeIcon icon={faUsers} />
-                    Squads
-                  </NavLink>
-                  <NavLink 
-                    to="/atividades" 
-                    className={({ isActive }) => isActive ? 'active' : ''}
-                  >
-                    <FontAwesomeIcon icon={faListCheck} />
-                    Atividades
-                  </NavLink>
-                </>
-              )}
-              
-              {canAccessUsers() && (
-                <NavLink 
-                  to="/usuarios" 
-                  className={({ isActive }) => isActive ? 'active' : ''}
-                >
-                  <FontAwesomeIcon icon={faUserShield} />
-                  Usuários
-                </NavLink>
-              )}
-              
-              <button 
-                className="btn-logout"
-                onClick={handleLogout}
-              >
-                <FontAwesomeIcon icon={faSignOutAlt} />
-                Sair
-              </button>
-            </nav>
-          </div>
-        </header>
-      )}
+      {/* ✅ NOVO: Header renderizado condicionalmente */}
+      <HeaderNav />
 
-      <main className="container">
+      {/* ✅ MODIFICADO: Condicional para mostrar/esconder container baseado na página */}
+      <main className={location.pathname === '*' || location.pathname.startsWith('/404') || !isAuthenticated() ? 'container-fullscreen' : 'container'}>
         <Routes>
           <Route path="/login" element={<Login />} />
           

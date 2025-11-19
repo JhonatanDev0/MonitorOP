@@ -6,13 +6,20 @@ import '../styles/Login.css';
 
 function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     login: '',
     senha: '',
     lembrar: false
   });
   const [loading, setLoading] = useState(false);
+
+  // ✅ NOVO: Redirecionar se já está logado
+  React.useEffect(() => {
+    if (isAuthenticated()) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async () => {
     console.log('🔵 handleLogin chamado!');

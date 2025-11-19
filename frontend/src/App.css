@@ -1,3 +1,36 @@
+/* ✅ NOVO: Estilos para container fullscreen (login e 404) */
+.container-fullscreen {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Manter estilos do container normal */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: transparent;
+}
+
+/* ✅ NOVO: Estilo para página 404 quando autenticado */
+.notfound-authenticated {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Adicionar espaço após o header */
+main {
+  min-height: calc(100vh - 200px); /* 200px para header + footer */
+}
+
+/* Resto dos estilos originais do App.css permanece igual */
+
 * {
   margin: 0;
   padding: 0;
@@ -11,13 +44,6 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #f8f9fa;
-}
-
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  background-color: transparent;
 }
 
 /* Header */

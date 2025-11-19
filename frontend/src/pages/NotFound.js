@@ -1,14 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHome, faChartLine, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import '../styles/NotFound.css';
 
 function NotFound() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   return (
-    <div className="notfound-container">
+    // ✅ NOVO: Esconder o menu quando logado na página 404
+    // A página 404 renderiza fora do layout principal, então o header já fica oculto
+    <div className={isAuthenticated() ? 'notfound-container notfound-authenticated' : 'notfound-container'}>
       <div className="notfound-content">
         <div className="notfound-icon">
           <FontAwesomeIcon icon={faExclamationTriangle} />
