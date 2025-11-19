@@ -482,6 +482,35 @@ function Dashboard() {
     }
   };
 
+  // ✅ NOVA FUNÇÃO: Filtrar métricas de recodificação baseado na atividade selecionada
+  const filtrarMetricasRecodificacao = (metricas) => {
+    if (!metricas || !metricas.metricas || !filtros.tipo_atividade) {
+      return metricas;
+    }
+
+    // Mapear o tipo de atividade selecionado para o tipo de recodificação
+    const atividadeMap = {
+      'CR Reserva': '01 - RESERVA TÉCNICA',
+      'CR Anulado': '02 - CARTÃO ANULADO',
+      'CR Duplicado': '03 - IMAGEM DUPLICADA',
+      'CR Genérico': '04 - CARTÃO GENERICO',
+      'Sujeito C1': '05 - RECODIFICAÇÃO DE SUJEITO C1',
+      'Sujeito C2': '06 - RECODIFICAÇÃO DE SUJEITO C2',
+      'Público Alvo': '07 - DEDUCAO DO PUBLICO ALVO'
+    };
+
+    const tipoRecodificacao = atividadeMap[filtros.tipo_atividade];
+
+    if (!tipoRecodificacao) {
+      return metricas;
+    }
+
+    return {
+      ...metricas,
+      metricas: metricas.metricas.filter(m => m.tipo === tipoRecodificacao)
+    };
+  };
+
   if (loading) {
     return <div className="loading">Carregando dashboard...</div>;
   }
@@ -991,10 +1020,15 @@ function Dashboard() {
                     a => a.projeto.id === projeto.id
                   );
 
-                  // Só renderiza se tiver dados de recodificação
-                  if (!dadosRecodificacaoSQLServer[projeto.id] || 
-                      !dadosRecodificacaoSQLServer[projeto.id].metricas || 
-                      dadosRecodificacaoSQLServer[projeto.id].metricas.length === 0) {
+                  // ✅ NOVA LINHA: Filtrar as métricas de recodificação baseado na atividade selecionada
+                  const metricasFiltradas = filtrarMetricasRecodificacao(
+                    dadosRecodificacaoSQLServer[projeto.id]
+                  );
+
+                  // ✅ MODIFICADO: Usar metricasFiltradas em vez de dadosRecodificacaoSQLServer[projeto.id]
+                  if (!metricasFiltradas || 
+                      !metricasFiltradas.metricas || 
+                      metricasFiltradas.metricas.length === 0) {
                     return null;
                   }
 
@@ -1002,7 +1036,7 @@ function Dashboard() {
                     <div key={`recodificacao-${projeto.id}`} className="projeto-grafico-wrapper">
                       <RecodificacaoCharts 
                         cdProjeto={projeto.subprograma}
-                        metricas={dadosRecodificacaoSQLServer[projeto.id]}
+                        metricas={metricasFiltradas}
                         atividadesSquad={atividadesRecodificacaoProjeto}
                         nomeProjeto={`${projeto.subprograma} - ${projeto.nome}`}
                       />
