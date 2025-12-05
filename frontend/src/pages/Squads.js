@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { squadService } from '../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEdit, faTrash, faSave, faTimes, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
 import Pagination from '../components/Pagination';
+import '../styles/EditarEmLinha.css';
 
 function Squads() {
   const { canEdit } = useAuth();
@@ -13,6 +14,7 @@ function Squads() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [editandoId, setEditandoId] = useState(null);
   
   // Estados de paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -62,6 +64,7 @@ function Squads() {
       if (editando) {
         await squadService.atualizar(editando.id, formData);
         toast.success('Squad atualizada com sucesso!');
+        setEditandoId(null);
       } else {
         await squadService.criar(formData);
         toast.success('Squad criada com sucesso!');
@@ -76,11 +79,11 @@ function Squads() {
 
   const handleEdit = (squad) => {
     setEditando(squad);
+    setEditandoId(squad.id);
     setFormData({
       nome: squad.nome,
       descricao: squad.descricao || ''
     });
-    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
@@ -180,6 +183,7 @@ function Squads() {
   const resetForm = () => {
     setFormData({ nome: '', descricao: '' });
     setEditando(null);
+    setEditandoId(null);
     setShowForm(false);
   };
 
@@ -203,94 +207,159 @@ function Squads() {
           )}
         </div>
 
+        {/* FORMULÁRIO DE CADASTRO - TELA CHEIA */}
         {showForm && (
-          <form onSubmit={handleSubmit} style={{marginTop: '20px'}}>
-            <div className="form-group">
-              <label>Nome *</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.nome}
-                onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Descrição</label>
-              <textarea
-                className="form-control"
-                value={formData.descricao}
-                onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-              />
-            </div>
-
-            <div style={{display: 'flex', gap: '10px'}}>
-              <button type="submit" className="btn btn-success">
-                <FontAwesomeIcon icon={faSave} /> {editando ? 'Atualizar' : 'Criar'}
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                <FontAwesomeIcon icon={faTimes} /> Cancelar
-              </button>
-            </div>
-          </form>
-        )}
-
-        {squads.length === 0 ? (
-          <div className="empty-state">
-            <h3>Nenhuma squad cadastrada</h3>
-            <p>Clique em "Nova Squad" para começar</p>
-          </div>
-        ) : (
-          <>
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Nome</th>
-                    <th>Descrição</th>
-                    <th>Projetos</th>
-                    <th>Atividades</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {squads.map(squad => (
-                    <tr key={squad.id}>
-                      <td><strong>{squad.nome}</strong></td>
-                      <td>{squad.descricao || '-'}</td>
-                      <td>{squad.total_projetos}</td>
-                      <td>{squad.total_atividades}</td>
-                      <td>
-                        {canEdit() ? (
-                          <div style={{display: 'flex', gap: '5px'}}>
-                            <button 
-                              className="btn btn-primary btn-small" 
-                              onClick={() => handleEdit(squad)}
-                            >
-                              <FontAwesomeIcon icon={faEdit} /> Editar
-                            </button>
-                            <button 
-                              className="btn btn-danger btn-small" 
-                              onClick={() => handleDelete(squad.id)}
-                            >
-                              <FontAwesomeIcon icon={faTrash} /> Deletar
-                            </button>
-                          </div>
-                        ) : (
-                          <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="form-fullscreen">
+            <div className="form-fullscreen-header">
+              <h3>
+                <FontAwesomeIcon icon={faPlus} /> Nova Squad
+              </h3>
             </div>
             
-            <Pagination 
-              pagination={pagination}
-              onPageChange={handlePageChange}
-            />
+            <form onSubmit={handleSubmit} className="form-fullscreen-content">
+              <div className="form-group">
+                <label>Nome *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.nome}
+                  onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Descrição</label>
+                <textarea
+                  className="form-control"
+                  value={formData.descricao}
+                  onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+                  rows="5"
+                />
+              </div>
+
+              <div className="form-fullscreen-actions">
+                <button type="button" className="btn btn-secondary" onClick={resetForm}>
+                  <FontAwesomeIcon icon={faTimes} /> Cancelar
+                </button>
+                <button type="submit" className="btn btn-success">
+                  <FontAwesomeIcon icon={faSave} /> Criar
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* TABELA - OCULTA QUANDO SHOWFORM ESTÁ ATIVO */}
+        {!showForm && (
+          <>
+            {squads.length === 0 ? (
+              <div className="empty-state">
+                <h3>Nenhuma squad cadastrada</h3>
+                <p>Clique em "Nova Squad" para começar</p>
+              </div>
+            ) : (
+              <>
+                <div className="table-container">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Descrição</th>
+                        <th>Projetos</th>
+                        <th>Atividades</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {squads.map(squad => (
+                        <React.Fragment key={squad.id}>
+                          <tr>
+                            <td><strong>{squad.nome}</strong></td>
+                            <td>{squad.descricao || '-'}</td>
+                            <td>{squad.total_projetos}</td>
+                            <td>{squad.total_atividades}</td>
+                            <td>
+                              {canEdit() ? (
+                                <div style={{display: 'flex', gap: '5px'}}>
+                                  <button 
+                                    className="btn btn-primary btn-small" 
+                                    onClick={() => editandoId === squad.id ? setEditandoId(null) : handleEdit(squad)}
+                                  >
+                                    <FontAwesomeIcon icon={editandoId === squad.id ? faChevronUp : faChevronDown} /> 
+                                    {editandoId === squad.id ? ' Fechar' : ' Editar'}
+                                  </button>
+                                  <button 
+                                    className="btn btn-danger btn-small" 
+                                    onClick={() => handleDelete(squad.id)}
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} /> Deletar
+                                  </button>
+                                </div>
+                              ) : (
+                                <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                              )}
+                            </td>
+                          </tr>
+                          
+                          {/* LINHA DE EDIÇÃO EM SANFONA */}
+                          {editandoId === squad.id && (
+                            <tr className="edit-row">
+                              <td colSpan="5">
+                                <div className="edit-form-wrapper">
+                                  <div className="edit-form-header">
+                                    <h4>
+                                      <FontAwesomeIcon icon={faEdit} /> Editando: {squad.nome}
+                                    </h4>
+                                  </div>
+                                  
+                                  <form onSubmit={handleSubmit} className="edit-form-content">
+                                    <div className="form-group">
+                                      <label>Nome *</label>
+                                      <input
+                                        type="text"
+                                        className="form-control"
+                                        value={formData.nome}
+                                        onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                                        required
+                                      />
+                                    </div>
+
+                                    <div className="form-group">
+                                      <label>Descrição</label>
+                                      <textarea
+                                        className="form-control"
+                                        value={formData.descricao}
+                                        onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+                                        rows="4"
+                                      />
+                                    </div>
+
+                                    <div className="edit-form-actions">
+                                      <button type="button" className="btn btn-secondary" onClick={() => setEditandoId(null)}>
+                                        <FontAwesomeIcon icon={faTimes} /> Cancelar
+                                      </button>
+                                      <button type="submit" className="btn btn-success">
+                                        <FontAwesomeIcon icon={faSave} /> Atualizar
+                                      </button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <Pagination 
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
+                />
+              </>
+            )}
           </>
         )}
       </div>

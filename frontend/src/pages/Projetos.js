@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { projetoService, squadService } from '../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faSave, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEdit, faTrash, faSave, faTimes, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
 import Pagination from '../components/Pagination';
+import '../styles/EditarEmLinha.css';
 
 function Projetos() {
   const { canEdit } = useAuth();
@@ -13,7 +14,7 @@ function Projetos() {
   const [squads, setSquads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editando, setEditando] = useState(null);
+  const [editandoId, setEditandoId] = useState(null);
   
   // Estados de paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -82,9 +83,10 @@ function Projetos() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      if (editando) {
-        await projetoService.atualizar(editando.id, formData);
+      if (editandoId) {
+        await projetoService.atualizar(editandoId, formData);
         toast.success('Avaliação atualizada com sucesso!');
+        setEditandoId(null);
       } else {
         await projetoService.criar(formData);
         toast.success('Avaliação criada com sucesso!');
@@ -98,7 +100,7 @@ function Projetos() {
   };
 
   const handleEdit = (projeto) => {
-    setEditando(projeto);
+    setEditandoId(projeto.id);
     setFormData({
       subprograma: projeto.subprograma || '',
       nome: projeto.nome,
@@ -111,7 +113,6 @@ function Projetos() {
       observacao: projeto.observacao || '',
       squad_ids: projeto.squads.map(s => s.id)
     });
-    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
@@ -221,7 +222,7 @@ function Projetos() {
       observacao: '',
       squad_ids: []
     });
-    setEditando(null);
+    setEditandoId(null);
     setShowForm(false);
   };
 
@@ -254,211 +255,373 @@ function Projetos() {
           )}
         </div>
 
+        {/* FORMULÁRIO DE CADASTRO - TELA CHEIA */}
         {showForm && (
-          <form onSubmit={handleSubmit} style={{marginTop: '20px'}}>
-            <div className="form-group">
-              <label>Subprograma (Código Identificador)</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.subprograma}
-                onChange={(e) => setFormData({...formData, subprograma: e.target.value})}
-                placeholder="Ex: SAEB-2023, ENEM-2025"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Nome da Avaliação *</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.nome}
-                onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                required
-                placeholder="Ex: Avaliação SAEB Ensino Fundamental"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Ordem de Produção</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.ordem_producao}
-                onChange={(e) => setFormData({...formData, ordem_producao: e.target.value})}
-                placeholder="Ex: OP-2025-001"
-              />
-            </div>
-
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
-              <div className="form-group">
-                <label>Data de Aplicação</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={formData.data_aplicacao}
-                  onChange={(e) => setFormData({...formData, data_aplicacao: e.target.value})}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Data de Término da Aplicação</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={formData.data_termino}
-                  onChange={(e) => setFormData({...formData, data_termino: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label>Etapas</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.etapas}
-                onChange={(e) => setFormData({...formData, etapas: e.target.value})}
-                placeholder="Ex: 5º ano, 9º ano"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Disciplinas</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.disciplinas}
-                onChange={(e) => setFormData({...formData, disciplinas: e.target.value})}
-                placeholder="Ex: Língua Portuguesa, Matemática, Ciências"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Tipos de Processamento</label>
-              <select
-                className="form-control"
-                value={formData.tipos_processamento}
-                onChange={(e) => setFormData({...formData, tipos_processamento: e.target.value})}
-              >
-                <option value="">Selecione...</option>
-                <option value="Destaque">Destaque</option>
-                <option value="Transcrição">Transcrição</option>
-                <option value="Destaque, Transcrição">Destaque e Transcrição</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Observação</label>
-              <textarea
-                className="form-control"
-                value={formData.observacao}
-                onChange={(e) => setFormData({...formData, observacao: e.target.value})}
-                placeholder="Observações gerais sobre a avaliação..."
-                rows="3"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Equipes (Squads)</label>
-              <div style={{display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px'}}>
-                {squads.map(squad => (
-                  <label key={squad.id} style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
-                    <input
-                      type="checkbox"
-                      checked={formData.squad_ids.includes(squad.id)}
-                      onChange={() => handleSquadToggle(squad.id)}
-                    />
-                    {squad.nome}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div style={{display: 'flex', gap: '10px'}}>
-              <button type="submit" className="btn btn-success">
-                <FontAwesomeIcon icon={faSave} /> {editando ? 'Atualizar' : 'Criar'}
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                <FontAwesomeIcon icon={faTimes} /> Cancelar
-              </button>
-            </div>
-          </form>
-        )}
-
-        {projetos.length === 0 ? (
-          <div className="empty-state">
-            <h3>Nenhuma avaliação cadastrada</h3>
-            <p>Clique em "+ Nova Avaliação" para começar</p>
-          </div>
-        ) : (
-          <>
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Subprograma</th>
-                    <th>Nome</th>
-                    <th>Ordem Produção</th>
-                    <th>Período de Aplicação</th>
-                    <th>Etapas</th>
-                    <th>Disciplinas</th>
-                    <th>Tipo Processamento</th>
-                    <th>Squads</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {projetos.map(projeto => (
-                    <tr key={projeto.id}>
-                      <td><strong>{projeto.subprograma || '-'}</strong></td>
-                      <td>{projeto.nome}</td>
-                      <td>{projeto.ordem_producao || '-'}</td>
-                      <td>
-                        {projeto.data_aplicacao && projeto.data_termino
-                          ? `${new Date(projeto.data_aplicacao).toLocaleDateString()} - ${new Date(projeto.data_termino).toLocaleDateString()}`
-                          : projeto.data_aplicacao
-                          ? new Date(projeto.data_aplicacao).toLocaleDateString()
-                          : '-'}
-                      </td>
-                      <td>{projeto.etapas || '-'}</td>
-                      <td>{projeto.disciplinas || '-'}</td>
-                      <td>{projeto.tipos_processamento || '-'}</td>
-                      <td>
-                        {projeto.squads.length > 0
-                          ? projeto.squads.map(s => s.nome).join(', ')
-                          : '-'}
-                      </td>
-                      <td>
-                        {canEdit() ? (
-                          <div style={{display: 'flex', gap: '5px'}}>
-                            <button 
-                              className="btn btn-primary btn-small" 
-                              onClick={() => handleEdit(projeto)}
-                            >
-                              <FontAwesomeIcon icon={faEdit} /> Editar
-                            </button>
-                            <button 
-                              className="btn btn-danger btn-small" 
-                              onClick={() => handleDelete(projeto.id)}
-                            >
-                              <FontAwesomeIcon icon={faTrash} /> Deletar
-                            </button>
-                          </div>
-                        ) : (
-                          <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="form-fullscreen">
+            <div className="form-fullscreen-header">
+              <h3>
+                <FontAwesomeIcon icon={faPlus} /> Nova Avaliação
+              </h3>
             </div>
             
-            <Pagination 
-              pagination={pagination}
-              onPageChange={handlePageChange}
-            />
+            <form onSubmit={handleSubmit} className="form-fullscreen-content">
+              <div className="form-group">
+                <label>Subprograma (Código Identificador)</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.subprograma}
+                  onChange={(e) => setFormData({...formData, subprograma: e.target.value})}
+                  placeholder="Ex: SAEB-2023, ENEM-2025"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Nome da Avaliação *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.nome}
+                  onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                  required
+                  placeholder="Ex: Avaliação SAEB Ensino Fundamental"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Ordem de Produção</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.ordem_producao}
+                  onChange={(e) => setFormData({...formData, ordem_producao: e.target.value})}
+                  placeholder="Ex: OP-2025-001"
+                />
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div className="form-group">
+                  <label>Data de Aplicação</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={formData.data_aplicacao}
+                    onChange={(e) => setFormData({...formData, data_aplicacao: e.target.value})}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Data de Término da Aplicação</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={formData.data_termino}
+                    onChange={(e) => setFormData({...formData, data_termino: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Etapas</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.etapas}
+                  onChange={(e) => setFormData({...formData, etapas: e.target.value})}
+                  placeholder="Ex: 5º ano, 9º ano"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Disciplinas</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.disciplinas}
+                  onChange={(e) => setFormData({...formData, disciplinas: e.target.value})}
+                  placeholder="Ex: Língua Portuguesa, Matemática, Ciências"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Tipos de Processamento</label>
+                <select
+                  className="form-control"
+                  value={formData.tipos_processamento}
+                  onChange={(e) => setFormData({...formData, tipos_processamento: e.target.value})}
+                >
+                  <option value="">Selecione...</option>
+                  <option value="Destaque">Destaque</option>
+                  <option value="Transcrição">Transcrição</option>
+                  <option value="Destaque, Transcrição">Destaque e Transcrição</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Observação</label>
+                <textarea
+                  className="form-control"
+                  value={formData.observacao}
+                  onChange={(e) => setFormData({...formData, observacao: e.target.value})}
+                  placeholder="Observações gerais sobre a avaliação..."
+                  rows="3"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Equipes (Squads)</label>
+                <div style={{display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px'}}>
+                  {squads.map(squad => (
+                    <label key={squad.id} style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                      <input
+                        type="checkbox"
+                        checked={formData.squad_ids.includes(squad.id)}
+                        onChange={() => handleSquadToggle(squad.id)}
+                      />
+                      {squad.nome}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-fullscreen-actions">
+                <button type="button" className="btn btn-secondary" onClick={resetForm}>
+                  <FontAwesomeIcon icon={faTimes} /> Cancelar
+                </button>
+                <button type="submit" className="btn btn-success">
+                  <FontAwesomeIcon icon={faSave} /> Salvar
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* TABELA - OCULTA QUANDO SHOWFORM ESTÁ ATIVO */}
+        {!showForm && (
+          <>
+            {projetos.length === 0 ? (
+              <div className="empty-state">
+                <h3>Nenhuma avaliação cadastrada</h3>
+                <p>Clique em "+ Nova Avaliação" para começar</p>
+              </div>
+            ) : (
+              <>
+                <div className="table-container">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Subprograma</th>
+                        <th>Nome</th>
+                        <th>Ordem Produção</th>
+                        <th>Período de Aplicação</th>
+                        <th>Etapas</th>
+                        <th>Disciplinas</th>
+                        <th>Tipo Processamento</th>
+                        <th>Squads</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {projetos.map(projeto => (
+                        <React.Fragment key={projeto.id}>
+                          <tr>
+                            <td><strong>{projeto.subprograma || '-'}</strong></td>
+                            <td>{projeto.nome}</td>
+                            <td>{projeto.ordem_producao || '-'}</td>
+                            <td>
+                              {projeto.data_aplicacao && projeto.data_termino
+                                ? `${new Date(projeto.data_aplicacao).toLocaleDateString()} - ${new Date(projeto.data_termino).toLocaleDateString()}`
+                                : projeto.data_aplicacao
+                                ? new Date(projeto.data_aplicacao).toLocaleDateString()
+                                : '-'}
+                            </td>
+                            <td>{projeto.etapas || '-'}</td>
+                            <td>{projeto.disciplinas || '-'}</td>
+                            <td>{projeto.tipos_processamento || '-'}</td>
+                            <td>
+                              {projeto.squads.length > 0
+                                ? projeto.squads.map(s => s.nome).join(', ')
+                                : '-'}
+                            </td>
+                            <td>
+                              {canEdit() ? (
+                                <div style={{display: 'flex', gap: '5px'}}>
+                                  <button 
+                                    className="btn btn-primary btn-small" 
+                                    onClick={() => editandoId === projeto.id ? setEditandoId(null) : handleEdit(projeto)}
+                                  >
+                                    <FontAwesomeIcon icon={editandoId === projeto.id ? faChevronUp : faChevronDown} /> 
+                                    {editandoId === projeto.id ? ' Fechar' : ' Editar'}
+                                  </button>
+                                  <button 
+                                    className="btn btn-danger btn-small" 
+                                    onClick={() => handleDelete(projeto.id)}
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} /> Deletar
+                                  </button>
+                                </div>
+                              ) : (
+                                <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                              )}
+                            </td>
+                          </tr>
+                          
+                          {/* LINHA DE EDIÇÃO EM SANFONA */}
+                          {editandoId === projeto.id && (
+                            <tr className="edit-row">
+                              <td colSpan="9">
+                                <div className="edit-form-wrapper">
+                                  <div className="edit-form-header">
+                                    <h4>
+                                      <FontAwesomeIcon icon={faEdit} /> Editando: {projeto.nome}
+                                    </h4>
+                                  </div>
+                                  
+                                  <form onSubmit={handleSubmit} className="edit-form-content">
+                                    <div className="form-row">
+                                      <div className="form-group">
+                                        <label>Subprograma</label>
+                                        <input
+                                          type="text"
+                                          className="form-control"
+                                          value={formData.subprograma}
+                                          onChange={(e) => setFormData({...formData, subprograma: e.target.value})}
+                                        />
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Nome da Avaliação *</label>
+                                        <input
+                                          type="text"
+                                          className="form-control"
+                                          value={formData.nome}
+                                          onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                                          required
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                      <div className="form-group">
+                                        <label>Ordem de Produção</label>
+                                        <input
+                                          type="text"
+                                          className="form-control"
+                                          value={formData.ordem_producao}
+                                          onChange={(e) => setFormData({...formData, ordem_producao: e.target.value})}
+                                        />
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Data de Aplicação</label>
+                                        <input
+                                          type="date"
+                                          className="form-control"
+                                          value={formData.data_aplicacao}
+                                          onChange={(e) => setFormData({...formData, data_aplicacao: e.target.value})}
+                                        />
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Data de Término</label>
+                                        <input
+                                          type="date"
+                                          className="form-control"
+                                          value={formData.data_termino}
+                                          onChange={(e) => setFormData({...formData, data_termino: e.target.value})}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                      <div className="form-group">
+                                        <label>Etapas</label>
+                                        <input
+                                          type="text"
+                                          className="form-control"
+                                          value={formData.etapas}
+                                          onChange={(e) => setFormData({...formData, etapas: e.target.value})}
+                                        />
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Disciplinas</label>
+                                        <input
+                                          type="text"
+                                          className="form-control"
+                                          value={formData.disciplinas}
+                                          onChange={(e) => setFormData({...formData, disciplinas: e.target.value})}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                      <div className="form-group">
+                                        <label>Tipos de Processamento</label>
+                                        <select
+                                          className="form-control"
+                                          value={formData.tipos_processamento}
+                                          onChange={(e) => setFormData({...formData, tipos_processamento: e.target.value})}
+                                        >
+                                          <option value="">Selecione...</option>
+                                          <option value="Destaque">Destaque</option>
+                                          <option value="Transcrição">Transcrição</option>
+                                          <option value="Destaque, Transcrição">Destaque e Transcrição</option>
+                                        </select>
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Observação</label>
+                                        <textarea
+                                          className="form-control"
+                                          value={formData.observacao}
+                                          onChange={(e) => setFormData({...formData, observacao: e.target.value})}
+                                          rows="2"
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                      <label>Equipes (Squads)</label>
+                                      <div style={{display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px'}}>
+                                        {squads.map(squad => (
+                                          <label key={squad.id} style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                                            <input
+                                              type="checkbox"
+                                              checked={formData.squad_ids.includes(squad.id)}
+                                              onChange={() => handleSquadToggle(squad.id)}
+                                            />
+                                            {squad.nome}
+                                          </label>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    <div className="edit-form-actions">
+                                      <button type="button" className="btn btn-secondary" onClick={() => setEditandoId(null)}>
+                                        <FontAwesomeIcon icon={faTimes} /> Cancelar
+                                      </button>
+                                      <button type="submit" className="btn btn-success">
+                                        <FontAwesomeIcon icon={faSave} /> Salvar Alterações
+                                      </button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <Pagination 
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
+                />
+              </>
+            )}
           </>
         )}
       </div>

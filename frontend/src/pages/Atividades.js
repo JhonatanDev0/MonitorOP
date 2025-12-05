@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { atividadeService, projetoService, squadService } from '../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faSave, faTimes, faFilterCircleXmark } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEdit, faTrash, faSave, faTimes, faFilterCircleXmark, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
 import Pagination from '../components/Pagination';
 import '../styles/Dashboard.css';
+import '../styles/EditarEmLinha.css';
 
 function Atividades() {
   const { canEdit } = useAuth();
@@ -16,6 +17,7 @@ function Atividades() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [editandoId, setEditandoId] = useState(null);
   
   // Estados de paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -101,6 +103,7 @@ function Atividades() {
       if (editando) {
         await atividadeService.atualizar(editando.id, formData);
         toast.success('Atividade atualizada com sucesso!');
+        setEditandoId(null);
       } else {
         await atividadeService.criar(formData);
         toast.success('Atividade criada com sucesso!');
@@ -115,6 +118,7 @@ function Atividades() {
 
   const handleEdit = (atividade) => {
     setEditando(atividade);
+    setEditandoId(atividade.id);
     setFormData({
       titulo: atividade.titulo,
       observacao: atividade.observacao || '',
@@ -127,7 +131,6 @@ function Atividades() {
       projeto_id: atividade.projeto.id,
       squad_id: atividade.squad.id
     });
-    setShowForm(true);
   };
 
   const handleDelete = async (id) => {
@@ -238,6 +241,7 @@ function Atividades() {
       squad_id: ''
     });
     setEditando(null);
+    setEditandoId(null);
     setShowForm(false);
   };
 
@@ -284,307 +288,482 @@ function Atividades() {
           )}
         </div>
 
+        {/* FORMULÁRIO DE CADASTRO - TELA CHEIA */}
         {showForm && (
-          <form onSubmit={handleSubmit} style={{marginTop: '20px'}}>
-            <div className="form-group">
-              <label>Título *</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.titulo}
-                onChange={(e) => setFormData({...formData, titulo: e.target.value})}
-                required
-              />
+          <div className="form-fullscreen">
+            <div className="form-fullscreen-header">
+              <h3>
+                <FontAwesomeIcon icon={faPlus} /> Nova Atividade
+              </h3>
             </div>
-
-            <div className="form-group">
-              <label>Observação</label>
-              <textarea
-                className="form-control"
-                value={formData.observacao}
-                onChange={(e) => setFormData({...formData, observacao: e.target.value})}
-              />
-            </div>
-
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+            
+            <form onSubmit={handleSubmit} className="form-fullscreen-content">
               <div className="form-group">
-                <label>Projeto *</label>
+                <label>Título *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.titulo}
+                  onChange={(e) => setFormData({...formData, titulo: e.target.value})}
+                  required
+                  placeholder="Digite o título da atividade"
+                />
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div className="form-group">
+                  <label>Projeto *</label>
+                  <select
+                    className="form-control"
+                    value={formData.projeto_id}
+                    onChange={(e) => setFormData({...formData, projeto_id: e.target.value})}
+                    required
+                  >
+                    <option value="">Selecione...</option>
+                    {projetos.map(p => (
+                      <option key={p.id} value={p.id}>{p.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Squad *</label>
+                  <select
+                    className="form-control"
+                    value={formData.squad_id}
+                    onChange={(e) => setFormData({...formData, squad_id: e.target.value})}
+                    required
+                  >
+                    <option value="">Selecione...</option>
+                    {squads.map(s => (
+                      <option key={s.id} value={s.id}>{s.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Observação</label>
+                <textarea
+                  className="form-control"
+                  value={formData.observacao}
+                  onChange={(e) => setFormData({...formData, observacao: e.target.value})}
+                  rows="3"
+                  placeholder="Observações sobre a atividade..."
+                />
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div className="form-group">
+                  <label>Início Programado</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={formData.inicio_programado}
+                    onChange={(e) => setFormData({...formData, inicio_programado: e.target.value})}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Início Realizado</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={formData.inicio_realizado}
+                    onChange={(e) => setFormData({...formData, inicio_realizado: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div className="form-group">
+                  <label>Fim Programado</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={formData.fim_programado}
+                    onChange={(e) => setFormData({...formData, fim_programado: e.target.value})}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Fim Realizado</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={formData.fim_realizado}
+                    onChange={(e) => setFormData({...formData, fim_realizado: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div className="form-group">
+                  <label>Prioridade</label>
+                  <select
+                    className="form-control"
+                    value={formData.prioridade}
+                    onChange={(e) => setFormData({...formData, prioridade: e.target.value})}
+                  >
+                    <option value="baixa">Baixa</option>
+                    <option value="media">Média</option>
+                    <option value="alta">Alta</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Status</label>
+                  <select
+                    className="form-control"
+                    value={formData.status}
+                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                  >
+                    <option value="pendente">Pendente</option>
+                    <option value="em_andamento">Em Andamento</option>
+                    <option value="concluida">Concluída</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-fullscreen-actions">
+                <button type="button" className="btn btn-secondary" onClick={resetForm}>
+                  <FontAwesomeIcon icon={faTimes} /> Cancelar
+                </button>
+                <button type="submit" className="btn btn-success">
+                  <FontAwesomeIcon icon={faSave} /> Criar
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* FILTROS - SEMPRE VISÍVEIS */}
+        {!showForm && (
+          <div className="dashboard-filters" style={{marginTop: '20px'}}>
+            <div className="filter-row">
+              <div className="filter-item">
+                <label>Filtrar por Projeto</label>
                 <select
                   className="form-control"
-                  value={formData.projeto_id}
-                  onChange={(e) => setFormData({...formData, projeto_id: e.target.value})}
-                  required
+                  value={filtros.projeto_id}
+                  onChange={(e) => {
+                    setFiltros({...filtros, projeto_id: e.target.value});
+                    setCurrentPage(1);
+                  }}
                 >
-                  <option value="">Selecione um projeto</option>
+                  <option value="">Todos</option>
                   {projetos.map(p => (
                     <option key={p.id} value={p.id}>{p.nome}</option>
                   ))}
                 </select>
               </div>
 
-              <div className="form-group">
-                <label>Squad *</label>
+              <div className="filter-item">
+                <label>Filtrar por Squad</label>
                 <select
                   className="form-control"
-                  value={formData.squad_id}
-                  onChange={(e) => setFormData({...formData, squad_id: e.target.value})}
-                  required
+                  value={filtros.squad_id}
+                  onChange={(e) => {
+                    setFiltros({...filtros, squad_id: e.target.value});
+                    setCurrentPage(1);
+                  }}
                 >
-                  <option value="">Selecione uma squad</option>
+                  <option value="">Todas</option>
                   {squads.map(s => (
                     <option key={s.id} value={s.id}>{s.nome}</option>
                   ))}
                 </select>
               </div>
-            </div>
 
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px'}}>
-              <div className="form-group">
-                <label>Início Programado</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={formData.inicio_programado}
-                  onChange={(e) => setFormData({...formData, inicio_programado: e.target.value})}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Início Realizado</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={formData.inicio_realizado}
-                  onChange={(e) => setFormData({...formData, inicio_realizado: e.target.value})}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Fim Programado</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={formData.fim_programado}
-                  onChange={(e) => setFormData({...formData, fim_programado: e.target.value})}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Fim Realizado</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={formData.fim_realizado}
-                  onChange={(e) => setFormData({...formData, fim_realizado: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
-              <div className="form-group">
-                <label>Prioridade</label>
+              <div className="filter-item">
+                <label>Filtrar por Status</label>
                 <select
                   className="form-control"
-                  value={formData.prioridade}
-                  onChange={(e) => setFormData({...formData, prioridade: e.target.value})}
+                  value={filtros.status}
+                  onChange={(e) => {
+                    setFiltros({...filtros, status: e.target.value});
+                    setCurrentPage(1);
+                  }}
                 >
-                  <option value="baixa">Baixa</option>
-                  <option value="media">Média</option>
-                  <option value="alta">Alta</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  className="form-control"
-                  value={formData.status}
-                  onChange={(e) => setFormData({...formData, status: e.target.value})}
-                >
+                  <option value="">Todos</option>
                   <option value="pendente">Pendente</option>
                   <option value="em_andamento">Em Andamento</option>
                   <option value="concluida">Concluída</option>
                 </select>
               </div>
+
+              <div className="filter-item">
+                <label>Filtrar por Prioridade</label>
+                <select
+                  className="form-control"
+                  value={filtros.prioridade}
+                  onChange={(e) => {
+                    setFiltros({...filtros, prioridade: e.target.value});
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value="">Todas</option>
+                  <option value="baixa">Baixa</option>
+                  <option value="media">Média</option>
+                  <option value="alta">Alta</option>
+                </select>
+              </div>
             </div>
 
-            <div style={{display: 'flex', gap: '10px'}}>
-              <button type="submit" className="btn btn-success">
-                <FontAwesomeIcon icon={faSave} /> {editando ? 'Atualizar' : 'Criar'}
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                <FontAwesomeIcon icon={faTimes} /> Cancelar
-              </button>
-            </div>
-          </form>
+            {(filtros.projeto_id || filtros.squad_id || filtros.status || filtros.prioridade) && (
+              <div className="filter-actions">
+                <button className="btn btn-secondary btn-small" onClick={limparFiltros}>
+                  <FontAwesomeIcon icon={faFilterCircleXmark} /> Limpar Filtros
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
-        {/* Filtros com estilo do Dashboard */}
-        <div className="dashboard-filters" style={{marginTop: '20px'}}>
-          <div className="filter-row">
-            <div className="filter-item">
-              <label>Filtrar por Projeto</label>
-              <select
-                className="form-control"
-                value={filtros.projeto_id}
-                onChange={(e) => {
-                  setFiltros({...filtros, projeto_id: e.target.value});
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="">Todos</option>
-                {projetos.map(p => (
-                  <option key={p.id} value={p.id}>{p.nome}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-item">
-              <label>Filtrar por Squad</label>
-              <select
-                className="form-control"
-                value={filtros.squad_id}
-                onChange={(e) => {
-                  setFiltros({...filtros, squad_id: e.target.value});
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="">Todas</option>
-                {squads.map(s => (
-                  <option key={s.id} value={s.id}>{s.nome}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-item">
-              <label>Filtrar por Status</label>
-              <select
-                className="form-control"
-                value={filtros.status}
-                onChange={(e) => {
-                  setFiltros({...filtros, status: e.target.value});
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="">Todos</option>
-                <option value="pendente">Pendente</option>
-                <option value="em_andamento">Em Andamento</option>
-                <option value="concluida">Concluída</option>
-              </select>
-            </div>
-
-            <div className="filter-item">
-              <label>Filtrar por Prioridade</label>
-              <select
-                className="form-control"
-                value={filtros.prioridade}
-                onChange={(e) => {
-                  setFiltros({...filtros, prioridade: e.target.value});
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="">Todas</option>
-                <option value="baixa">Baixa</option>
-                <option value="media">Média</option>
-                <option value="alta">Alta</option>
-              </select>
-            </div>
-          </div>
-
-          {(filtros.projeto_id || filtros.squad_id || filtros.status || filtros.prioridade) && (
-            <div className="filter-actions">
-              <button className="btn btn-secondary btn-small" onClick={limparFiltros}>
-                <FontAwesomeIcon icon={faFilterCircleXmark} /> Limpar Filtros
-              </button>
-            </div>
-          )}
-        </div>
-
-        {atividades.length === 0 ? (
-          <div className="empty-state">
-            <h3>Nenhuma atividade encontrada</h3>
-            <p>
-              {Object.values(filtros).some(v => v) 
-                ? 'Tente ajustar os filtros ou criar uma nova atividade'
-                : 'Clique em "Nova Atividade" para começar'}
-            </p>
-          </div>
-        ) : (
+        {/* TABELA - OCULTA QUANDO SHOWFORM ESTÁ ATIVO */}
+        {!showForm && (
           <>
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Título</th>
-                    <th>Projeto</th>
-                    <th>Squad</th>
-                    <th>Início Prog.</th>
-                    <th>Início Real.</th>
-                    <th>Fim Prog.</th>
-                    <th>Fim Real.</th>
-                    <th>Status</th>
-                    <th>Prioridade</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {atividades.map(atividade => (
-                    <tr key={atividade.id}>
-                      <td><strong>{atividade.titulo}</strong></td>
-                      <td>{atividade.projeto.nome}</td>
-                      <td>{atividade.squad.nome}</td>
-                      <td>
-                        {atividade.inicio_programado 
-                          ? new Date(atividade.inicio_programado).toLocaleDateString()
-                          : '-'}
-                      </td>
-                      <td>
-                        {atividade.inicio_realizado 
-                          ? new Date(atividade.inicio_realizado).toLocaleDateString()
-                          : '-'}
-                      </td>
-                      <td>
-                        {atividade.fim_programado 
-                          ? new Date(atividade.fim_programado).toLocaleDateString()
-                          : '-'}
-                      </td>
-                      <td>
-                        {atividade.fim_realizado 
-                          ? new Date(atividade.fim_realizado).toLocaleDateString()
-                          : '-'}
-                      </td>
-                      <td>{getStatusBadge(atividade.status)}</td>
-                      <td>{getPrioridadeBadge(atividade.prioridade)}</td>
-                      <td>
-                        {canEdit() ? (
-                          <div style={{display: 'flex', gap: '5px'}}>
-                            <button 
-                              className="btn btn-primary btn-small" 
-                              onClick={() => handleEdit(atividade)}
-                            >
-                              <FontAwesomeIcon icon={faEdit} /> Editar
-                            </button>
-                            <button 
-                              className="btn btn-danger btn-small" 
-                              onClick={() => handleDelete(atividade.id)}
-                            >
-                              <FontAwesomeIcon icon={faTrash} /> Deletar
-                            </button>
-                          </div>
-                        ) : (
-                          <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            
-            <Pagination 
-              pagination={pagination}
-              onPageChange={handlePageChange}
-            />
+            {atividades.length === 0 ? (
+              <div className="empty-state">
+                <h3>Nenhuma atividade encontrada</h3>
+                <p>
+                  {Object.values(filtros).some(v => v) 
+                    ? 'Tente ajustar os filtros ou criar uma nova atividade'
+                    : 'Clique em "Nova Atividade" para começar'}
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="table-container">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Título</th>
+                        <th>Projeto</th>
+                        <th>Squad</th>
+                        <th>Início Prog.</th>
+                        <th>Início Real.</th>
+                        <th>Fim Prog.</th>
+                        <th>Fim Real.</th>
+                        <th>Status</th>
+                        <th>Prioridade</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {atividades.map(atividade => (
+                        <React.Fragment key={atividade.id}>
+                          <tr>
+                            <td><strong>{atividade.titulo}</strong></td>
+                            <td>{atividade.projeto.nome}</td>
+                            <td>{atividade.squad.nome}</td>
+                            <td>
+                              {atividade.inicio_programado 
+                                ? new Date(atividade.inicio_programado).toLocaleDateString()
+                                : '-'}
+                            </td>
+                            <td>
+                              {atividade.inicio_realizado 
+                                ? new Date(atividade.inicio_realizado).toLocaleDateString()
+                                : '-'}
+                            </td>
+                            <td>
+                              {atividade.fim_programado 
+                                ? new Date(atividade.fim_programado).toLocaleDateString()
+                                : '-'}
+                            </td>
+                            <td>
+                              {atividade.fim_realizado 
+                                ? new Date(atividade.fim_realizado).toLocaleDateString()
+                                : '-'}
+                            </td>
+                            <td>{getStatusBadge(atividade.status)}</td>
+                            <td>{getPrioridadeBadge(atividade.prioridade)}</td>
+                            <td>
+                              {canEdit() ? (
+                                <div style={{display: 'flex', gap: '5px'}}>
+                                  <button 
+                                    className="btn btn-primary btn-small" 
+                                    onClick={() => editandoId === atividade.id ? setEditandoId(null) : handleEdit(atividade)}
+                                  >
+                                    <FontAwesomeIcon icon={editandoId === atividade.id ? faChevronUp : faChevronDown} /> 
+                                    {editandoId === atividade.id ? ' Fechar' : ' Editar'}
+                                  </button>
+                                  <button 
+                                    className="btn btn-danger btn-small" 
+                                    onClick={() => handleDelete(atividade.id)}
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} /> Deletar
+                                  </button>
+                                </div>
+                              ) : (
+                                <span style={{color: '#95a5a6', fontSize: '13px'}}>Sem permissão</span>
+                              )}
+                            </td>
+                          </tr>
+                          
+                          {/* LINHA DE EDIÇÃO EM SANFONA */}
+                          {editandoId === atividade.id && (
+                            <tr className="edit-row">
+                              <td colSpan="10">
+                                <div className="edit-form-wrapper">
+                                  <div className="edit-form-header">
+                                    <h4>
+                                      <FontAwesomeIcon icon={faEdit} /> Editando: {atividade.titulo}
+                                    </h4>
+                                  </div>
+                                  
+                                  <form onSubmit={handleSubmit} className="edit-form-content">
+                                    <div className="form-group">
+                                      <label>Título *</label>
+                                      <input
+                                        type="text"
+                                        className="form-control"
+                                        value={formData.titulo}
+                                        onChange={(e) => setFormData({...formData, titulo: e.target.value})}
+                                        required
+                                      />
+                                    </div>
+
+                                    <div className="form-row">
+                                      <div className="form-group">
+                                        <label>Projeto *</label>
+                                        <select
+                                          className="form-control"
+                                          value={formData.projeto_id}
+                                          onChange={(e) => setFormData({...formData, projeto_id: e.target.value})}
+                                          required
+                                        >
+                                          <option value="">Selecione...</option>
+                                          {projetos.map(p => (
+                                            <option key={p.id} value={p.id}>{p.nome}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Squad *</label>
+                                        <select
+                                          className="form-control"
+                                          value={formData.squad_id}
+                                          onChange={(e) => setFormData({...formData, squad_id: e.target.value})}
+                                          required
+                                        >
+                                          <option value="">Selecione...</option>
+                                          {squads.map(s => (
+                                            <option key={s.id} value={s.id}>{s.nome}</option>
+                                          ))}
+                                        </select>
+                                      </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                      <label>Observação</label>
+                                      <textarea
+                                        className="form-control"
+                                        value={formData.observacao}
+                                        onChange={(e) => setFormData({...formData, observacao: e.target.value})}
+                                        rows="2"
+                                      />
+                                    </div>
+
+                                    <div className="form-row">
+                                      <div className="form-group">
+                                        <label>Início Programado</label>
+                                        <input
+                                          type="date"
+                                          className="form-control"
+                                          value={formData.inicio_programado}
+                                          onChange={(e) => setFormData({...formData, inicio_programado: e.target.value})}
+                                        />
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Início Realizado</label>
+                                        <input
+                                          type="date"
+                                          className="form-control"
+                                          value={formData.inicio_realizado}
+                                          onChange={(e) => setFormData({...formData, inicio_realizado: e.target.value})}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                      <div className="form-group">
+                                        <label>Fim Programado</label>
+                                        <input
+                                          type="date"
+                                          className="form-control"
+                                          value={formData.fim_programado}
+                                          onChange={(e) => setFormData({...formData, fim_programado: e.target.value})}
+                                        />
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Fim Realizado</label>
+                                        <input
+                                          type="date"
+                                          className="form-control"
+                                          value={formData.fim_realizado}
+                                          onChange={(e) => setFormData({...formData, fim_realizado: e.target.value})}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="form-row">
+                                      <div className="form-group">
+                                        <label>Prioridade</label>
+                                        <select
+                                          className="form-control"
+                                          value={formData.prioridade}
+                                          onChange={(e) => setFormData({...formData, prioridade: e.target.value})}
+                                        >
+                                          <option value="baixa">Baixa</option>
+                                          <option value="media">Média</option>
+                                          <option value="alta">Alta</option>
+                                        </select>
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Status</label>
+                                        <select
+                                          className="form-control"
+                                          value={formData.status}
+                                          onChange={(e) => setFormData({...formData, status: e.target.value})}
+                                        >
+                                          <option value="pendente">Pendente</option>
+                                          <option value="em_andamento">Em Andamento</option>
+                                          <option value="concluida">Concluída</option>
+                                        </select>
+                                      </div>
+                                    </div>
+
+                                    <div className="edit-form-actions">
+                                      <button type="button" className="btn btn-secondary" onClick={() => setEditandoId(null)}>
+                                        <FontAwesomeIcon icon={faTimes} /> Cancelar
+                                      </button>
+                                      <button type="submit" className="btn btn-success">
+                                        <FontAwesomeIcon icon={faSave} /> Atualizar
+                                      </button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <Pagination 
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
+                />
+              </>
+            )}
           </>
         )}
       </div>

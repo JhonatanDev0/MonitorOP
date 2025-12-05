@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { usuarioService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faEdit, faTrash, faSave, faTimes, faUserShield, faUser, faUserTie, faToggleOn, faToggleOff } from '@fortawesome/free-solid-svg-icons';
+import { faPlus, faEdit, faTrash, faSave, faTimes, faUserShield, faUser, faUserTie, faToggleOn, faToggleOff, faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
 import Pagination from '../components/Pagination';
+import '../styles/EditarEmLinha.css';
 
 function Usuarios() {
   const { user } = useAuth();
@@ -13,6 +14,7 @@ function Usuarios() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState(null);
+  const [editandoId, setEditandoId] = useState(null);
   
   // Estados de paginação
   const [currentPage, setCurrentPage] = useState(1);
@@ -89,6 +91,7 @@ function Usuarios() {
         
         await usuarioService.atualizar(editando.id, dataToSend);
         toast.success('Usuário atualizado com sucesso!');
+        setEditandoId(null);
       } else {
         dataToSend.senha = formData.senha;
         
@@ -106,6 +109,7 @@ function Usuarios() {
 
   const handleEdit = (usuario) => {
     setEditando(usuario);
+    setEditandoId(usuario.id);
     setFormData({
       nome: usuario.nome,
       login: usuario.login,
@@ -113,7 +117,6 @@ function Usuarios() {
       role: usuario.role,
       ativo: usuario.ativo
     });
-    setShowForm(true);
   };
 
   const handleDelete = async (id, nome) => {
@@ -219,6 +222,7 @@ function Usuarios() {
       ativo: true
     });
     setEditando(null);
+    setEditandoId(null);
     setShowForm(false);
   };
 
@@ -277,142 +281,251 @@ function Usuarios() {
           </button>
         </div>
 
+        {/* FORMULÁRIO DE CADASTRO - TELA CHEIA */}
         {showForm && (
-          <form onSubmit={handleSubmit} style={{marginTop: '20px'}}>
-            <div className="form-group">
-              <label>Nome Completo *</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.nome}
-                onChange={(e) => setFormData({...formData, nome: e.target.value})}
-                placeholder="Ex: João da Silva"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Login *</label>
-              <input
-                type="text"
-                className="form-control"
-                value={formData.login}
-                onChange={(e) => setFormData({...formData, login: e.target.value})}
-                placeholder="Ex: joao.silva"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Senha {editando && '(deixe em branco para manter a atual)'}</label>
-              <input
-                type="password"
-                className="form-control"
-                value={formData.senha}
-                onChange={(e) => setFormData({...formData, senha: e.target.value})}
-                placeholder={editando ? "Digite para alterar a senha" : "Digite uma senha segura"}
-              />
-            </div>
-
-            <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
-              <div className="form-group">
-                <label>Perfil *</label>
-                <select
-                  className="form-control"
-                  value={formData.role}
-                  onChange={(e) => setFormData({...formData, role: e.target.value})}
-                  required
-                >
-                  <option value="analista">Analista (Apenas Visualização)</option>
-                  <option value="gestor">Gestor (Edição de Dados)</option>
-                  <option value="admin">Administrador (Acesso Total)</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Status</label>
-                <select
-                  className="form-control"
-                  value={formData.ativo.toString()}
-                  onChange={(e) => setFormData({...formData, ativo: e.target.value === 'true'})}
-                >
-                  <option value="true">Ativo</option>
-                  <option value="false">Inativo</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
-              <button type="submit" className="btn btn-success">
-                <FontAwesomeIcon icon={faSave} /> {editando ? 'Atualizar' : 'Criar'}
-              </button>
-              <button type="button" className="btn btn-secondary" onClick={resetForm}>
-                <FontAwesomeIcon icon={faTimes} /> Cancelar
-              </button>
-            </div>
-          </form>
-        )}
-
-        {usuarios.length === 0 ? (
-          <div className="empty-state">
-            <h3>Nenhum usuário cadastrado</h3>
-            <p>Clique em "+ Novo Usuário" para começar</p>
-          </div>
-        ) : (
-          <>
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Nome</th>
-                    <th>Login</th>
-                    <th>Perfil</th>
-                    <th>Status</th>
-                    <th>Cadastro</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usuarios.map(usuario => (
-                    <tr key={usuario.id}>
-                      <td><strong>{usuario.nome}</strong></td>
-                      <td>{usuario.login}</td>
-                      <td>{getRoleBadge(usuario.role)}</td>
-                      <td>{getStatusBadge(usuario.ativo)}</td>
-                      <td>
-                        {usuario.created_at 
-                          ? new Date(usuario.created_at).toLocaleDateString('pt-BR')
-                          : '-'}
-                      </td>
-                      <td>
-                        <div style={{display: 'flex', gap: '5px'}}>
-                          <button 
-                            className="btn btn-primary btn-small" 
-                            onClick={() => handleEdit(usuario)}
-                          >
-                            <FontAwesomeIcon icon={faEdit} /> Editar
-                          </button>
-                          {usuario.id !== user.id && (
-                            <button 
-                              className="btn btn-danger btn-small" 
-                              onClick={() => handleDelete(usuario.id, usuario.nome)}
-                            >
-                              <FontAwesomeIcon icon={faTrash} /> Deletar
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="form-fullscreen">
+            <div className="form-fullscreen-header">
+              <h3>
+                <FontAwesomeIcon icon={faPlus} /> Novo Usuário
+              </h3>
             </div>
             
-            {/* Componente de Paginação */}
-            <Pagination 
-              pagination={pagination}
-              onPageChange={handlePageChange}
-            />
+            <form onSubmit={handleSubmit} className="form-fullscreen-content">
+              <div className="form-group">
+                <label>Nome Completo *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.nome}
+                  onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                  placeholder="Ex: João da Silva"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Login *</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={formData.login}
+                  onChange={(e) => setFormData({...formData, login: e.target.value})}
+                  placeholder="Ex: joao.silva"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Senha *</label>
+                <input
+                  type="password"
+                  className="form-control"
+                  value={formData.senha}
+                  onChange={(e) => setFormData({...formData, senha: e.target.value})}
+                  placeholder="Digite uma senha segura"
+                  required
+                />
+              </div>
+
+              <div style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px'}}>
+                <div className="form-group">
+                  <label>Perfil *</label>
+                  <select
+                    className="form-control"
+                    value={formData.role}
+                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                    required
+                  >
+                    <option value="analista">Analista (Apenas Visualização)</option>
+                    <option value="gestor">Gestor (Edição de Dados)</option>
+                    <option value="admin">Administrador (Acesso Total)</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Status</label>
+                  <select
+                    className="form-control"
+                    value={formData.ativo.toString()}
+                    onChange={(e) => setFormData({...formData, ativo: e.target.value === 'true'})}
+                  >
+                    <option value="true">Ativo</option>
+                    <option value="false">Inativo</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-fullscreen-actions">
+                <button type="button" className="btn btn-secondary" onClick={resetForm}>
+                  <FontAwesomeIcon icon={faTimes} /> Cancelar
+                </button>
+                <button type="submit" className="btn btn-success">
+                  <FontAwesomeIcon icon={faSave} /> Criar
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* TABELA - OCULTA QUANDO SHOWFORM ESTÁ ATIVO */}
+        {!showForm && (
+          <>
+            {usuarios.length === 0 ? (
+              <div className="empty-state">
+                <h3>Nenhum usuário cadastrado</h3>
+                <p>Clique em "+ Novo Usuário" para começar</p>
+              </div>
+            ) : (
+              <>
+                <div className="table-container">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>Login</th>
+                        <th>Perfil</th>
+                        <th>Status</th>
+                        <th>Cadastro</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usuarios.map(usuario => (
+                        <React.Fragment key={usuario.id}>
+                          <tr>
+                            <td><strong>{usuario.nome}</strong></td>
+                            <td>{usuario.login}</td>
+                            <td>{getRoleBadge(usuario.role)}</td>
+                            <td>{getStatusBadge(usuario.ativo)}</td>
+                            <td>
+                              {usuario.created_at 
+                                ? new Date(usuario.created_at).toLocaleDateString('pt-BR')
+                                : '-'}
+                            </td>
+                            <td>
+                              <div style={{display: 'flex', gap: '5px'}}>
+                                <button 
+                                  className="btn btn-primary btn-small" 
+                                  onClick={() => editandoId === usuario.id ? setEditandoId(null) : handleEdit(usuario)}
+                                >
+                                  <FontAwesomeIcon icon={editandoId === usuario.id ? faChevronUp : faChevronDown} /> 
+                                  {editandoId === usuario.id ? ' Fechar' : ' Editar'}
+                                </button>
+                                {usuario.id !== user.id && (
+                                  <button 
+                                    className="btn btn-danger btn-small" 
+                                    onClick={() => handleDelete(usuario.id, usuario.nome)}
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} /> Deletar
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                          
+                          {/* LINHA DE EDIÇÃO EM SANFONA */}
+                          {editandoId === usuario.id && (
+                            <tr className="edit-row">
+                              <td colSpan="6">
+                                <div className="edit-form-wrapper">
+                                  <div className="edit-form-header">
+                                    <h4>
+                                      <FontAwesomeIcon icon={faEdit} /> Editando: {usuario.nome}
+                                    </h4>
+                                  </div>
+                                  
+                                  <form onSubmit={handleSubmit} className="edit-form-content">
+                                    <div className="form-row">
+                                      <div className="form-group">
+                                        <label>Nome Completo *</label>
+                                        <input
+                                          type="text"
+                                          className="form-control"
+                                          value={formData.nome}
+                                          onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                                          placeholder="Ex: João da Silva"
+                                          required
+                                        />
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Login *</label>
+                                        <input
+                                          type="text"
+                                          className="form-control"
+                                          value={formData.login}
+                                          onChange={(e) => setFormData({...formData, login: e.target.value})}
+                                          placeholder="Ex: joao.silva"
+                                          required
+                                        />
+                                      </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                      <label>Senha (deixe em branco para manter a atual)</label>
+                                      <input
+                                        type="password"
+                                        className="form-control"
+                                        value={formData.senha}
+                                        onChange={(e) => setFormData({...formData, senha: e.target.value})}
+                                        placeholder="Digite para alterar a senha"
+                                      />
+                                    </div>
+
+                                    <div className="form-row">
+                                      <div className="form-group">
+                                        <label>Perfil *</label>
+                                        <select
+                                          className="form-control"
+                                          value={formData.role}
+                                          onChange={(e) => setFormData({...formData, role: e.target.value})}
+                                          required
+                                        >
+                                          <option value="analista">Analista (Apenas Visualização)</option>
+                                          <option value="gestor">Gestor (Edição de Dados)</option>
+                                          <option value="admin">Administrador (Acesso Total)</option>
+                                        </select>
+                                      </div>
+
+                                      <div className="form-group">
+                                        <label>Status</label>
+                                        <select
+                                          className="form-control"
+                                          value={formData.ativo.toString()}
+                                          onChange={(e) => setFormData({...formData, ativo: e.target.value === 'true'})}
+                                        >
+                                          <option value="true">Ativo</option>
+                                          <option value="false">Inativo</option>
+                                        </select>
+                                      </div>
+                                    </div>
+
+                                    <div className="edit-form-actions">
+                                      <button type="button" className="btn btn-secondary" onClick={() => setEditandoId(null)}>
+                                        <FontAwesomeIcon icon={faTimes} /> Cancelar
+                                      </button>
+                                      <button type="submit" className="btn btn-success">
+                                        <FontAwesomeIcon icon={faSave} /> Atualizar
+                                      </button>
+                                    </div>
+                                  </form>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Componente de Paginação */}
+                <Pagination 
+                  pagination={pagination}
+                  onPageChange={handlePageChange}
+                />
+              </>
+            )}
           </>
         )}
       </div>
