@@ -6,6 +6,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-confirm-alert/src/react-confirm-alert.css';
 import './App.css';
+import './styles/TrocarSenhaModal.css';
 
 import Dashboard from './pages/Dashboard';
 import Projetos from './pages/Projetos';
@@ -15,10 +16,11 @@ import Login from './pages/Login';
 import Usuarios from './pages/Usuarios';
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
+import TrocarSenhaModal from './components/TrocarSenhaModal';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-function HeaderNav({ sidebarOpen, setSidebarOpen }) {
+function HeaderNav({ sidebarOpen, setSidebarOpen, onAbrirTrocarSenha }) {
   const { isAuthenticated, canEdit, canAccessUsers, logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -119,7 +121,7 @@ function HeaderNav({ sidebarOpen, setSidebarOpen }) {
                 <button 
                   className="header-dropdown-item"
                   onClick={() => {
-                    navigate('/trocar-senha');
+                    onAbrirTrocarSenha();
                     setUserMenuOpen(false);
                   }}
                 >
@@ -177,15 +179,28 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [trocarSenhaModalOpen, setTrocarSenhaModalOpen] = useState(false);
 
   const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/usuarios', '/login'];
   const ehRotaValida = rotasValidas.some(rota => 
     location.pathname === rota || location.pathname.startsWith(rota + '/')
   );
 
+  const handleAbrirTrocarSenha = () => {
+    setTrocarSenhaModalOpen(true);
+  };
+
+  const handleFecharTrocarSenha = () => {
+    setTrocarSenhaModalOpen(false);
+  };
+
   return (
     <div className="App">
-      <HeaderNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <HeaderNav 
+        sidebarOpen={sidebarOpen} 
+        setSidebarOpen={setSidebarOpen}
+        onAbrirTrocarSenha={handleAbrirTrocarSenha}
+      />
 
       <main className={!ehRotaValida || !isAuthenticated() ? 'container-fullscreen' : `container ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <Routes>
@@ -221,18 +236,15 @@ function AppContent() {
             </PrivateRoute>
           } />
 
-          <Route path="/trocar-senha" element={
-            <PrivateRoute>
-              <div style={{ padding: '20px' }}>
-                <h2>Trocar Senha</h2>
-                <p>Página em desenvolvimento...</p>
-              </div>
-            </PrivateRoute>
-          } />
-
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
+
+      {/* Modal de Trocar Senha */}
+      <TrocarSenhaModal 
+        isOpen={trocarSenhaModalOpen}
+        onClose={handleFecharTrocarSenha}
+      />
 
       <footer>
         <p>Desenvolvido pela Squad de Ordem de Produção</p>
