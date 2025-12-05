@@ -1,52 +1,95 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { projetoService, squadService } from '../services/api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faCog, 
   faPlay, 
-  faStop, 
   faSync, 
   faCheckCircle, 
   faExclamationCircle,
   faSpinner,
   faClock,
-  faChartLine
+  faChartLine,
+  faFilterCircleXmark,
+  faHistory,
+  faUser,
+  faCalendar,
+  faTimes,
+  faListOl
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
+import '../styles/Dashboard.css';
 
 function Rotinas() {
-  const { canEdit } = useAuth();
+  const { canEdit, user } = useAuth();
   const [executando, setExecutando] = useState(null);
+  const [projetos, setProjetos] = useState([]);
+  const [squads, setSquads] = useState([]);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [rotinaDetalhes, setRotinaDetalhes] = useState(null);
+
+  // Filtros
+  const [filtros, setFiltros] = useState({
+    projeto_id: '',
+    squad_id: ''
+  });
 
   // Lista de rotinas disponíveis
-  const rotinas = [
+  const rotinasDisponiveis = [
     {
       id: 1,
-      nome: 'Atualizar Indicadores de Produtividade',
-      descricao: 'Calcula e atualiza os indicadores de produtividade de todas as equipes',
+      nome: 'Atualizar Indicadores de Transcrição',
+      descricao: 'Importa relatório e atualiza os indicadores de transcrição no dashboard',
       icone: faChartLine,
       cor: '#3498db',
-      status: 'idle' // idle, running, success, error
-    },
-    {
-      id: 2,
-      nome: 'Processar Dados de Atividades',
-      descricao: 'Processa e consolida os dados de atividades para o dashboard',
-      icone: faSync,
-      cor: '#2ecc71',
-      status: 'idle'
-    },
-    {
-      id: 3,
-      nome: 'Gerar Relatórios Mensais',
-      descricao: 'Gera os relatórios mensais de desempenho por projeto e squad',
-      icone: faClock,
-      cor: '#e67e22',
-      status: 'idle'
+      requerProjeto: false,
+      requerSquad: false,
+      categoria: 'auditoria'
     }
   ];
 
-  const [listaRotinas, setListaRotinas] = useState(rotinas);
+  // Estado das rotinas com histórico
+  const [rotinas, setRotinas] = useState(
+    rotinasDisponiveis.map(r => ({
+      ...r,
+      status: 'nao_iniciado',
+      logs: [],
+      ultimaExecucao: null,
+      usuario: null
+    }))
+  );
+
+  useEffect(() => {
+    carregarDados();
+  }, []);
+
+  const carregarDados = async () => {
+    try {
+      const [projetosRes, squadsRes] = await Promise.all([
+        projetoService.listar(),
+        squadService.listar()
+      ]);
+      setProjetos(projetosRes.data.items || projetosRes.data);
+      setSquads(squadsRes.data.items || squadsRes.data);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      toast.error('Erro ao carregar projetos e squads');
+    }
+  };
+
+  const limparFiltros = () => {
+    setFiltros({
+      projeto_id: '',
+      squad_id: ''
+    });
+  };
+
+  const podeExecutarRotina = (rotina) => {
+    if (rotina.requerProjeto && !filtros.projeto_id) return false;
+    if (rotina.requerSquad && !filtros.squad_id) return false;
+    return true;
+  };
 
   const executarRotina = async (rotinaId) => {
     if (!canEdit()) {
@@ -54,32 +97,101 @@ function Rotinas() {
       return;
     }
 
+    const rotina = rotinas.find(r => r.id === rotinaId);
+    
+    if (!podeExecutarRotina(rotina)) {
+      if (rotina.requerProjeto && !filtros.projeto_id) {
+        toast.warning('Selecione um projeto para executar esta rotina');
+        return;
+      }
+      if (rotina.requerSquad && !filtros.squad_id) {
+        toast.warning('Selecione uma squad para executar esta rotina');
+        return;
+      }
+    }
+
     setExecutando(rotinaId);
     
-    // Atualizar status para "running"
-    setListaRotinas(prev => prev.map(r => 
-      r.id === rotinaId ? { ...r, status: 'running' } : r
+    // Atualizar status para "em_andamento"
+    setRotinas(prev => prev.map(r => 
+      r.id === rotinaId 
+        ? { 
+            ...r, 
+            status: 'em_andamento',
+            logs: [{
+              timestamp: new Date().toISOString(),
+              mensagem: 'Iniciando execução da rotina...',
+              tipo: 'info'
+            }],
+            ultimaExecucao: new Date().toISOString(),
+            usuario: user?.nome || user?.name || 'Usuário'
+          }
+        : r
     ));
 
     try {
       // TODO: Aqui será implementada a chamada real para o backend
-      // await rotinaService.executar(rotinaId);
+      // const response = await rotinaService.executar(rotinaId, {
+      //   projeto_id: filtros.projeto_id,
+      //   squad_id: filtros.squad_id
+      // });
       
-      // Simulação de execução (remover depois)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Simulação de execução com logs progressivos
+      const logs = [
+        { mensagem: 'Iniciando execução da rotina...', tipo: 'info', delay: 0 },
+        { mensagem: 'Carregando dados do banco...', tipo: 'info', delay: 1000 },
+        { mensagem: 'Processando informações...', tipo: 'info', delay: 2000 },
+        { mensagem: 'Calculando indicadores...', tipo: 'info', delay: 3000 },
+        { mensagem: 'Gerando relatórios...', tipo: 'info', delay: 4000 },
+        { mensagem: 'Salvando resultados...', tipo: 'success', delay: 5000 },
+        { mensagem: 'Rotina executada com sucesso!', tipo: 'success', delay: 6000 }
+      ];
 
-      // Atualizar status para "success"
-      setListaRotinas(prev => prev.map(r => 
-        r.id === rotinaId ? { ...r, status: 'success' } : r
+      for (const log of logs) {
+        await new Promise(resolve => setTimeout(resolve, log.delay === 0 ? 0 : 1000));
+        
+        setRotinas(prev => prev.map(r => 
+          r.id === rotinaId 
+            ? { 
+                ...r, 
+                logs: [
+                  ...r.logs,
+                  {
+                    timestamp: new Date().toISOString(),
+                    mensagem: log.mensagem,
+                    tipo: log.tipo
+                  }
+                ]
+              }
+            : r
+        ));
+      }
+
+      // Atualizar status para "concluido"
+      setRotinas(prev => prev.map(r => 
+        r.id === rotinaId ? { ...r, status: 'concluido' } : r
       ));
 
       toast.success('Rotina executada com sucesso!');
     } catch (error) {
       console.error('Erro ao executar rotina:', error);
       
-      // Atualizar status para "error"
-      setListaRotinas(prev => prev.map(r => 
-        r.id === rotinaId ? { ...r, status: 'error' } : r
+      // Adicionar log de erro
+      setRotinas(prev => prev.map(r => 
+        r.id === rotinaId 
+          ? { 
+              ...r, 
+              status: 'erro',
+              logs: [
+                ...r.logs,
+                {
+                  timestamp: new Date().toISOString(),
+                  mensagem: `Erro ao executar: ${error.message}`,
+                  tipo: 'error'
+                }
+              ]
+            }
+          : r
       ));
 
       toast.error('Erro ao executar rotina: ' + (error.response?.data?.error || error.message));
@@ -88,15 +200,25 @@ function Rotinas() {
     }
   };
 
+  const abrirDetalhes = (rotina) => {
+    setRotinaDetalhes(rotina);
+    setModalOpen(true);
+  };
+
+  const fecharModal = () => {
+    setModalOpen(false);
+    setRotinaDetalhes(null);
+  };
+
   const getStatusBadge = (status) => {
     const badges = {
-      idle: { text: 'Aguardando', icon: faClock, color: '#95a5a6' },
-      running: { text: 'Executando...', icon: faSpinner, color: '#3498db' },
-      success: { text: 'Concluído', icon: faCheckCircle, color: '#2ecc71' },
-      error: { text: 'Erro', icon: faExclamationCircle, color: '#e74c3c' }
+      nao_iniciado: { text: 'Não Iniciado', icon: faClock, color: '#95a5a6' },
+      em_andamento: { text: 'Em andamento...', icon: faSpinner, color: '#3498db' },
+      concluido: { text: 'Concluído', icon: faCheckCircle, color: '#2ecc71' },
+      erro: { text: 'Erro', icon: faExclamationCircle, color: '#e74c3c' }
     };
 
-    const badge = badges[status] || badges.idle;
+    const badge = badges[status] || badges.nao_iniciado;
 
     return (
       <span style={{
@@ -112,12 +234,38 @@ function Rotinas() {
       }}>
         <FontAwesomeIcon 
           icon={badge.icon} 
-          spin={status === 'running'}
+          spin={status === 'em_andamento'}
         />
         {badge.text}
       </span>
     );
   };
+
+  const formatarData = (isoString) => {
+    if (!isoString) return '-';
+    const data = new Date(isoString);
+    return data.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Filtrar rotinas visíveis baseado nos filtros
+  const rotinasVisiveis = rotinas.filter(rotina => {
+    // Rotina não requer parâmetros, sempre visível
+    if (!rotina.requerProjeto && !rotina.requerSquad) {
+      return true;
+    }
+
+    // Verificar se atende aos requisitos quando requer parâmetros
+    if (rotina.requerProjeto && !filtros.projeto_id) return false;
+    if (rotina.requerSquad && !filtros.squad_id) return false;
+
+    return true;
+  });
 
   return (
     <div>
@@ -163,115 +311,435 @@ function Rotinas() {
             </div>
           )}
 
+          {/* PARÂMETROS */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
-            gap: '20px',
-            marginTop: '20px'
+            display: 'flex',
+            justifyContent: 'center',
+            marginBottom: '30px'
           }}>
-            {listaRotinas.map(rotina => (
-              <div
-                key={rotina.id}
-                style={{
-                  border: '2px solid #e9ecef',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  background: 'white',
-                  transition: 'all 0.3s',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                  cursor: executando === rotina.id ? 'not-allowed' : 'default'
-                }}
-              >
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '15px',
-                  marginBottom: '15px'
-                }}>
-                  <div style={{
-                    width: '50px',
-                    height: '50px',
-                    borderRadius: '12px',
-                    background: `${rotina.cor}15`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexShrink: 0
+            <div style={{width: '100%', maxWidth: '900px'}}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '20px',
+                marginBottom: '15px'
+              }}>
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#2c3e50'
                   }}>
-                    <FontAwesomeIcon 
-                      icon={rotina.icone} 
-                      style={{fontSize: '24px', color: rotina.cor}}
-                    />
-                  </div>
-
-                  <div style={{flex: 1}}>
-                    <h3 style={{
-                      margin: '0 0 8px 0',
-                      fontSize: '16px',
-                      fontWeight: 600,
-                      color: '#2c3e50'
-                    }}>
-                      {rotina.nome}
-                    </h3>
-                    <p style={{
-                      margin: 0,
-                      fontSize: '13px',
-                      color: '#7f8c8d',
-                      lineHeight: '1.5'
-                    }}>
-                      {rotina.descricao}
-                    </p>
-                  </div>
+                    Parâmetro: Squad
+                  </label>
+                  <select
+                    className="form-control"
+                    value={filtros.squad_id}
+                    onChange={(e) => setFiltros({...filtros, squad_id: e.target.value})}
+                    style={{width: '100%'}}
+                  >
+                    <option value="">Selecione uma Squad</option>
+                    {squads.map(s => (
+                      <option key={s.id} value={s.id}>{s.nome}</option>
+                    ))}
+                  </select>
                 </div>
 
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  paddingTop: '15px',
-                  borderTop: '1px solid #e9ecef'
-                }}>
-                  {getStatusBadge(rotina.status)}
-
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => executarRotina(rotina.id)}
-                    disabled={!canEdit() || executando !== null}
-                    style={{
-                      padding: '8px 16px',
-                      fontSize: '13px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      opacity: (!canEdit() || executando !== null) ? 0.5 : 1,
-                      cursor: (!canEdit() || executando !== null) ? 'not-allowed' : 'pointer'
-                    }}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    color: '#2c3e50'
+                  }}>
+                    Parâmetro: Projeto
+                  </label>
+                  <select
+                    className="form-control"
+                    value={filtros.projeto_id}
+                    onChange={(e) => setFiltros({...filtros, projeto_id: e.target.value})}
+                    style={{width: '100%'}}
                   >
-                    <FontAwesomeIcon icon={executando === rotina.id ? faSpinner : faPlay} spin={executando === rotina.id} />
-                    {executando === rotina.id ? 'Executando...' : 'Executar'}
-                  </button>
+                    <option value="">Selecione um Projeto</option>
+                    {projetos.map(p => (
+                      <option key={p.id} value={p.id}>{p.nome}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            ))}
+
+              {(filtros.projeto_id || filtros.squad_id) && (
+                <div style={{display: 'flex', justifyContent: 'center'}}>
+                  <button className="btn btn-secondary btn-small" onClick={limparFiltros}>
+                    <FontAwesomeIcon icon={faFilterCircleXmark} /> Limpar Parâmetros
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          {listaRotinas.length === 0 && (
+          {/* CARDS DE ROTINAS */}
+          {rotinasVisiveis.length > 0 ? (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'flex-start',
+              marginTop: '20px'
+            }}>
+              {rotinasVisiveis.map(rotina => (
+                <div
+                  key={rotina.id}
+                  style={{
+                    border: '2px solid #e9ecef',
+                    borderRadius: '12px',
+                    padding: '30px',
+                    background: 'white',
+                    transition: 'all 0.3s',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                    width: '100%',
+                    maxWidth: '900px'
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '20px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '12px',
+                      background: `${rotina.cor}15`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <FontAwesomeIcon 
+                        icon={rotina.icone} 
+                        style={{fontSize: '28px', color: rotina.cor}}
+                      />
+                    </div>
+
+                    <div style={{flex: 1}}>
+                      <h3 style={{
+                        margin: '0 0 10px 0',
+                        fontSize: '20px',
+                        fontWeight: 600,
+                        color: '#2c3e50'
+                      }}>
+                        {rotina.nome}
+                      </h3>
+                      <p style={{
+                        margin: 0,
+                        fontSize: '15px',
+                        color: '#7f8c8d',
+                        lineHeight: '1.6'
+                      }}>
+                        {rotina.descricao}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingTop: '20px',
+                    borderTop: '1px solid #e9ecef'
+                  }}>
+                    {getStatusBadge(rotina.status)}
+
+                    <div style={{display: 'flex', gap: '10px'}}>
+                      {rotina.ultimaExecucao && (
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => abrirDetalhes(rotina)}
+                          title="Ver detalhes"
+                        >
+                          <FontAwesomeIcon icon={faHistory} /> Detalhes
+                        </button>
+                      )}
+                      
+                      <button
+                        className="btn btn-primary"
+                        onClick={() => executarRotina(rotina.id)}
+                        disabled={!canEdit() || executando !== null || !podeExecutarRotina(rotina)}
+                        style={{
+                          opacity: (!canEdit() || executando !== null || !podeExecutarRotina(rotina)) ? 0.5 : 1,
+                          cursor: (!canEdit() || executando !== null || !podeExecutarRotina(rotina)) ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        <FontAwesomeIcon icon={executando === rotina.id ? faSpinner : faPlay} spin={executando === rotina.id} />
+                        {executando === rotina.id ? ' Executando...' : ' Executar Rotina'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
             <div style={{
               textAlign: 'center',
-              padding: '60px 20px',
+              padding: '80px 20px',
               color: '#95a5a6'
             }}>
-              <FontAwesomeIcon icon={faCog} style={{fontSize: '48px', marginBottom: '15px'}} />
-              <h3 style={{fontSize: '20px', marginBottom: '8px', color: '#7f8c8d'}}>
-                Nenhuma rotina disponível
+              <FontAwesomeIcon icon={faCog} style={{fontSize: '64px', marginBottom: '20px', opacity: 0.3}} />
+              <h3 style={{fontSize: '22px', marginBottom: '10px', color: '#7f8c8d'}}>
+                Configure os Parâmetros
               </h3>
-              <p style={{fontSize: '14px'}}>
-                As rotinas automatizadas aparecerão aqui quando forem configuradas
+              <p style={{fontSize: '15px', marginBottom: '20px'}}>
+                Selecione Squad e/ou Projeto acima para visualizar as rotinas disponíveis
               </p>
             </div>
           )}
         </div>
       </div>
+
+      {/* MODAL DE DETALHES */}
+      {modalOpen && rotinaDetalhes && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '700px',
+            maxHeight: '80vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+          }}>
+            {/* Header do Modal */}
+            <div style={{
+              padding: '20px 25px',
+              borderBottom: '1px solid #e9ecef',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: rotinaDetalhes.cor,
+              borderTopLeftRadius: '12px',
+              borderTopRightRadius: '12px',
+              color: 'white'
+            }}>
+              <div>
+                <h3 style={{margin: '0 0 5px 0', fontSize: '18px', fontWeight: 600}}>
+                  <FontAwesomeIcon icon={rotinaDetalhes.icone} /> {rotinaDetalhes.nome}
+                </h3>
+                <p style={{margin: 0, fontSize: '13px', opacity: 0.9}}>
+                  Detalhes da Execução
+                </p>
+              </div>
+              <button
+                onClick={fecharModal}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  color: 'white',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.3s'
+                }}
+                onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.3)'}
+                onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.2)'}
+              >
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+
+            {/* Conteúdo do Modal */}
+            <div style={{
+              padding: '25px',
+              overflowY: 'auto',
+              flex: 1
+            }}>
+              {/* Informações Gerais */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '15px',
+                marginBottom: '25px'
+              }}>
+                <div style={{
+                  padding: '15px',
+                  background: '#f8f9fa',
+                  borderRadius: '8px'
+                }}>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#7f8c8d',
+                    marginBottom: '5px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <FontAwesomeIcon icon={faClock} />
+                    Status
+                  </div>
+                  <div>{getStatusBadge(rotinaDetalhes.status)}</div>
+                </div>
+
+                <div style={{
+                  padding: '15px',
+                  background: '#f8f9fa',
+                  borderRadius: '8px'
+                }}>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#7f8c8d',
+                    marginBottom: '5px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <FontAwesomeIcon icon={faCalendar} />
+                    Última Execução
+                  </div>
+                  <div style={{fontSize: '14px', fontWeight: 600, color: '#2c3e50'}}>
+                    {formatarData(rotinaDetalhes.ultimaExecucao)}
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '15px',
+                  background: '#f8f9fa',
+                  borderRadius: '8px'
+                }}>
+                  <div style={{
+                    fontSize: '12px',
+                    color: '#7f8c8d',
+                    marginBottom: '5px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <FontAwesomeIcon icon={faUser} />
+                    Executado por
+                  </div>
+                  <div style={{fontSize: '14px', fontWeight: 600, color: '#2c3e50'}}>
+                    {rotinaDetalhes.usuario || '-'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Logs */}
+              <div>
+                <h4 style={{
+                  fontSize: '16px',
+                  fontWeight: 600,
+                  color: '#2c3e50',
+                  marginBottom: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <FontAwesomeIcon icon={faListOl} />
+                  Logs de Execução ({rotinaDetalhes.logs.length})
+                </h4>
+
+                <div style={{
+                  border: '1px solid #e9ecef',
+                  borderRadius: '8px',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  background: '#f8f9fa'
+                }}>
+                  {rotinaDetalhes.logs.length === 0 ? (
+                    <div style={{
+                      padding: '30px',
+                      textAlign: 'center',
+                      color: '#95a5a6',
+                      fontSize: '14px'
+                    }}>
+                      Nenhum log disponível
+                    </div>
+                  ) : (
+                    rotinaDetalhes.logs.map((log, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          padding: '12px 15px',
+                          borderBottom: index < rotinaDetalhes.logs.length - 1 ? '1px solid #e9ecef' : 'none',
+                          display: 'flex',
+                          gap: '10px',
+                          alignItems: 'flex-start'
+                        }}
+                      >
+                        <div style={{
+                          fontSize: '11px',
+                          color: '#95a5a6',
+                          minWidth: '50px',
+                          fontFamily: 'monospace'
+                        }}>
+                          {new Date(log.timestamp).toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                          })}
+                        </div>
+                        
+                        <div style={{
+                          width: '4px',
+                          height: '4px',
+                          borderRadius: '50%',
+                          background: log.tipo === 'error' ? '#e74c3c' : log.tipo === 'success' ? '#2ecc71' : '#3498db',
+                          marginTop: '6px',
+                          flexShrink: 0
+                        }} />
+                        
+                        <div style={{
+                          flex: 1,
+                          fontSize: '13px',
+                          color: log.tipo === 'error' ? '#e74c3c' : '#2c3e50',
+                          lineHeight: '1.5'
+                        }}>
+                          {log.mensagem}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer do Modal */}
+            <div style={{
+              padding: '15px 25px',
+              borderTop: '1px solid #e9ecef',
+              display: 'flex',
+              justifyContent: 'flex-end'
+            }}>
+              <button
+                className="btn btn-secondary"
+                onClick={fecharModal}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
