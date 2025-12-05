@@ -251,7 +251,7 @@ body {
   position: fixed;
   top: 56px;
   left: 0;
-  height: calc(100vh - 56px);
+  bottom: 0;
   width: 220px;
   background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
