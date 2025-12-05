@@ -43,6 +43,7 @@ export function AuthProvider({ children }) {
     return user && user.role === 'analista';
   };
 
+  // ✅ MODIFICADO: Incluir admin E gestor
   const canEdit = () => {
     return user && (user.role === 'admin' || user.role === 'gestor');
   };

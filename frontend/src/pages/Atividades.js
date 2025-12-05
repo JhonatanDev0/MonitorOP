@@ -9,7 +9,7 @@ import Pagination from '../components/Pagination';
 import '../styles/Dashboard.css';
 
 function Atividades() {
-  const { isAdmin } = useAuth();
+  const { canEdit } = useAuth();
   const [atividades, setAtividades] = useState([]);
   const [projetos, setProjetos] = useState([]);
   const [squads, setSquads] = useState([]);
@@ -273,7 +273,7 @@ function Atividades() {
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Atividades</h2>
-          {isAdmin() && (
+          {canEdit() && (
             <button 
               className="btn btn-primary" 
               onClick={() => setShowForm(!showForm)}
@@ -556,7 +556,7 @@ function Atividades() {
                       <td>{getStatusBadge(atividade.status)}</td>
                       <td>{getPrioridadeBadge(atividade.prioridade)}</td>
                       <td>
-                        {isAdmin() ? (
+                        {canEdit() ? (
                           <div style={{display: 'flex', gap: '5px'}}>
                             <button 
                               className="btn btn-primary btn-small" 

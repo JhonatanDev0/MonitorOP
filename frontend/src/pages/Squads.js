@@ -8,7 +8,7 @@ import { confirmAlert } from 'react-confirm-alert';
 import Pagination from '../components/Pagination';
 
 function Squads() {
-  const { isAdmin } = useAuth();
+  const { canEdit } = useAuth();
   const [squads, setSquads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -34,11 +34,9 @@ function Squads() {
       const response = await squadService.listar(currentPage, perPage);
       
       if (response.data.items) {
-        // Com paginação
         setSquads(response.data.items);
         setPagination(response.data.pagination);
       } else {
-        // Sem paginação (fallback)
         setSquads(response.data);
         setPagination(null);
       }
@@ -54,7 +52,7 @@ function Squads() {
     setCurrentPage(newPage);
     if (newPerPage !== perPage) {
       setPerPage(newPerPage);
-      setCurrentPage(1); // Voltar para primeira página ao mudar itens por página
+      setCurrentPage(1);
     }
   };
 
@@ -194,7 +192,7 @@ function Squads() {
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Squads</h2>
-          {isAdmin() && (
+          {canEdit() && (
             <button 
               className="btn btn-primary" 
               onClick={() => setShowForm(!showForm)}
@@ -264,7 +262,7 @@ function Squads() {
                       <td>{squad.total_projetos}</td>
                       <td>{squad.total_atividades}</td>
                       <td>
-                        {isAdmin() ? (
+                        {canEdit() ? (
                           <div style={{display: 'flex', gap: '5px'}}>
                             <button 
                               className="btn btn-primary btn-small" 
@@ -289,7 +287,6 @@ function Squads() {
               </table>
             </div>
             
-            {/* Componente de Paginação */}
             <Pagination 
               pagination={pagination}
               onPageChange={handlePageChange}

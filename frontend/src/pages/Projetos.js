@@ -8,7 +8,7 @@ import { confirmAlert } from 'react-confirm-alert';
 import Pagination from '../components/Pagination';
 
 function Projetos() {
-  const { isAdmin } = useAuth();
+  const { canEdit } = useAuth();
   const [projetos, setProjetos] = useState([]);
   const [squads, setSquads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +17,7 @@ function Projetos() {
   
   // Estados de paginação
   const [currentPage, setCurrentPage] = useState(1);
-  const [perPage, setPerPage] = useState(5);  // Alterado para 5 para visualizar com poucos itens
+  const [perPage, setPerPage] = useState(5);
   const [pagination, setPagination] = useState(null);
   
   const [formData, setFormData] = useState({
@@ -57,11 +57,9 @@ function Projetos() {
       const response = await projetoService.listar(currentPage, perPage);
       
       if (response.data.items) {
-        // Com paginação
         setProjetos(response.data.items);
         setPagination(response.data.pagination);
       } else {
-        // Sem paginação (fallback)
         setProjetos(response.data);
         setPagination(null);
       }
@@ -77,7 +75,7 @@ function Projetos() {
     setCurrentPage(newPage);
     if (newPerPage !== perPage) {
       setPerPage(newPerPage);
-      setCurrentPage(1); // Voltar para primeira página ao mudar itens por página
+      setCurrentPage(1);
     }
   };
 
@@ -245,7 +243,7 @@ function Projetos() {
       <div className="card">
         <div className="card-header">
           <h2 className="card-title">Avaliações</h2>
-          {isAdmin() && (
+          {canEdit() && (
             <button 
               className="btn btn-primary" 
               onClick={() => setShowForm(!showForm)}
@@ -432,7 +430,7 @@ function Projetos() {
                           : '-'}
                       </td>
                       <td>
-                        {isAdmin() ? (
+                        {canEdit() ? (
                           <div style={{display: 'flex', gap: '5px'}}>
                             <button 
                               className="btn btn-primary btn-small" 
@@ -457,7 +455,6 @@ function Projetos() {
               </table>
             </div>
             
-            {/* Componente de Paginação */}
             <Pagination 
               pagination={pagination}
               onPageChange={handlePageChange}

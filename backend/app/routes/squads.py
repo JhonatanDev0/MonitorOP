@@ -1,10 +1,18 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt
 from app import db
 from app.models import Squad, Projeto
 from app.utils.pagination import paginate_query
 
 bp = Blueprint('squads', __name__, url_prefix='/api/squads')
 
+def check_edit_permission():
+    """Verifica se o usuário tem permissão de edição"""
+    claims = get_jwt()
+    role = claims.get('role')
+    if role not in ['admin', 'gestor']:
+        return False
+    return True
 
 @bp.route('', methods=['GET'])
 def listar_squads():
@@ -39,9 +47,14 @@ def buscar_squad(id):
 
 
 @bp.route('', methods=['POST'])
+@jwt_required()
 def criar_squad():
-    """Cria uma nova squad"""
+    """Cria uma nova squad - Requer permissão de edição"""
     try:
+        # ✅ NOVO: Validar permissão
+        if not check_edit_permission():
+            return jsonify({'error': 'Acesso negado. Apenas admin e gestor podem criar squads'}), 403
+        
         data = request.get_json()
         
         # Validações básicas
@@ -67,9 +80,14 @@ def criar_squad():
 
 
 @bp.route('/<int:id>', methods=['PUT'])
+@jwt_required()
 def atualizar_squad(id):
-    """Atualiza uma squad existente"""
+    """Atualiza uma squad existente - Requer permissão de edição"""
     try:
+        # ✅ NOVO: Validar permissão
+        if not check_edit_permission():
+            return jsonify({'error': 'Acesso negado. Apenas admin e gestor podem atualizar squads'}), 403
+        
         squad = Squad.query.get_or_404(id)
         data = request.get_json()
         
@@ -93,9 +111,14 @@ def atualizar_squad(id):
 
 
 @bp.route('/<int:id>', methods=['DELETE'])
+@jwt_required()
 def deletar_squad(id):
-    """Deleta uma squad"""
+    """Deleta uma squad - Requer permissão de edição"""
     try:
+        # ✅ NOVO: Validar permissão
+        if not check_edit_permission():
+            return jsonify({'error': 'Acesso negado. Apenas admin e gestor podem deletar squads'}), 403
+        
         squad = Squad.query.get_or_404(id)
         
         # Verificar se a squad tem atividades associadas

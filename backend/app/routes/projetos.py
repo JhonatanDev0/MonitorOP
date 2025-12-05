@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt
 from app import db
 from app.models import Projeto, Squad
 from app.utils.pagination import paginate_query
@@ -6,6 +7,13 @@ from datetime import datetime
 
 bp = Blueprint('projetos', __name__, url_prefix='/api/projetos')
 
+def check_edit_permission():
+    """Verifica se o usuário tem permissão de edição"""
+    claims = get_jwt()
+    role = claims.get('role')
+    if role not in ['admin', 'gestor']:
+        return False
+    return True
 
 @bp.route('', methods=['GET'])
 def listar_projetos():
@@ -16,7 +24,7 @@ def listar_projetos():
         # Verificar se a paginação foi solicitada
         if request.args.get('page'):
             # Com paginação
-            result = paginate_query(query, default_per_page=5)  # Alterado para 5 para visualizar com poucos itens
+            result = paginate_query(query, default_per_page=5)
             return jsonify({
                 'items': [projeto.to_dict() for projeto in result['items']],
                 'pagination': result['pagination']
@@ -40,9 +48,14 @@ def buscar_projeto(id):
 
 
 @bp.route('', methods=['POST'])
+@jwt_required()
 def criar_projeto():
-    """Cria um novo projeto (avaliação)"""
+    """Cria um novo projeto (avaliação) - Requer permissão de edição"""
     try:
+        # ✅ NOVO: Validar permissão
+        if not check_edit_permission():
+            return jsonify({'error': 'Acesso negado. Apenas admin e gestor podem criar projetos'}), 403
+        
         data = request.get_json()
         
         # Validações básicas
@@ -80,9 +93,14 @@ def criar_projeto():
 
 
 @bp.route('/<int:id>', methods=['PUT'])
+@jwt_required()
 def atualizar_projeto(id):
-    """Atualiza um projeto (avaliação) existente"""
+    """Atualiza um projeto (avaliação) existente - Requer permissão de edição"""
     try:
+        # ✅ NOVO: Validar permissão
+        if not check_edit_permission():
+            return jsonify({'error': 'Acesso negado. Apenas admin e gestor podem atualizar projetos'}), 403
+        
         projeto = Projeto.query.get_or_404(id)
         data = request.get_json()
         
@@ -120,9 +138,14 @@ def atualizar_projeto(id):
 
 
 @bp.route('/<int:id>', methods=['DELETE'])
+@jwt_required()
 def deletar_projeto(id):
-    """Deleta um projeto"""
+    """Deleta um projeto - Requer permissão de edição"""
     try:
+        # ✅ NOVO: Validar permissão
+        if not check_edit_permission():
+            return jsonify({'error': 'Acesso negado. Apenas admin e gestor podem deletar projetos'}), 403
+        
         projeto = Projeto.query.get_or_404(id)
         db.session.delete(projeto)
         db.session.commit()
