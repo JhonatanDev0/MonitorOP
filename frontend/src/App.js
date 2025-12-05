@@ -107,7 +107,9 @@ function HeaderNav({ sidebarOpen, setSidebarOpen }) {
               <div className="header-user-avatar">
                 <FontAwesomeIcon icon={faUser} />
               </div>
-              <span className="header-user-name">{user?.name || 'Usuário'}</span>
+              <span className="header-user-name">
+                {user?.nome || user?.name || user?.username || user?.email?.split('@')[0] || 'Usuário'}
+              </span>
               <FontAwesomeIcon icon={faChevronDown} className={`header-chevron-icon ${userMenuOpen ? 'open' : ''}`} />
             </button>
 
