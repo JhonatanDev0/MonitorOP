@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faClipboardList, faUsers, faListCheck, faSignOutAlt, faUserShield, faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faClipboardList, faUsers, faListCheck, faSignOutAlt, faUserShield, faBars, faTimes, faUser, faKey, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-confirm-alert/src/react-confirm-alert.css';
@@ -19,9 +19,10 @@ import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 function HeaderNav({ sidebarOpen, setSidebarOpen }) {
-  const { isAuthenticated, canEdit, canAccessUsers, logout } = useAuth();
+  const { isAuthenticated, canEdit, canAccessUsers, logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/usuarios', '/login'];
   const ehRotaValida = rotasValidas.some(rota => 
@@ -35,6 +36,7 @@ function HeaderNav({ sidebarOpen, setSidebarOpen }) {
   const handleLogout = () => {
     logout();
     navigate('/login');
+    setUserMenuOpen(false);
   };
 
   const menuItems = [
@@ -94,6 +96,45 @@ function HeaderNav({ sidebarOpen, setSidebarOpen }) {
 
           {/* Spacer para ocupar espaço */}
           <div className="header-spacer" />
+
+          {/* User Menu (direita do header) */}
+          <div className="header-user-menu">
+            <button 
+              className="header-user-btn"
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              title={user?.name || 'Usuário'}
+            >
+              <div className="header-user-avatar">
+                <FontAwesomeIcon icon={faUser} />
+              </div>
+              <span className="header-user-name">{user?.name || 'Usuário'}</span>
+              <FontAwesomeIcon icon={faChevronDown} className={`header-chevron-icon ${userMenuOpen ? 'open' : ''}`} />
+            </button>
+
+            {/* User Dropdown Menu */}
+            {userMenuOpen && (
+              <div className="header-user-dropdown">
+                <button 
+                  className="header-dropdown-item"
+                  onClick={() => {
+                    navigate('/trocar-senha');
+                    setUserMenuOpen(false);
+                  }}
+                >
+                  <FontAwesomeIcon icon={faKey} />
+                  <span>Trocar Senha</span>
+                </button>
+                <div className="header-dropdown-divider" />
+                <button 
+                  className="header-dropdown-item logout"
+                  onClick={handleLogout}
+                >
+                  <FontAwesomeIcon icon={faSignOutAlt} />
+                  <span>Sair</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -124,20 +165,6 @@ function HeaderNav({ sidebarOpen, setSidebarOpen }) {
               <span className="nav-item-label">{item.label}</span>
             </NavLink>
           ))}
-
-          {/* Divider */}
-          <div className="nav-divider" />
-
-          {/* Botão Sair */}
-          <button 
-            className="nav-item logout-btn"
-            onClick={handleLogout}
-          >
-            <span className="nav-item-icon">
-              <FontAwesomeIcon icon={faSignOutAlt} />
-            </span>
-            <span className="nav-item-label">Sair</span>
-          </button>
         </nav>
       </aside>
     </>
@@ -189,6 +216,15 @@ function AppContent() {
           <Route path="/usuarios" element={
             <PrivateRoute adminOnly={true}>
               <Usuarios />
+            </PrivateRoute>
+          } />
+
+          <Route path="/trocar-senha" element={
+            <PrivateRoute>
+              <div style={{ padding: '20px' }}>
+                <h2>Trocar Senha</h2>
+                <p>Página em desenvolvimento...</p>
+              </div>
             </PrivateRoute>
           } />
 
