@@ -280,7 +280,13 @@ function Atividades() {
           {canEdit() && (
             <button 
               className="btn btn-primary" 
-              onClick={() => setShowForm(!showForm)}
+              onClick={() => {
+                if (!showForm) {
+                  // Ao abrir o formulário de cadastro, limpar tudo
+                  resetForm();
+                }
+                setShowForm(!showForm);
+              }}
             >
               <FontAwesomeIcon icon={showForm ? faTimes : faPlus} />
               {showForm ? ' Cancelar' : ' Nova Atividade'}

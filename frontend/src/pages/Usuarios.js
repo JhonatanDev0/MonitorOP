@@ -274,7 +274,13 @@ function Usuarios() {
           <h2 className="card-title">Gestão de Usuários</h2>
           <button 
             className="btn btn-primary" 
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              if (!showForm) {
+                // Ao abrir o formulário de cadastro, limpar tudo
+                resetForm();
+              }
+              setShowForm(!showForm);
+            }}
           >
             <FontAwesomeIcon icon={showForm ? faTimes : faPlus} />
             {showForm ? ' Cancelar' : ' Novo Usuário'}
