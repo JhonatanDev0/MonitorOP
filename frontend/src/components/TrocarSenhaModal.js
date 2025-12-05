@@ -1,11 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/auth';
 import { toast } from 'react-toastify';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faEye,
+  faEyeSlash,
+} from '@fortawesome/free-solid-svg-icons';
 import { faTimes, faKey } from '@fortawesome/free-solid-svg-icons';
 import '../styles/TrocarSenhaModal.css';
+
+// ✅ COMPONENTE MOVIDO PARA FORA - NÃO SERÁ RECRIADO A CADA RENDER
+const PasswordInput = ({ name, label, value, placeholder, showPassword, error, onChange, onToggle, disabled }) => (
+  <div className="form-group">
+    <label htmlFor={name}>{label}</label>
+    <div className="password-input-wrapper">
+      <input
+        id={name}
+        name={name}
+        type={showPassword ? 'text' : 'password'}
+        className={`form-control ${error ? 'error' : ''}`}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        autoComplete="new-password"
+      />
+      <button
+        type="button"
+        className="toggle-password"
+        onClick={onToggle}
+        disabled={disabled}
+        title={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+        tabIndex={-1}
+      >
+        {showPassword ? <FontAwesomeIcon icon={faEyeSlash} /> : <FontAwesomeIcon icon={faEye} />}
+      </button>
+    </div>
+    {error && (
+      <div className="error-message">{error}</div>
+    )}
+  </div>
+);
 
 function TrocarSenhaModal({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -26,7 +63,7 @@ function TrocarSenhaModal({ isOpen, onClose }) {
   const [errors, setErrors] = useState({});
 
   // Validar formulário
-  const validarFormulario = () => {
+  const validarFormulario = useCallback(() => {
     const novoErrors = {};
 
     // Validar senha atual
@@ -52,15 +89,15 @@ function TrocarSenhaModal({ isOpen, onClose }) {
 
     setErrors(novoErrors);
     return Object.keys(novoErrors).length === 0;
-  };
+  }, [formData]);
 
   // Alternar visibilidade da senha
-  const toggleShowPassword = (field) => {
+  const toggleShowPassword = useCallback((field) => {
     setShowPassword(prev => ({
       ...prev,
       [field]: !prev[field]
     }));
-  };
+  }, []);
 
   // Submeter formulário
   const handleSubmit = async (e) => {
@@ -109,29 +146,25 @@ function TrocarSenhaModal({ isOpen, onClose }) {
     }
   };
 
-  // Lidar com mudanças no formulário
-  const handleChange = (e) => {
+  // Lidar com mudanças no formulário - OTIMIZADO
+  const handleChange = useCallback((e) => {
     const { name, value } = e.target;
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
 
-    // Limpar erro deste campo ao usuário começar a digitar
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-  };
-
-  // Lidar com Enter para submeter
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !loading) {
-      handleSubmit(e);
-    }
-  };
+    // Limpar erro usando função callback sem dependências
+    setErrors(prev => {
+      if (prev[name]) {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      }
+      return prev;
+    });
+  }, []);
 
   // Fechar ao apertar ESC
   React.useEffect(() => {
@@ -146,39 +179,6 @@ function TrocarSenhaModal({ isOpen, onClose }) {
   }, [isOpen, loading, onClose]);
 
   if (!isOpen) return null;
-
-  // Componente de campo de senha com toggle
-  const PasswordInput = ({ name, label, value, placeholder }) => (
-    <div className="form-group">
-      <label htmlFor={name}>{label}</label>
-      <div className="password-input-wrapper">
-        <input
-          id={name}
-          name={name}
-          type={showPassword[name] ? 'text' : 'password'}
-          className={`form-control ${errors[name] ? 'error' : ''}`}
-          value={value}
-          onChange={handleChange}
-          onKeyPress={handleKeyPress}
-          placeholder={placeholder}
-          disabled={loading}
-          autoComplete="off"
-        />
-        <button
-          type="button"
-          className="toggle-password"
-          onClick={() => toggleShowPassword(name)}
-          disabled={loading}
-          title={showPassword[name] ? 'Ocultar senha' : 'Mostrar senha'}
-        >
-          {showPassword[name] ? '👁‍🗨' : '👁'}
-        </button>
-      </div>
-      {errors[name] && (
-        <div className="error-message">{errors[name]}</div>
-      )}
-    </div>
-  );
 
   return (
     <>
@@ -223,6 +223,11 @@ function TrocarSenhaModal({ isOpen, onClose }) {
               label="Senha Atual *"
               value={formData.senhaAtual}
               placeholder="Digite sua senha atual"
+              showPassword={showPassword.senhaAtual}
+              error={errors.senhaAtual}
+              onChange={handleChange}
+              onToggle={() => toggleShowPassword('senhaAtual')}
+              disabled={loading}
             />
 
             {/* Nova Senha */}
@@ -231,6 +236,11 @@ function TrocarSenhaModal({ isOpen, onClose }) {
               label="Nova Senha *"
               value={formData.senhaNova}
               placeholder="Digite uma nova senha"
+              showPassword={showPassword.senhaNova}
+              error={errors.senhaNova}
+              onChange={handleChange}
+              onToggle={() => toggleShowPassword('senhaNova')}
+              disabled={loading}
             />
             {!errors.senhaNova && (
               <div className="password-hint">
@@ -244,6 +254,11 @@ function TrocarSenhaModal({ isOpen, onClose }) {
               label="Confirmar Nova Senha *"
               value={formData.confirmarSenha}
               placeholder="Confirme a nova senha"
+              showPassword={showPassword.confirmarSenha}
+              error={errors.confirmarSenha}
+              onChange={handleChange}
+              onToggle={() => toggleShowPassword('confirmarSenha')}
+              disabled={loading}
             />
 
             {/* Botões de ação */}

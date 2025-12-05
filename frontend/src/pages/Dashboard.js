@@ -599,13 +599,13 @@ function Dashboard() {
                 className={`btn btn-small ${modoVisualizacao === 'geral' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setModoVisualizacao('geral')}
               >
-                <FontAwesomeIcon icon={faChartBar} /> Resumo Geral
+                <FontAwesomeIcon icon={faChartBar} /> Visão Geral
               </button>
               <button
                 className={`btn btn-small ${modoVisualizacao === 'detalhado' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => setModoVisualizacao('detalhado')}
               >
-                <FontAwesomeIcon icon={faListUl} /> Resumo Detalhado
+                <FontAwesomeIcon icon={faListUl} /> Visão Detalhada
               </button>
             </div>
           </div>

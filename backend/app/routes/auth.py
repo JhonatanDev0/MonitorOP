@@ -90,3 +90,47 @@ def check_token():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 401
+
+
+@auth_bp.route('/trocar-senha', methods=['PUT'])
+@jwt_required()
+def trocar_senha():
+    """Troca a senha do usuário logado"""
+    try:
+        usuario_id = int(get_jwt_identity())
+        usuario = Usuario.query.get(usuario_id)
+        
+        if not usuario:
+            return jsonify({'error': 'Usuário não encontrado'}), 404
+        
+        data = request.get_json()
+        senha_atual = data.get('senha_atual')
+        senha_nova = data.get('senha_nova')
+        
+        # Validações
+        if not senha_atual or not senha_nova:
+            return jsonify({'error': 'Senha atual e nova senha são obrigatórias'}), 400
+        
+        # Verificar senha atual
+        if not usuario.check_senha(senha_atual):
+            return jsonify({'error': 'Senha atual incorreta'}), 401
+        
+        # Validar nova senha
+        if len(senha_nova) < 6:
+            return jsonify({'error': 'Nova senha deve ter no mínimo 6 caracteres'}), 400
+        
+        if senha_nova == senha_atual:
+            return jsonify({'error': 'Nova senha não pode ser igual à senha atual'}), 400
+        
+        # Atualizar senha
+        usuario.set_senha(senha_nova)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Senha alterada com sucesso'
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500

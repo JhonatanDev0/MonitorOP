@@ -56,6 +56,16 @@ export const authService = {
     return response.data;
   },
 
+  // Trocar senha
+  trocarSenha: async (senhaAtual, senhaNova) => {
+    const response = await axios.put(`${API_URL}/auth/trocar-senha`, {
+      senha_atual: senhaAtual,
+      senha_nova: senhaNova
+    });
+    
+    return response.data;
+  },
+
   // Logout
   logout: () => {
     localStorage.removeItem('token');
