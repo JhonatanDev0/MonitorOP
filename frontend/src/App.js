@@ -18,11 +18,10 @@ import PrivateRoute from './components/PrivateRoute';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-function HeaderNav() {
+function HeaderNav({ sidebarOpen, setSidebarOpen }) {
   const { isAuthenticated, canEdit, canAccessUsers, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/usuarios', '/login'];
   const ehRotaValida = rotasValidas.some(rota => 
@@ -36,7 +35,6 @@ function HeaderNav() {
   const handleLogout = () => {
     logout();
     navigate('/login');
-    setSidebarOpen(false);
   };
 
   const menuItems = [
@@ -99,11 +97,12 @@ function HeaderNav() {
         </div>
       </header>
 
-      {/* Overlay quando sidebar está aberta */}
+      {/* Overlay quando sidebar está aberta - clica para fechar */}
       {sidebarOpen && (
         <div 
           className="sidebar-overlay"
           onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
         />
       )}
 
@@ -117,7 +116,6 @@ function HeaderNav() {
               className={({ isActive }) => 
                 isActive ? 'nav-item active' : 'nav-item'
               }
-              onClick={() => setSidebarOpen(false)}
               end={item.path === '/'}
             >
               <span className="nav-item-icon">
@@ -149,6 +147,7 @@ function HeaderNav() {
 function AppContent() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/usuarios', '/login'];
   const ehRotaValida = rotasValidas.some(rota => 
@@ -157,9 +156,9 @@ function AppContent() {
 
   return (
     <div className="App">
-      <HeaderNav />
+      <HeaderNav sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      <main className={!ehRotaValida || !isAuthenticated() ? 'container-fullscreen' : 'container'}>
+      <main className={!ehRotaValida || !isAuthenticated() ? 'container-fullscreen' : `container ${sidebarOpen ? 'sidebar-open' : ''}`}>
         <Routes>
           <Route path="/login" element={<Login />} />
           
