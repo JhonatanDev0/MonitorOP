@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faClipboardList, faUsers, faListCheck, faSignOutAlt, faUserShield } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faClipboardList, faUsers, faListCheck, faSignOutAlt, faUserShield, faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-confirm-alert/src/react-confirm-alert.css';
@@ -18,14 +18,12 @@ import PrivateRoute from './components/PrivateRoute';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-// ✅ NOVO: Componente interno para renderizar o header condicionalmente
 function HeaderNav() {
   const { isAuthenticated, canEdit, canAccessUsers, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // ✅ NOVO: Não mostrar header na página 404
-  // Verificar se a rota não existe (não está na lista de rotas válidas)
   const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/usuarios', '/login'];
   const ehRotaValida = rotasValidas.some(rota => 
     location.pathname === rota || location.pathname.startsWith(rota + '/')
@@ -38,72 +36,113 @@ function HeaderNav() {
   const handleLogout = () => {
     logout();
     navigate('/login');
+    setSidebarOpen(false);
   };
 
+  const menuItems = [
+    {
+      label: 'Dashboard',
+      path: '/',
+      icon: faChartLine,
+      show: true,
+    },
+    {
+      label: 'Avaliações',
+      path: '/projetos',
+      icon: faClipboardList,
+      show: canEdit(),
+    },
+    {
+      label: 'Squads',
+      path: '/squads',
+      icon: faUsers,
+      show: canEdit(),
+    },
+    {
+      label: 'Atividades',
+      path: '/atividades',
+      icon: faListCheck,
+      show: canEdit(),
+    },
+    {
+      label: 'Usuários',
+      path: '/usuarios',
+      icon: faUserShield,
+      show: canAccessUsers(),
+    },
+  ];
+
+  const filteredItems = menuItems.filter(item => item.show);
+
   return isAuthenticated() ? (
-    <header className="header">
-      <div className="header-container">
-        <div className="header-logo">
-          <img src="/logo.png" alt="Logo" className="logo-img" />
-          <h1>Monitoramento de Atividades da Ordem de Produção</h1>
-        </div>
-        
-        <nav className="nav">
-          <NavLink 
-            to="/" 
-            className={({ isActive }) => isActive ? 'active' : ''}
-            end
-          >
-            <FontAwesomeIcon icon={faChartLine} />
-            Dashboard
-          </NavLink>
-          
-          {canEdit() && (
-            <>
-              <NavLink 
-                to="/projetos" 
-                className={({ isActive }) => isActive ? 'active' : ''}
-              >
-                <FontAwesomeIcon icon={faClipboardList} />
-                Avaliações
-              </NavLink>
-              <NavLink 
-                to="/squads" 
-                className={({ isActive }) => isActive ? 'active' : ''}
-              >
-                <FontAwesomeIcon icon={faUsers} />
-                Squads
-              </NavLink>
-              <NavLink 
-                to="/atividades" 
-                className={({ isActive }) => isActive ? 'active' : ''}
-              >
-                <FontAwesomeIcon icon={faListCheck} />
-                Atividades
-              </NavLink>
-            </>
-          )}
-          
-          {canAccessUsers() && (
-            <NavLink 
-              to="/usuarios" 
-              className={({ isActive }) => isActive ? 'active' : ''}
-            >
-              <FontAwesomeIcon icon={faUserShield} />
-              Usuários
-            </NavLink>
-          )}
-          
+    <>
+      <header className="header">
+        <div className="header-content">
+          {/* Botão Hamburger à esquerda */}
           <button 
-            className="btn-logout"
+            className="hamburger-btn"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label="Toggle menu"
+            title={sidebarOpen ? 'Fechar menu' : 'Abrir menu'}
+          >
+            <FontAwesomeIcon icon={sidebarOpen ? faTimes : faBars} />
+          </button>
+
+          {/* Logo e Título */}
+          <div className="header-logo">
+            <img src="/logo.png" alt="Logo" className="logo-img" />
+            <h1 className="header-title">Monitoramento de Atividades</h1>
+          </div>
+
+          {/* Spacer para ocupar espaço */}
+          <div className="header-spacer" />
+        </div>
+      </header>
+
+      {/* Overlay quando sidebar está aberta */}
+      {sidebarOpen && (
+        <div 
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Menu Lateral */}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        <nav className="sidebar-nav">
+          {filteredItems.map((item) => (
+            <NavLink 
+              key={item.path}
+              to={item.path}
+              className={({ isActive }) => 
+                isActive ? 'nav-item active' : 'nav-item'
+              }
+              onClick={() => setSidebarOpen(false)}
+              end={item.path === '/'}
+            >
+              <span className="nav-item-icon">
+                <FontAwesomeIcon icon={item.icon} />
+              </span>
+              <span className="nav-item-label">{item.label}</span>
+            </NavLink>
+          ))}
+
+          {/* Divider */}
+          <div className="nav-divider" />
+
+          {/* Botão Sair */}
+          <button 
+            className="nav-item logout-btn"
             onClick={handleLogout}
           >
-            <FontAwesomeIcon icon={faSignOutAlt} />
-            Sair
+            <span className="nav-item-icon">
+              <FontAwesomeIcon icon={faSignOutAlt} />
+            </span>
+            <span className="nav-item-label">Sair</span>
           </button>
         </nav>
-      </div>
-    </header>
+      </aside>
+    </>
   ) : null;
 }
 
@@ -111,7 +150,6 @@ function AppContent() {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
-  // ✅ NOVO: Verificar se é uma rota válida
   const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/usuarios', '/login'];
   const ehRotaValida = rotasValidas.some(rota => 
     location.pathname === rota || location.pathname.startsWith(rota + '/')
@@ -119,10 +157,8 @@ function AppContent() {
 
   return (
     <div className="App">
-      {/* ✅ NOVO: Header renderizado condicionalmente */}
       <HeaderNav />
 
-      {/* ✅ MODIFICADO: Condicional para mostrar/esconder container baseado na página */}
       <main className={!ehRotaValida || !isAuthenticated() ? 'container-fullscreen' : 'container'}>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -157,12 +193,11 @@ function AppContent() {
             </PrivateRoute>
           } />
 
-          {/* Rota 404 - deve ser a última */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 
-      <footer style={{textAlign: 'center', padding: '40px 20px', color: '#7f8c8d'}}>
+      <footer>
         <p>Desenvolvido pela Squad de Ordem de Produção</p>
       </footer>
       
