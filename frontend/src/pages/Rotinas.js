@@ -16,7 +16,9 @@ import {
   faUser,
   faCalendar,
   faTimes,
-  faListOl
+  faListOl,
+  faScrewdriverWrench,
+  faX
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import '../styles/Dashboard.css';
@@ -35,6 +37,11 @@ function Rotinas() {
     squad_id: ''
   });
 
+  // Estados para autocomplete de projeto
+  const [projetoSearch, setProjetoSearch] = useState('');
+  const [projetosFiltrados, setProjetosFiltrados] = useState([]);
+  const [showProjetoDropdown, setShowProjetoDropdown] = useState(false);
+
   // Lista de rotinas disponíveis
   const rotinasDisponiveis = [
     {
@@ -44,7 +51,8 @@ function Rotinas() {
       icone: faChartLine,
       cor: '#3498db',
       requerProjeto: false,
-      requerSquad: false,
+      requerSquad: true,  // Agora requer Squad
+      squadEspecifica: 'Auditoria',  // Squad específica
       categoria: 'auditoria'
     }
   ];
@@ -64,14 +72,51 @@ function Rotinas() {
     carregarDados();
   }, []);
 
+  // Filtrar projetos baseado na busca
+  useEffect(() => {
+    if (projetoSearch.trim() === '') {
+      setProjetosFiltrados([]);
+    } else {
+      const filtered = projetos.filter(p => {
+        const searchLower = projetoSearch.toLowerCase();
+        return (
+          p.nome?.toLowerCase().includes(searchLower) ||
+          p.subprograma?.toLowerCase().includes(searchLower)
+        );
+      });
+      setProjetosFiltrados(filtered.slice(0, 10)); // Limitar a 10 resultados
+    }
+  }, [projetoSearch, projetos]);
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showProjetoDropdown && !event.target.closest('.projeto-autocomplete')) {
+        setShowProjetoDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showProjetoDropdown]);
+
   const carregarDados = async () => {
     try {
       const [projetosRes, squadsRes] = await Promise.all([
         projetoService.listar(),
         squadService.listar()
       ]);
-      setProjetos(projetosRes.data.items || projetosRes.data);
-      setSquads(squadsRes.data.items || squadsRes.data);
+      const projetosData = projetosRes.data.items || projetosRes.data;
+      const squadsData = squadsRes.data.items || squadsRes.data;
+      
+      setProjetos(projetosData);
+      setSquads(squadsData);
+      
+      // Debug: ver estrutura dos projetos
+      if (projetosData.length > 0) {
+        console.log('📊 Exemplo de projeto:', projetosData[0]);
+        console.log('📋 Campos disponíveis:', Object.keys(projetosData[0]));
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       toast.error('Erro ao carregar projetos e squads');
@@ -83,6 +128,20 @@ function Rotinas() {
       projeto_id: '',
       squad_id: ''
     });
+    setProjetoSearch('');
+    setShowProjetoDropdown(false);
+  };
+
+  const selecionarProjeto = (projeto) => {
+    setFiltros({...filtros, projeto_id: projeto.id});
+    setProjetoSearch(`${projeto.subprograma || projeto.nome}`);
+    setShowProjetoDropdown(false);
+  };
+
+  const limparProjeto = () => {
+    setFiltros({...filtros, projeto_id: ''});
+    setProjetoSearch('');
+    setShowProjetoDropdown(false);
   };
 
   const podeExecutarRotina = (rotina) => {
@@ -112,6 +171,10 @@ function Rotinas() {
 
     setExecutando(rotinaId);
     
+    // Capturar informações de projeto e squad
+    const projetoSelecionado = filtros.projeto_id ? projetos.find(p => p.id === parseInt(filtros.projeto_id)) : null;
+    const squadSelecionada = filtros.squad_id ? squads.find(s => s.id === parseInt(filtros.squad_id)) : null;
+    
     // Atualizar status para "em_andamento"
     setRotinas(prev => prev.map(r => 
       r.id === rotinaId 
@@ -124,7 +187,10 @@ function Rotinas() {
               tipo: 'info'
             }],
             ultimaExecucao: new Date().toISOString(),
-            usuario: user?.nome || user?.name || 'Usuário'
+            usuario: user?.nome || user?.name || 'Usuário',
+            projetoSubprograma: projetoSelecionado?.subprograma || null,
+            projetoNome: projetoSelecionado?.nome || null,
+            squadNome: squadSelecionada?.nome || null
           }
         : r
     ));
@@ -255,12 +321,18 @@ function Rotinas() {
 
   // Filtrar rotinas visíveis baseado nos filtros
   const rotinasVisiveis = rotinas.filter(rotina => {
-    // Rotina não requer parâmetros, sempre visível
-    if (!rotina.requerProjeto && !rotina.requerSquad) {
-      return true;
+    // Se rotina requer Squad específica
+    if (rotina.squadEspecifica) {
+      if (!filtros.squad_id) return false;
+      
+      // Verificar se a squad selecionada é a correta
+      const squadSelecionada = squads.find(s => s.id === parseInt(filtros.squad_id));
+      if (!squadSelecionada || squadSelecionada.nome !== rotina.squadEspecifica) {
+        return false;
+      }
     }
 
-    // Verificar se atende aos requisitos quando requer parâmetros
+    // Verificar requisitos gerais
     if (rotina.requerProjeto && !filtros.projeto_id) return false;
     if (rotina.requerSquad && !filtros.squad_id) return false;
 
@@ -347,7 +419,7 @@ function Rotinas() {
                   </select>
                 </div>
 
-                <div>
+                <div style={{position: 'relative'}} className="projeto-autocomplete">
                   <label style={{
                     display: 'block',
                     marginBottom: '8px',
@@ -357,17 +429,85 @@ function Rotinas() {
                   }}>
                     Parâmetro: Projeto
                   </label>
-                  <select
-                    className="form-control"
-                    value={filtros.projeto_id}
-                    onChange={(e) => setFiltros({...filtros, projeto_id: e.target.value})}
-                    style={{width: '100%'}}
-                  >
-                    <option value="">Selecione um Projeto</option>
-                    {projetos.map(p => (
-                      <option key={p.id} value={p.id}>{p.nome}</option>
-                    ))}
-                  </select>
+                  <div style={{position: 'relative'}}>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Digite para buscar por nome ou subprograma..."
+                      value={projetoSearch}
+                      onChange={(e) => {
+                        setProjetoSearch(e.target.value);
+                        setShowProjetoDropdown(true);
+                      }}
+                      onFocus={() => setShowProjetoDropdown(true)}
+                      style={{width: '100%', paddingRight: filtros.projeto_id ? '40px' : '10px'}}
+                    />
+                    {filtros.projeto_id && (
+                      <button
+                        onClick={limparProjeto}
+                        style={{
+                          position: 'absolute',
+                          right: '10px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          color: '#95a5a6',
+                          cursor: 'pointer',
+                          fontSize: '18px',
+                          padding: '0',
+                          width: '20px',
+                          height: '20px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Limpar projeto"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Dropdown de resultados */}
+                  {showProjetoDropdown && projetosFiltrados.length > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      background: 'white',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      maxHeight: '300px',
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      marginTop: '2px'
+                    }}>
+                      {projetosFiltrados.map(projeto => (
+                        <div
+                          key={projeto.id}
+                          onClick={() => selecionarProjeto(projeto)}
+                          style={{
+                            padding: '10px 15px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f0f0f0',
+                            transition: 'background 0.2s'
+                          }}
+                          onMouseEnter={(e) => e.target.style.background = '#f8f9fa'}
+                          onMouseLeave={(e) => e.target.style.background = 'white'}
+                        >
+                          <div style={{fontWeight: 600, color: '#2c3e50', marginBottom: '3px'}}>
+                            {projeto.subprograma}
+                          </div>
+                          <div style={{fontSize: '13px', color: '#7f8c8d'}}>
+                            {projeto.nome}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -488,12 +628,12 @@ function Rotinas() {
               padding: '80px 20px',
               color: '#95a5a6'
             }}>
-              <FontAwesomeIcon icon={faCog} style={{fontSize: '64px', marginBottom: '20px', opacity: 0.3}} />
+              <FontAwesomeIcon icon={faX} style={{fontSize: '64px', marginBottom: '20px', opacity: 0.3}} />
               <h3 style={{fontSize: '22px', marginBottom: '10px', color: '#7f8c8d'}}>
-                Configure os Parâmetros
+                Nenhuma rotina disponível
               </h3>
               <p style={{fontSize: '15px', marginBottom: '20px'}}>
-                Selecione Squad e/ou Projeto acima para visualizar as rotinas disponíveis
+                Selecione uma Squad para visualizar as rotinas disponíveis
               </p>
             </div>
           )}
@@ -641,6 +781,52 @@ function Rotinas() {
                     {rotinaDetalhes.usuario || '-'}
                   </div>
                 </div>
+
+                {rotinaDetalhes.squadNome && (
+                  <div style={{
+                    padding: '15px',
+                    background: '#f8f9fa',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#7f8c8d',
+                      marginBottom: '5px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <FontAwesomeIcon icon={faUser} />
+                      Squad
+                    </div>
+                    <div style={{fontSize: '14px', fontWeight: 600, color: '#2c3e50'}}>
+                      {rotinaDetalhes.squadNome}
+                    </div>
+                  </div>
+                )}
+
+                {rotinaDetalhes.projetoSubprograma && (
+                  <div style={{
+                    padding: '15px',
+                    background: '#f8f9fa',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      fontSize: '12px',
+                      color: '#7f8c8d',
+                      marginBottom: '5px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <FontAwesomeIcon icon={faCog} />
+                      Projeto
+                    </div>
+                    <div style={{fontSize: '14px', fontWeight: 600, color: '#2c3e50'}}>
+                      {rotinaDetalhes.projetoSubprograma}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Logs */}
