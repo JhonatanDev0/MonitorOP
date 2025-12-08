@@ -71,19 +71,7 @@ def executar_script_auditoria(log_queue, arquivo_nome, projeto_id=None):
     arquivo_path = PASTA_AUDITORIA / arquivo_nome
     
     try:
-        print("\n" + "="*60)
-        print("🔍 DEBUG: executar_script_auditoria() INICIADO")
-        print(f"📂 SCRIPT_PATH: {SCRIPT_PATH}")
-        print(f"📂 SCRIPT existe? {SCRIPT_PATH.exists()}")
-        print(f"📄 Arquivo: {arquivo_nome}")
-        print(f"📂 Arquivo path: {arquivo_path}")
-        print(f"📂 Arquivo existe? {arquivo_path.exists()}")
-        if projeto_id:
-            print(f"🏷️  Projeto ID: {projeto_id}")
-        print("="*60 + "\n")
-        
         log_queue.put(formatar_log('info', f'🚀 Iniciando processamento de: {arquivo_nome}'))
-        log_queue.put(formatar_log('info', f'📂 Arquivo em: {arquivo_path}'))
         if projeto_id:
             log_queue.put(formatar_log('info', f'🏷️  Projeto: {projeto_id}'))
         
@@ -92,10 +80,7 @@ def executar_script_auditoria(log_queue, arquivo_nome, projeto_id=None):
         if projeto_id:
             comando.append(str(projeto_id))
         
-        print(f"🔧 Comando: {' '.join(comando)}")
-        
-        # Executar o script Python PASSANDO O ARQUIVO E PROJETO COMO ARGUMENTOS
-        print("⏳ Iniciando subprocess...")
+        # Executar o script Python
         processo = subprocess.Popen(
             comando,
             stdout=subprocess.PIPE,
@@ -103,49 +88,38 @@ def executar_script_auditoria(log_queue, arquivo_nome, projeto_id=None):
             text=True,
             bufsize=1,
             universal_newlines=True,
-            cwd=str(SCRIPT_PATH.parent)  # Define diretório de trabalho
+            cwd=str(SCRIPT_PATH.parent)
         )
         
-        print(f"✅ Processo iniciado com PID: {processo.pid}")
-        print("📖 Aguardando logs do script...\n")
-        
         # Ler stdout linha por linha
-        linha_count = 0
         for linha in processo.stdout:
-            linha_count += 1
             linha = linha.strip()
-            print(f"📝 LOG #{linha_count}: {linha}")  # Debug
             if linha:
                 # Determinar tipo de log
-                if '❌' in linha or 'ERRO' in linha:
+                if '❌' in linha or 'ERRO' in linha or '[ERRO]' in linha:
                     tipo = 'error'
-                elif '⚠️' in linha:
+                elif '⚠️' in linha or '[AVISO]' in linha:
                     tipo = 'warning'
-                elif '✅' in linha or 'Sucesso' in linha:
+                elif '✅' in linha or 'Sucesso' in linha or '[OK]' in linha:
                     tipo = 'success'
                 else:
                     tipo = 'info'
                 
                 log_queue.put(formatar_log(tipo, linha))
         
-        print(f"\n📊 Total de linhas lidas do stdout: {linha_count}")
-        
         # Aguardar conclusão
-        print("⏳ Aguardando conclusão do processo...")
         processo.wait()
-        print(f"✅ Processo concluído com returncode: {processo.returncode}")
         
         # Verificar se houve erro
         if processo.returncode != 0:
             stderr = processo.stderr.read()
-            print(f"❌ STDERR: {stderr}")
-            log_queue.put(formatar_log('error', f'❌ Erro na execução: {stderr}'))
+            if stderr:
+                log_queue.put(formatar_log('error', f'❌ Erro na execução: {stderr}'))
             log_queue.put(formatar_log('error', '❌ Rotina finalizada com erros'))
         else:
             # Mesmo com sucesso, ler stderr por segurança
             stderr = processo.stderr.read()
             if stderr:
-                print(f"⚠️ STDERR (com sucesso): {stderr}")
                 log_queue.put(formatar_log('warning', f'⚠️ Avisos: {stderr}'))
             
             log_queue.put(formatar_log('success', '🎉 Rotina finalizada com sucesso!'))
@@ -294,11 +268,6 @@ def executar_auditoria():
     import re
     match = re.search(r'-(\d+)_', arquivo_nome)
     codigo_subprograma = match.group(1) if match else None
-    
-    if codigo_subprograma:
-        print(f"📋 Código extraído do arquivo: {codigo_subprograma}")
-    else:
-        print(f"⚠️  Não foi possível extrair código do arquivo: {arquivo_nome}")
     
     # Verificar se arquivo existe
     arquivo_path = PASTA_AUDITORIA / secure_filename(arquivo_nome)

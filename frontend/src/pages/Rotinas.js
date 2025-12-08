@@ -50,38 +50,17 @@ const Rotinas = () => {
     return Boolean(canEdit);
   };
 
-  // Debug: Monitorar user (não currentUser)
-  useEffect(() => {
-    console.log('=== DEBUG ROTINAS ===');
-    console.log('user:', user);
-    console.log('user.username:', user?.username);
-    console.log('user.role:', user?.role);
-    console.log('Tipo de canEdit:', typeof canEdit);
-    
-    // Se canEdit é função, ver o que ela retorna
-    if (typeof canEdit === 'function') {
-      console.log('canEdit() retorna:', canEdit());
-    }
-    
-    try {
-      console.log('temPermissao():', temPermissao());
-    } catch (e) {
-      console.error('Erro ao chamar temPermissao:', e);
-    }
-    console.log('====================');
-  }, [user]);
-
   // Carregar squads e projetos
   useEffect(() => {
     fetch('http://localhost:5000/api/squads')
       .then(res => res.json())
       .then(data => setSquads(data))
-      .catch(err => console.error('Erro ao carregar squads:', err));
+      .catch(err => toast.error('Erro ao carregar squads'));
 
     fetch('http://localhost:5000/api/projetos')
       .then(res => res.json())
       .then(data => setProjetos(data))
-      .catch(err => console.error('Erro ao carregar projetos:', err));
+      .catch(err => toast.error('Erro ao carregar projetos'));
     
     carregarArquivos();
   }, []);
@@ -93,11 +72,8 @@ const Rotinas = () => {
       
       // Verificar se a resposta é OK
       if (!response.ok) {
-        console.error('Erro HTTP:', response.status, response.statusText);
-        
         // Se for 404, endpoint não existe ainda
         if (response.status === 404) {
-          console.warn('⚠️ Endpoint /api/auditoria/arquivos não encontrado');
           setArquivos([]);
           return;
         }
@@ -109,7 +85,6 @@ const Rotinas = () => {
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
-        console.error('❌ Resposta não é JSON:', text.substring(0, 200));
         throw new Error('Resposta do servidor não é JSON');
       }
       
@@ -117,9 +92,7 @@ const Rotinas = () => {
       setArquivos(data.arquivos || []);
       
     } catch (error) {
-      console.error('Erro ao carregar arquivos:', error);
-      // Não mostrar toast aqui para não poluir a interface
-      // O componente ainda funciona, só não mostra arquivos
+      // Falha silenciosa - não mostrar erro para não poluir interface
       setArquivos([]);
     }
   };
@@ -282,7 +255,6 @@ const Rotinas = () => {
     }
 
     const nomeUsuario = currentUser.username || currentUser.login || 'Sistema';
-    console.log('Executando rotina como usuário:', nomeUsuario);
 
     setExecutando(true);
     setLogs([]);
