@@ -50,9 +50,9 @@ function Rotinas() {
       descricao: 'Importa relatório e atualiza os indicadores de transcrição no dashboard',
       icone: faChartLine,
       cor: '#3498db',
-      requerProjeto: false,
-      requerSquad: true,  // Agora requer Squad
-      squadEspecifica: 'Auditoria',  // Squad específica
+      requerProjeto: true,  // ✅ MODIFICADO: Agora requer projeto também
+      requerSquad: true,
+      squadEspecifica: 'Auditoria',
       categoria: 'auditoria'
     }
   ];
@@ -319,22 +319,28 @@ function Rotinas() {
     });
   };
 
-  // Filtrar rotinas visíveis baseado nos filtros
+  // ✅ MODIFICADO: Filtrar rotinas visíveis baseado nos filtros
+  // Agora exige AMBOS os parâmetros preenchidos simultaneamente
   const rotinasVisiveis = rotinas.filter(rotina => {
-    // Se rotina requer Squad específica
-    if (rotina.squadEspecifica) {
-      if (!filtros.squad_id) return false;
+    // ⚠️ VALIDAÇÃO PRINCIPAL: Ambos os parâmetros devem estar preenchidos
+    if (rotina.requerProjeto && rotina.requerSquad) {
+      // Se a rotina requer ambos, verificar se AMBOS estão preenchidos
+      if (!filtros.projeto_id || !filtros.squad_id) return false;
+    } else {
+      // Se a rotina requer apenas projeto, verificar se está preenchido
+      if (rotina.requerProjeto && !filtros.projeto_id) return false;
       
-      // Verificar se a squad selecionada é a correta
+      // Se a rotina requer apenas squad, verificar se está preenchido
+      if (rotina.requerSquad && !filtros.squad_id) return false;
+    }
+
+    // Se rotina requer Squad específica, verificar se é a correta
+    if (rotina.squadEspecifica) {
       const squadSelecionada = squads.find(s => s.id === parseInt(filtros.squad_id));
       if (!squadSelecionada || squadSelecionada.nome !== rotina.squadEspecifica) {
         return false;
       }
     }
-
-    // Verificar requisitos gerais
-    if (rotina.requerProjeto && !filtros.projeto_id) return false;
-    if (rotina.requerSquad && !filtros.squad_id) return false;
 
     return true;
   });
@@ -404,12 +410,15 @@ function Rotinas() {
                     fontWeight: 600,
                     color: '#2c3e50'
                   }}>
-                    Parâmetro: Squad
+                    Parâmetro: Squad *
                   </label>
                   <select
                     className="form-control"
                     value={filtros.squad_id}
-                    onChange={(e) => setFiltros({...filtros, squad_id: e.target.value})}
+                    onChange={(e) => {
+                      setFiltros({...filtros, squad_id: e.target.value, projeto_id: ''});
+                      setProjetoSearch('');
+                    }}
                     style={{width: '100%'}}
                   >
                     <option value="">Selecione uma Squad</option>
@@ -427,19 +436,20 @@ function Rotinas() {
                     fontWeight: 600,
                     color: '#2c3e50'
                   }}>
-                    Parâmetro: Projeto
+                    Parâmetro: Projeto *
                   </label>
                   <div style={{position: 'relative'}}>
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="Digite para buscar por nome ou subprograma..."
+                      placeholder={!filtros.squad_id ? "Selecione uma Squad primeiro" : "Digite para buscar por nome ou subprograma..."}
                       value={projetoSearch}
                       onChange={(e) => {
                         setProjetoSearch(e.target.value);
                         setShowProjetoDropdown(true);
                       }}
                       onFocus={() => setShowProjetoDropdown(true)}
+                      disabled={!filtros.squad_id}
                       style={{width: '100%', paddingRight: filtros.projeto_id ? '40px' : '10px'}}
                     />
                     {filtros.projeto_id && (
@@ -633,7 +643,8 @@ function Rotinas() {
                 Nenhuma rotina disponível
               </h3>
               <p style={{fontSize: '15px', marginBottom: '20px'}}>
-                Selecione uma Squad para visualizar as rotinas disponíveis
+                {/* ✅ MODIFICADO: Mensagem atualizada */}
+                Selecione uma Squad e um Projeto para visualizar as rotinas disponíveis
               </p>
             </div>
           )}
