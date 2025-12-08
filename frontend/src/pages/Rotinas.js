@@ -1,136 +1,160 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { projetoService, squadService } from '../services/api';
+import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faCog, 
-  faPlay, 
-  faSync, 
-  faCheckCircle, 
-  faExclamationCircle,
+import {
+  faCog,
+  faPlay,
   faSpinner,
-  faClock,
-  faChartLine,
-  faFilterCircleXmark,
-  faHistory,
-  faUser,
-  faCalendar,
+  faUpload,
+  faFile,
+  faTrash,
   faTimes,
-  faListOl,
+  faCheckCircle,
+  faExclamationTriangle,
+  faInfoCircle,
+  faTimesCircle,
   faScrewdriverWrench,
-  faX
+  faFileExcel
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import '../styles/Dashboard.css';
+import { useAuth } from '../contexts/AuthContext';
 
-function Rotinas() {
-  const { canEdit, user } = useAuth();
-  const [executando, setExecutando] = useState(null);
-  const [projetos, setProjetos] = useState([]);
+const Rotinas = () => {
+  const { user, canEdit } = useAuth();  // ← Pegar 'user', não 'currentUser'
+  const currentUser = user;  // ← Criar alias para manter compatibilidade
   const [squads, setSquads] = useState([]);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [rotinaDetalhes, setRotinaDetalhes] = useState(null);
-
-  // Filtros
-  const [filtros, setFiltros] = useState({
-    projeto_id: '',
-    squad_id: ''
-  });
-
-  // Estados para autocomplete de projeto
+  const [projetos, setProjetos] = useState([]);
+  const [filtros, setFiltros] = useState({ squad_id: '', projeto_id: '' });
   const [projetoSearch, setProjetoSearch] = useState('');
   const [projetosFiltrados, setProjetosFiltrados] = useState([]);
   const [showProjetoDropdown, setShowProjetoDropdown] = useState(false);
+  
+  // Estados para upload e execução
+  const [arquivos, setArquivos] = useState([]);
+  const [arquivoSelecionado, setArquivoSelecionado] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [executando, setExecutando] = useState(false);
+  
+  // Estados para logs
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const eventSourceRef = useRef(null);
+  const logsEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
-  // Lista de rotinas disponíveis
-  const rotinasDisponiveis = [
-    {
-      id: 1,
-      nome: 'Atualizar Indicadores de Transcrição',
-      descricao: 'Importa relatório e atualiza os indicadores de transcrição no dashboard',
-      icone: faChartLine,
-      cor: '#3498db',
-      requerProjeto: true,  // ✅ MODIFICADO: Agora requer projeto também
-      requerSquad: true,
-      squadEspecifica: 'Auditoria',
-      categoria: 'auditoria'
+  // Função auxiliar que verifica permissão (aceita função ou booleano)
+  const temPermissao = () => {
+    if (typeof canEdit === 'function') {
+      return canEdit();  // ← Chamar canEdit(), não temPermissao()
     }
-  ];
+    return Boolean(canEdit);
+  };
 
-  // Estado das rotinas com histórico
-  const [rotinas, setRotinas] = useState(
-    rotinasDisponiveis.map(r => ({
-      ...r,
-      status: 'nao_iniciado',
-      logs: [],
-      ultimaExecucao: null,
-      usuario: null
-    }))
-  );
-
+  // Debug: Monitorar user (não currentUser)
   useEffect(() => {
-    carregarDados();
+    console.log('=== DEBUG ROTINAS ===');
+    console.log('user:', user);
+    console.log('user.username:', user?.username);
+    console.log('user.role:', user?.role);
+    console.log('Tipo de canEdit:', typeof canEdit);
+    
+    // Se canEdit é função, ver o que ela retorna
+    if (typeof canEdit === 'function') {
+      console.log('canEdit() retorna:', canEdit());
+    }
+    
+    try {
+      console.log('temPermissao():', temPermissao());
+    } catch (e) {
+      console.error('Erro ao chamar temPermissao:', e);
+    }
+    console.log('====================');
+  }, [user]);
+
+  // Carregar squads e projetos
+  useEffect(() => {
+    fetch('http://localhost:5000/api/squads')
+      .then(res => res.json())
+      .then(data => setSquads(data))
+      .catch(err => console.error('Erro ao carregar squads:', err));
+
+    fetch('http://localhost:5000/api/projetos')
+      .then(res => res.json())
+      .then(data => setProjetos(data))
+      .catch(err => console.error('Erro ao carregar projetos:', err));
+    
+    carregarArquivos();
   }, []);
 
-  // Filtrar projetos baseado na busca
+  // Carregar arquivos disponíveis
+  const carregarArquivos = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auditoria/arquivos');
+      
+      // Verificar se a resposta é OK
+      if (!response.ok) {
+        console.error('Erro HTTP:', response.status, response.statusText);
+        
+        // Se for 404, endpoint não existe ainda
+        if (response.status === 404) {
+          console.warn('⚠️ Endpoint /api/auditoria/arquivos não encontrado');
+          setArquivos([]);
+          return;
+        }
+        
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      // Verificar se é JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('❌ Resposta não é JSON:', text.substring(0, 200));
+        throw new Error('Resposta do servidor não é JSON');
+      }
+      
+      const data = await response.json();
+      setArquivos(data.arquivos || []);
+      
+    } catch (error) {
+      console.error('Erro ao carregar arquivos:', error);
+      // Não mostrar toast aqui para não poluir a interface
+      // O componente ainda funciona, só não mostra arquivos
+      setArquivos([]);
+    }
+  };
+
+  // Auto-scroll dos logs
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
+
+  // Filtrar projetos
   useEffect(() => {
     if (projetoSearch.trim() === '') {
-      setProjetosFiltrados([]);
+      setProjetosFiltrados(projetos);
     } else {
-      const filtered = projetos.filter(p => {
-        const searchLower = projetoSearch.toLowerCase();
-        return (
-          p.nome?.toLowerCase().includes(searchLower) ||
-          p.subprograma?.toLowerCase().includes(searchLower)
-        );
-      });
-      setProjetosFiltrados(filtered.slice(0, 10)); // Limitar a 10 resultados
+      const termo = projetoSearch.toLowerCase();
+      const filtrados = projetos.filter(p =>
+        (p.subprograma && p.subprograma.toLowerCase().includes(termo)) ||
+        (p.nome && p.nome.toLowerCase().includes(termo))
+      );
+      setProjetosFiltrados(filtrados);
     }
   }, [projetoSearch, projetos]);
 
   // Fechar dropdown ao clicar fora
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showProjetoDropdown && !event.target.closest('.projeto-autocomplete')) {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.projeto-autocomplete')) {
         setShowProjetoDropdown(false);
       }
     };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showProjetoDropdown]);
-
-  const carregarDados = async () => {
-    try {
-      const [projetosRes, squadsRes] = await Promise.all([
-        projetoService.listar(),
-        squadService.listar()
-      ]);
-      const projetosData = projetosRes.data.items || projetosRes.data;
-      const squadsData = squadsRes.data.items || squadsRes.data;
-      
-      setProjetos(projetosData);
-      setSquads(squadsData);
-      
-      // Debug: ver estrutura dos projetos
-      if (projetosData.length > 0) {
-        console.log('📊 Exemplo de projeto:', projetosData[0]);
-        console.log('📋 Campos disponíveis:', Object.keys(projetosData[0]));
-      }
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-      toast.error('Erro ao carregar projetos e squads');
-    }
-  };
-
-  const limparFiltros = () => {
-    setFiltros({
-      projeto_id: '',
-      squad_id: ''
-    });
-    setProjetoSearch('');
-    setShowProjetoDropdown(false);
-  };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const selecionarProjeto = (projeto) => {
     setFiltros({...filtros, projeto_id: projeto.id});
@@ -144,206 +168,210 @@ function Rotinas() {
     setShowProjetoDropdown(false);
   };
 
-  const podeExecutarRotina = (rotina) => {
-    if (rotina.requerProjeto && !filtros.projeto_id) return false;
-    if (rotina.requerSquad && !filtros.squad_id) return false;
-    return true;
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      uploadArquivo(file);
+    }
   };
 
-  const executarRotina = async (rotinaId) => {
-    if (!canEdit()) {
+  const uploadArquivo = async (file) => {
+    if (!temPermissao()) {
+      toast.error('Você não tem permissão para fazer upload de arquivos');
+      return;
+    }
+
+    // Validar extensão
+    const extensao = file.name.split('.').pop().toLowerCase();
+    if (!['xlsm', 'xlsx'].includes(extensao)) {
+      toast.error('Apenas arquivos .xlsm ou .xlsx são permitidos');
+      return;
+    }
+
+    setUploading(true);
+
+    const formData = new FormData();
+    formData.append('arquivo', file);
+
+    try {
+      const response = await fetch('http://localhost:5000/api/auditoria/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const erro = await response.json();
+        throw new Error(erro.erro || 'Erro ao fazer upload');
+      }
+
+      const data = await response.json();
+      toast.success(`Arquivo ${data.arquivo} enviado com sucesso!`);
+      
+      // Recarregar lista de arquivos
+      await carregarArquivos();
+      
+      // Selecionar automaticamente o arquivo enviado
+      setArquivoSelecionado(data.arquivo);
+      
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setUploading(false);
+      // Limpar input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const deletarArquivo = async (nomeArquivo) => {
+    if (!temPermissao()) {
+      toast.error('Você não tem permissão para deletar arquivos');
+      return;
+    }
+
+    if (!window.confirm(`Deseja realmente deletar o arquivo ${nomeArquivo}?`)) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:5000/api/auditoria/arquivo/${nomeArquivo}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        const erro = await response.json();
+        throw new Error(erro.erro || 'Erro ao deletar arquivo');
+      }
+
+      toast.success('Arquivo deletado com sucesso');
+      
+      // Se era o arquivo selecionado, desmarcar
+      if (arquivoSelecionado === nomeArquivo) {
+        setArquivoSelecionado(null);
+      }
+      
+      // Recarregar lista
+      await carregarArquivos();
+      
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const executarRotina = async () => {
+    if (!temPermissao()) {
       toast.error('Você não tem permissão para executar rotinas');
       return;
     }
 
-    const rotina = rotinas.find(r => r.id === rotinaId);
-    
-    if (!podeExecutarRotina(rotina)) {
-      if (rotina.requerProjeto && !filtros.projeto_id) {
-        toast.warning('Selecione um projeto para executar esta rotina');
-        return;
-      }
-      if (rotina.requerSquad && !filtros.squad_id) {
-        toast.warning('Selecione uma squad para executar esta rotina');
-        return;
-      }
+    if (!filtros.squad_id || !filtros.projeto_id) {
+      toast.warning('Selecione Squad e Projeto para executar a rotina');
+      return;
     }
 
-    setExecutando(rotinaId);
-    
-    // Capturar informações de projeto e squad
-    const projetoSelecionado = filtros.projeto_id ? projetos.find(p => p.id === parseInt(filtros.projeto_id)) : null;
-    const squadSelecionada = filtros.squad_id ? squads.find(s => s.id === parseInt(filtros.squad_id)) : null;
-    
-    // Atualizar status para "em_andamento"
-    setRotinas(prev => prev.map(r => 
-      r.id === rotinaId 
-        ? { 
-            ...r, 
-            status: 'em_andamento',
-            logs: [{
-              timestamp: new Date().toISOString(),
-              mensagem: 'Iniciando execução da rotina...',
-              tipo: 'info'
-            }],
-            ultimaExecucao: new Date().toISOString(),
-            usuario: user?.nome || user?.name || 'Usuário',
-            projetoSubprograma: projetoSelecionado?.subprograma || null,
-            projetoNome: projetoSelecionado?.nome || null,
-            squadNome: squadSelecionada?.nome || null
-          }
-        : r
-    ));
+    if (!arquivoSelecionado) {
+      toast.warning('Selecione um arquivo Excel para processar');
+      return;
+    }
+
+    // Verificar se user existe e tem username
+    if (!currentUser) {
+      toast.error('Erro: Usuário não identificado. Faça login novamente.');
+      return;
+    }
+
+    const nomeUsuario = currentUser.username || currentUser.login || 'Sistema';
+    console.log('Executando rotina como usuário:', nomeUsuario);
+
+    setExecutando(true);
+    setLogs([]);
+    setLogsOpen(true);
 
     try {
-      // TODO: Aqui será implementada a chamada real para o backend
-      // const response = await rotinaService.executar(rotinaId, {
-      //   projeto_id: filtros.projeto_id,
-      //   squad_id: filtros.squad_id
-      // });
-      
-      // Simulação de execução com logs progressivos
-      const logs = [
-        { mensagem: 'Iniciando execução da rotina...', tipo: 'info', delay: 0 },
-        { mensagem: 'Carregando dados do banco...', tipo: 'info', delay: 1000 },
-        { mensagem: 'Processando informações...', tipo: 'info', delay: 2000 },
-        { mensagem: 'Calculando indicadores...', tipo: 'info', delay: 3000 },
-        { mensagem: 'Gerando relatórios...', tipo: 'info', delay: 4000 },
-        { mensagem: 'Salvando resultados...', tipo: 'success', delay: 5000 },
-        { mensagem: 'Rotina executada com sucesso!', tipo: 'success', delay: 6000 }
-      ];
+      // Iniciar execução
+      const response = await fetch('http://localhost:5000/api/auditoria/executar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuario: nomeUsuario,
+          squad_id: filtros.squad_id,
+          projeto_id: filtros.projeto_id,
+          arquivo: arquivoSelecionado
+        })
+      });
 
-      for (const log of logs) {
-        await new Promise(resolve => setTimeout(resolve, log.delay === 0 ? 0 : 1000));
+      if (!response.ok) {
+        const erro = await response.json();
+        throw new Error(erro.erro || 'Erro ao iniciar rotina');
+      }
+
+      // Conectar ao stream de logs
+      eventSourceRef.current = new EventSource('http://localhost:5000/api/auditoria/logs');
+      
+      eventSourceRef.current.onmessage = (event) => {
+        const log = JSON.parse(event.data);
+        setLogs(prev => [...prev, log]);
+      };
+
+      eventSourceRef.current.onerror = () => {
+        eventSourceRef.current?.close();
+        setExecutando(false);
         
-        setRotinas(prev => prev.map(r => 
-          r.id === rotinaId 
-            ? { 
-                ...r, 
-                logs: [
-                  ...r.logs,
-                  {
-                    timestamp: new Date().toISOString(),
-                    mensagem: log.mensagem,
-                    tipo: log.tipo
-                  }
-                ]
-              }
-            : r
-        ));
-      }
+        // Recarregar lista de arquivos (o arquivo foi deletado)
+        carregarArquivos();
+        setArquivoSelecionado(null);
+      };
 
-      // Atualizar status para "concluido"
-      setRotinas(prev => prev.map(r => 
-        r.id === rotinaId ? { ...r, status: 'concluido' } : r
-      ));
+      toast.success('Rotina iniciada com sucesso!');
 
-      toast.success('Rotina executada com sucesso!');
     } catch (error) {
-      console.error('Erro ao executar rotina:', error);
-      
-      // Adicionar log de erro
-      setRotinas(prev => prev.map(r => 
-        r.id === rotinaId 
-          ? { 
-              ...r, 
-              status: 'erro',
-              logs: [
-                ...r.logs,
-                {
-                  timestamp: new Date().toISOString(),
-                  mensagem: `Erro ao executar: ${error.message}`,
-                  tipo: 'error'
-                }
-              ]
-            }
-          : r
-      ));
-
-      toast.error('Erro ao executar rotina: ' + (error.response?.data?.error || error.message));
-    } finally {
-      setExecutando(null);
+      toast.error(error.message);
+      setExecutando(false);
+      setLogsOpen(false);
     }
   };
 
-  const abrirDetalhes = (rotina) => {
-    setRotinaDetalhes(rotina);
-    setModalOpen(true);
+  const fecharLogs = () => {
+    eventSourceRef.current?.close();
+    setLogsOpen(false);
   };
 
-  const fecharModal = () => {
-    setModalOpen(false);
-    setRotinaDetalhes(null);
+  const formatarTamanho = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      nao_iniciado: { text: 'Não Iniciado', icon: faClock, color: '#95a5a6' },
-      em_andamento: { text: 'Em andamento...', icon: faSpinner, color: '#3498db' },
-      concluido: { text: 'Concluído', icon: faCheckCircle, color: '#2ecc71' },
-      erro: { text: 'Erro', icon: faExclamationCircle, color: '#e74c3c' }
-    };
-
-    const badge = badges[status] || badges.nao_iniciado;
-
-    return (
-      <span style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '6px',
-        padding: '6px 12px',
-        borderRadius: '6px',
-        fontSize: '13px',
-        fontWeight: 600,
-        background: badge.color,
-        color: 'white'
-      }}>
-        <FontAwesomeIcon 
-          icon={badge.icon} 
-          spin={status === 'em_andamento'}
-        />
-        {badge.text}
-      </span>
-    );
-  };
-
-  const formatarData = (isoString) => {
-    if (!isoString) return '-';
-    const data = new Date(isoString);
-    return data.toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // ✅ MODIFICADO: Filtrar rotinas visíveis baseado nos filtros
-  // Agora exige AMBOS os parâmetros preenchidos simultaneamente
-  const rotinasVisiveis = rotinas.filter(rotina => {
-    // ⚠️ VALIDAÇÃO PRINCIPAL: Ambos os parâmetros devem estar preenchidos
-    if (rotina.requerProjeto && rotina.requerSquad) {
-      // Se a rotina requer ambos, verificar se AMBOS estão preenchidos
-      if (!filtros.projeto_id || !filtros.squad_id) return false;
-    } else {
-      // Se a rotina requer apenas projeto, verificar se está preenchido
-      if (rotina.requerProjeto && !filtros.projeto_id) return false;
-      
-      // Se a rotina requer apenas squad, verificar se está preenchido
-      if (rotina.requerSquad && !filtros.squad_id) return false;
+  const getLogIcon = (tipo) => {
+    switch(tipo) {
+      case 'success': return faCheckCircle;
+      case 'error': return faTimesCircle;
+      case 'warning': return faExclamationTriangle;
+      default: return faInfoCircle;
     }
+  };
 
-    // Se rotina requer Squad específica, verificar se é a correta
-    if (rotina.squadEspecifica) {
-      const squadSelecionada = squads.find(s => s.id === parseInt(filtros.squad_id));
-      if (!squadSelecionada || squadSelecionada.nome !== rotina.squadEspecifica) {
-        return false;
-      }
+  const getLogColor = (tipo) => {
+    switch(tipo) {
+      case 'success': return '#27ae60';
+      case 'error': return '#e74c3c';
+      case 'warning': return '#f39c12';
+      default: return '#3498db';
     }
+  };
 
-    return true;
-  });
+  const podeExecutar = () => {
+    return temPermissao() && 
+           filtros.squad_id && 
+           filtros.projeto_id && 
+           arquivoSelecionado && 
+           !executando;
+  };
+
+  // Verificar se squad selecionada é Auditoria
+  const squadSelecionada = squads.find(s => s.id === parseInt(filtros.squad_id));
+  const mostrarRotina = squadSelecionada && squadSelecionada.nome === 'Auditoria' && filtros.projeto_id;
 
   return (
     <div>
@@ -370,12 +398,12 @@ function Rotinas() {
                 Painel de Controle de Rotinas
               </strong>
               <span style={{color: '#7f8c8d', fontSize: '14px'}}>
-                Execute scripts automatizados para atualizar os indicadores e relatórios do dashboard
+                Faça upload de um arquivo Excel, selecione os parâmetros e execute a rotina de auditoria
               </span>
             </div>
           </div>
 
-          {!canEdit() && (
+          {!temPermissao() && (
             <div style={{
               background: '#fff3cd',
               border: '1px solid #ffc107',
@@ -384,282 +412,339 @@ function Rotinas() {
               marginBottom: '20px',
               color: '#856404'
             }}>
-              <FontAwesomeIcon icon={faExclamationCircle} /> 
-              {' '}Você não tem permissão para executar rotinas. Apenas Gestores e Administradores podem executar.
+              <FontAwesomeIcon icon={faExclamationTriangle} style={{marginRight: '10px'}} />
+              <strong>Acesso Restrito:</strong> Você não tem permissão para executar rotinas.
             </div>
           )}
 
-          {/* PARÂMETROS */}
+          {/* FILTROS */}
           <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            marginBottom: '30px'
+            background: 'white',
+            border: '1px solid #e0e0e0',
+            borderRadius: '8px',
+            padding: '20px',
+            marginBottom: '25px'
           }}>
-            <div style={{width: '100%', maxWidth: '900px'}}>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '20px',
-                marginBottom: '15px'
-              }}>
-                <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: '#2c3e50'
-                  }}>
-                    Parâmetro: Squad *
-                  </label>
-                  <select
-                    className="form-control"
-                    value={filtros.squad_id}
-                    onChange={(e) => {
-                      setFiltros({...filtros, squad_id: e.target.value, projeto_id: ''});
-                      setProjetoSearch('');
-                    }}
-                    style={{width: '100%'}}
-                  >
-                    <option value="">Selecione uma Squad</option>
-                    {squads.map(s => (
-                      <option key={s.id} value={s.id}>{s.nome}</option>
-                    ))}
-                  </select>
-                </div>
+            <h3 style={{
+              margin: '0 0 20px 0',
+              fontSize: '18px',
+              fontWeight: 600,
+              color: '#2c3e50',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px'
+            }}>
+              <FontAwesomeIcon icon={faCog} style={{fontSize: '20px', color: '#3498db'}} />
+              Parâmetros de Execução
+            </h3>
 
-                <div style={{position: 'relative'}} className="projeto-autocomplete">
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    color: '#2c3e50'
-                  }}>
-                    Parâmetro: Projeto *
-                  </label>
-                  <div style={{position: 'relative'}}>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder={!filtros.squad_id ? "Selecione uma Squad primeiro" : "Digite para buscar por nome ou subprograma..."}
-                      value={projetoSearch}
-                      onChange={(e) => {
-                        setProjetoSearch(e.target.value);
-                        setShowProjetoDropdown(true);
-                      }}
-                      onFocus={() => setShowProjetoDropdown(true)}
-                      disabled={!filtros.squad_id}
-                      style={{width: '100%', paddingRight: filtros.projeto_id ? '40px' : '10px'}}
-                    />
-                    {filtros.projeto_id && (
-                      <button
-                        onClick={limparProjeto}
-                        style={{
-                          position: 'absolute',
-                          right: '10px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          color: '#95a5a6',
-                          cursor: 'pointer',
-                          fontSize: '18px',
-                          padding: '0',
-                          width: '20px',
-                          height: '20px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        title="Limpar projeto"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                  
-                  {/* Dropdown de resultados */}
-                  {showProjetoDropdown && projetosFiltrados.length > 0 && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      background: 'white',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      maxHeight: '300px',
-                      overflowY: 'auto',
-                      zIndex: 1000,
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                      marginTop: '2px'
-                    }}>
-                      {projetosFiltrados.map(projeto => (
-                        <div
-                          key={projeto.id}
-                          onClick={() => selecionarProjeto(projeto)}
-                          style={{
-                            padding: '10px 15px',
-                            cursor: 'pointer',
-                            borderBottom: '1px solid #f0f0f0',
-                            transition: 'background 0.2s'
-                          }}
-                          onMouseEnter={(e) => e.target.style.background = '#f8f9fa'}
-                          onMouseLeave={(e) => e.target.style.background = 'white'}
-                        >
-                          <div style={{fontWeight: 600, color: '#2c3e50', marginBottom: '3px'}}>
-                            {projeto.subprograma}
-                          </div>
-                          <div style={{fontSize: '13px', color: '#7f8c8d'}}>
-                            {projeto.nome}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '20px',
+              marginBottom: '15px'
+            }}>
+              <div>
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#2c3e50'
+                }}>
+                  Squad *
+                </label>
+                <select
+                  className="form-control"
+                  value={filtros.squad_id}
+                  onChange={(e) => {
+                    setFiltros({...filtros, squad_id: e.target.value, projeto_id: ''});
+                    setProjetoSearch('');
+                  }}
+                  style={{width: '100%'}}
+                  disabled={executando}
+                >
+                  <option value="">Selecione uma Squad</option>
+                  {squads.map(s => (
+                    <option key={s.id} value={s.id}>{s.nome}</option>
+                  ))}
+                </select>
               </div>
 
-              {(filtros.projeto_id || filtros.squad_id) && (
-                <div style={{display: 'flex', justifyContent: 'center'}}>
-                  <button className="btn btn-secondary btn-small" onClick={limparFiltros}>
-                    <FontAwesomeIcon icon={faFilterCircleXmark} /> Limpar Parâmetros
-                  </button>
+              <div style={{position: 'relative'}} className="projeto-autocomplete">
+                <label style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  color: '#2c3e50'
+                }}>
+                  Projeto *
+                </label>
+                <div style={{position: 'relative'}}>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder={!filtros.squad_id ? "Selecione uma Squad primeiro" : "Digite para buscar..."}
+                    value={projetoSearch}
+                    onChange={(e) => {
+                      setProjetoSearch(e.target.value);
+                      setShowProjetoDropdown(true);
+                    }}
+                    onFocus={() => setShowProjetoDropdown(true)}
+                    disabled={!filtros.squad_id || executando}
+                    style={{width: '100%', paddingRight: filtros.projeto_id ? '40px' : '10px'}}
+                  />
+                  {filtros.projeto_id && (
+                    <button
+                      onClick={limparProjeto}
+                      disabled={executando}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'none',
+                        border: 'none',
+                        color: '#95a5a6',
+                        cursor: executando ? 'not-allowed' : 'pointer',
+                        fontSize: '18px',
+                        padding: '0',
+                        width: '20px',
+                        height: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Limpar projeto"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
-              )}
+                
+                {showProjetoDropdown && projetosFiltrados.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'white',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    maxHeight: '300px',
+                    overflowY: 'auto',
+                    zIndex: 1000,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    marginTop: '2px'
+                  }}>
+                    {projetosFiltrados.map(projeto => (
+                      <div
+                        key={projeto.id}
+                        onClick={() => selecionarProjeto(projeto)}
+                        style={{
+                          padding: '10px 15px',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid #f0f0f0',
+                          transition: 'background 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = '#f8f9fa'}
+                        onMouseLeave={(e) => e.target.style.background = 'white'}
+                      >
+                        <div style={{fontWeight: 600, color: '#2c3e50', marginBottom: '3px'}}>
+                          {projeto.subprograma}
+                        </div>
+                        <div style={{fontSize: '13px', color: '#7f8c8d'}}>
+                          {projeto.nome}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* CARDS DE ROTINAS */}
-          {rotinasVisiveis.length > 0 ? (
+          {/* UPLOAD DE ARQUIVO */}
+          {mostrarRotina && (
             <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'flex-start',
-              marginTop: '20px'
+              background: 'white',
+              border: '2px solid #e0e0e0',
+              borderRadius: '12px',
+              padding: '25px',
+              marginBottom: '25px'
             }}>
-              {rotinasVisiveis.map(rotina => (
-                <div
-                  key={rotina.id}
+              <h3 style={{
+                margin: '0 0 20px 0',
+                fontSize: '18px',
+                fontWeight: 600,
+                color: '#2c3e50',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <FontAwesomeIcon icon={faFileExcel} style={{fontSize: '20px', color: '#27ae60'}} />
+                Arquivo Excel
+              </h3>
+
+              {/* Botão de Upload */}
+              <div style={{marginBottom: '20px'}}>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  accept=".xlsm,.xlsx"
+                  style={{display: 'none'}}
+                  disabled={!temPermissao() || executando}
+                />
+                <button
+                  className="btn btn-primary"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!temPermissao() || uploading || executando}
                   style={{
-                    border: '2px solid #e9ecef',
-                    borderRadius: '12px',
-                    padding: '30px',
-                    background: 'white',
-                    transition: 'all 0.3s',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    width: '100%',
-                    maxWidth: '900px'
+                    opacity: (!temPermissao() || uploading || executando) ? 0.5 : 1,
+                    cursor: (!temPermissao() || uploading || executando) ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '20px',
-                    marginBottom: '20px'
-                  }}>
-                    <div style={{
-                      width: '60px',
-                      height: '60px',
-                      borderRadius: '12px',
-                      background: `${rotina.cor}15`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <FontAwesomeIcon 
-                        icon={rotina.icone} 
-                        style={{fontSize: '28px', color: rotina.cor}}
-                      />
-                    </div>
+                  <FontAwesomeIcon icon={uploading ? faSpinner : faUpload} spin={uploading} />
+                  {uploading ? ' Enviando...' : ' Fazer Upload de Arquivo'}
+                </button>
+                <span style={{marginLeft: '10px', color: '#7f8c8d', fontSize: '14px'}}>
+                  Formatos: .xlsm, .xlsx
+                </span>
+              </div>
 
-                    <div style={{flex: 1}}>
-                      <h3 style={{
-                        margin: '0 0 10px 0',
-                        fontSize: '20px',
-                        fontWeight: 600,
-                        color: '#2c3e50'
-                      }}>
-                        {rotina.nome}
-                      </h3>
-                      <p style={{
-                        margin: 0,
-                        fontSize: '15px',
-                        color: '#7f8c8d',
-                        lineHeight: '1.6'
-                      }}>
-                        {rotina.descricao}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingTop: '20px',
-                    borderTop: '1px solid #e9ecef'
-                  }}>
-                    {getStatusBadge(rotina.status)}
-
-                    <div style={{display: 'flex', gap: '10px'}}>
-                      {rotina.ultimaExecucao && (
-                        <button
-                          className="btn btn-secondary"
-                          onClick={() => abrirDetalhes(rotina)}
-                          title="Ver detalhes"
-                        >
-                          <FontAwesomeIcon icon={faHistory} /> Detalhes
-                        </button>
-                      )}
-                      
-                      <button
-                        className="btn btn-primary"
-                        onClick={() => executarRotina(rotina.id)}
-                        disabled={!canEdit() || executando !== null || !podeExecutarRotina(rotina)}
+              {/* Lista de Arquivos */}
+              {arquivos.length > 0 ? (
+                <div>
+                  <h4 style={{fontSize: '15px', marginBottom: '10px', color: '#2c3e50'}}>
+                    Arquivos Disponíveis:
+                  </h4>
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
+                    {arquivos.map(arquivo => (
+                      <div
+                        key={arquivo.nome}
+                        onClick={() => !executando && setArquivoSelecionado(arquivo.nome)}
                         style={{
-                          opacity: (!canEdit() || executando !== null || !podeExecutarRotina(rotina)) ? 0.5 : 1,
-                          cursor: (!canEdit() || executando !== null || !podeExecutarRotina(rotina)) ? 'not-allowed' : 'pointer'
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 15px',
+                          background: arquivoSelecionado === arquivo.nome ? '#e3f2fd' : '#f8f9fa',
+                          border: `2px solid ${arquivoSelecionado === arquivo.nome ? '#2196f3' : '#e0e0e0'}`,
+                          borderRadius: '8px',
+                          cursor: executando ? 'not-allowed' : 'pointer',
+                          transition: 'all 0.2s',
+                          opacity: executando ? 0.6 : 1
                         }}
+                        onMouseEnter={(e) => !executando && (e.currentTarget.style.borderColor = '#2196f3')}
+                        onMouseLeave={(e) => arquivoSelecionado !== arquivo.nome && !executando && (e.currentTarget.style.borderColor = '#e0e0e0')}
                       >
-                        <FontAwesomeIcon icon={executando === rotina.id ? faSpinner : faPlay} spin={executando === rotina.id} />
-                        {executando === rotina.id ? ' Executando...' : ' Executar Rotina'}
-                      </button>
-                    </div>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                          <FontAwesomeIcon 
+                            icon={faFileExcel} 
+                            style={{
+                              fontSize: '24px', 
+                              color: arquivoSelecionado === arquivo.nome ? '#2196f3' : '#27ae60'
+                            }} 
+                          />
+                          <div>
+                            <div style={{fontWeight: 600, color: '#2c3e50'}}>
+                              {arquivo.nome}
+                            </div>
+                            <div style={{fontSize: '13px', color: '#7f8c8d'}}>
+                              {formatarTamanho(arquivo.tamanho)}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deletarArquivo(arquivo.nome);
+                          }}
+                          disabled={!temPermissao() || executando}
+                          className="btn btn-danger"
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '13px',
+                            opacity: (!temPermissao() || executando) ? 0.5 : 1,
+                            cursor: (!temPermissao() || executando) ? 'not-allowed' : 'pointer'
+                          }}
+                          title="Deletar arquivo"
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
+              ) : (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#95a5a6',
+                  background: '#f8f9fa',
+                  borderRadius: '8px'
+                }}>
+                  <FontAwesomeIcon icon={faFileExcel} style={{fontSize: '48px', marginBottom: '15px', opacity: 0.3}} />
+                  <p style={{margin: 0}}>Nenhum arquivo disponível. Faça upload para começar.</p>
+                </div>
+              )}
+
+              {/* Botão Executar */}
+              <div style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #e0e0e0'}}>
+                <button
+                  className="btn btn-primary"
+                  onClick={executarRotina}
+                  disabled={!podeExecutar()}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '16px',
+                    opacity: !podeExecutar() ? 0.5 : 1,
+                    cursor: !podeExecutar() ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <FontAwesomeIcon icon={executando ? faSpinner : faPlay} spin={executando} />
+                  {executando ? ' Executando Rotina...' : ' Executar Rotina de Auditoria'}
+                </button>
+                {!arquivoSelecionado && (
+                  <div style={{marginTop: '10px', textAlign: 'center', color: '#f39c12', fontSize: '14px'}}>
+                    <FontAwesomeIcon icon={faExclamationTriangle} /> Selecione um arquivo para executar
+                  </div>
+                )}
+              </div>
             </div>
-          ) : (
+          )}
+
+          {/* Mensagem se não for squad Auditoria */}
+          {!mostrarRotina && (
             <div style={{
               textAlign: 'center',
               padding: '80px 20px',
               color: '#95a5a6'
             }}>
-              <FontAwesomeIcon icon={faX} style={{fontSize: '64px', marginBottom: '20px', opacity: 0.3}} />
+              <FontAwesomeIcon icon={faCog} style={{fontSize: '64px', marginBottom: '20px', opacity: 0.3}} />
               <h3 style={{fontSize: '22px', marginBottom: '10px', color: '#7f8c8d'}}>
                 Nenhuma rotina disponível
               </h3>
-              <p style={{fontSize: '15px', marginBottom: '20px'}}>
-                {/* ✅ MODIFICADO: Mensagem atualizada */}
-                Selecione uma Squad e um Projeto para visualizar as rotinas disponíveis
+              <p style={{fontSize: '15px'}}>
+                Selecione a Squad "Auditoria" e um Projeto para visualizar as rotinas disponíveis
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* MODAL DE DETALHES */}
-      {modalOpen && rotinaDetalhes && (
+      {/* MODAL DE LOGS */}
+      {logsOpen && (
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
+          background: 'rgba(0,0,0,0.7)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -670,268 +755,147 @@ function Rotinas() {
             background: 'white',
             borderRadius: '12px',
             width: '100%',
-            maxWidth: '700px',
+            maxWidth: '900px',
             maxHeight: '80vh',
             display: 'flex',
             flexDirection: 'column',
             boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
           }}>
-            {/* Header do Modal */}
+            {/* Header */}
             <div style={{
               padding: '20px 25px',
-              borderBottom: '1px solid #e9ecef',
+              borderBottom: '2px solid #e0e0e0',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              background: rotinaDetalhes.cor,
-              borderTopLeftRadius: '12px',
-              borderTopRightRadius: '12px',
-              color: 'white'
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: '12px 12px 0 0'
             }}>
-              <div>
-                <h3 style={{margin: '0 0 5px 0', fontSize: '18px', fontWeight: 600}}>
-                  <FontAwesomeIcon icon={rotinaDetalhes.icone} /> {rotinaDetalhes.nome}
-                </h3>
-                <p style={{margin: 0, fontSize: '13px', opacity: 0.9}}>
-                  Detalhes da Execução
-                </p>
-              </div>
+              <h3 style={{
+                margin: 0,
+                fontSize: '20px',
+                fontWeight: 600,
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <FontAwesomeIcon icon={faSpinner} spin={executando} />
+                Logs de Execução {executando && '(Em andamento)'}
+              </h3>
               <button
-                onClick={fecharModal}
+                onClick={fecharLogs}
+                disabled={executando}
                 style={{
                   background: 'rgba(255,255,255,0.2)',
                   border: 'none',
                   color: 'white',
                   width: '32px',
                   height: '32px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
+                  borderRadius: '50%',
+                  cursor: executando ? 'not-allowed' : 'pointer',
                   fontSize: '18px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  transition: 'all 0.3s'
+                  transition: 'background 0.2s',
+                  opacity: executando ? 0.5 : 1
                 }}
-                onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.3)'}
-                onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.2)'}
+                onMouseEnter={(e) => !executando && (e.target.style.background = 'rgba(255,255,255,0.3)')}
+                onMouseLeave={(e) => (e.target.style.background = 'rgba(255,255,255,0.2)')}
               >
                 <FontAwesomeIcon icon={faTimes} />
               </button>
             </div>
 
-            {/* Conteúdo do Modal */}
+            {/* Logs Container */}
             <div style={{
-              padding: '25px',
+              flex: 1,
               overflowY: 'auto',
-              flex: 1
+              padding: '20px',
+              background: '#1e1e1e',
+              fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+              fontSize: '14px'
             }}>
-              {/* Informações Gerais */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '15px',
-                marginBottom: '25px'
-              }}>
+              {logs.length === 0 ? (
                 <div style={{
-                  padding: '15px',
-                  background: '#f8f9fa',
-                  borderRadius: '8px'
+                  textAlign: 'center',
+                  padding: '40px',
+                  color: '#888'
                 }}>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#7f8c8d',
-                    marginBottom: '5px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <FontAwesomeIcon icon={faClock} />
-                    Status
-                  </div>
-                  <div>{getStatusBadge(rotinaDetalhes.status)}</div>
+                  <FontAwesomeIcon icon={faSpinner} spin style={{fontSize: '32px', marginBottom: '15px'}} />
+                  <div>Aguardando início da execução...</div>
                 </div>
-
-                <div style={{
-                  padding: '15px',
-                  background: '#f8f9fa',
-                  borderRadius: '8px'
-                }}>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#7f8c8d',
-                    marginBottom: '5px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <FontAwesomeIcon icon={faCalendar} />
-                    Última Execução
-                  </div>
-                  <div style={{fontSize: '14px', fontWeight: 600, color: '#2c3e50'}}>
-                    {formatarData(rotinaDetalhes.ultimaExecucao)}
-                  </div>
-                </div>
-
-                <div style={{
-                  padding: '15px',
-                  background: '#f8f9fa',
-                  borderRadius: '8px'
-                }}>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#7f8c8d',
-                    marginBottom: '5px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}>
-                    <FontAwesomeIcon icon={faUser} />
-                    Executado por
-                  </div>
-                  <div style={{fontSize: '14px', fontWeight: 600, color: '#2c3e50'}}>
-                    {rotinaDetalhes.usuario || '-'}
-                  </div>
-                </div>
-
-                {rotinaDetalhes.squadNome && (
-                  <div style={{
-                    padding: '15px',
-                    background: '#f8f9fa',
-                    borderRadius: '8px'
-                  }}>
-                    <div style={{
-                      fontSize: '12px',
-                      color: '#7f8c8d',
-                      marginBottom: '5px',
+              ) : (
+                logs.map((log, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      marginBottom: '8px',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}>
-                      <FontAwesomeIcon icon={faUser} />
-                      Squad
-                    </div>
-                    <div style={{fontSize: '14px', fontWeight: 600, color: '#2c3e50'}}>
-                      {rotinaDetalhes.squadNome}
-                    </div>
-                  </div>
-                )}
-
-                {rotinaDetalhes.projetoSubprograma && (
-                  <div style={{
-                    padding: '15px',
-                    background: '#f8f9fa',
-                    borderRadius: '8px'
-                  }}>
-                    <div style={{
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                      lineHeight: '1.6'
+                    }}
+                  >
+                    <span style={{
+                      color: '#666',
                       fontSize: '12px',
-                      color: '#7f8c8d',
-                      marginBottom: '5px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
+                      fontFamily: 'monospace',
+                      flexShrink: 0
                     }}>
-                      <FontAwesomeIcon icon={faCog} />
-                      Projeto
-                    </div>
-                    <div style={{fontSize: '14px', fontWeight: 600, color: '#2c3e50'}}>
-                      {rotinaDetalhes.projetoSubprograma}
-                    </div>
+                      [{log.timestamp}]
+                    </span>
+                    <FontAwesomeIcon
+                      icon={getLogIcon(log.tipo)}
+                      style={{
+                        color: getLogColor(log.tipo),
+                        flexShrink: 0,
+                        marginTop: '3px'
+                      }}
+                    />
+                    <span style={{
+                      color: getLogColor(log.tipo),
+                      wordBreak: 'break-word'
+                    }}>
+                      {log.mensagem}
+                    </span>
                   </div>
-                )}
-              </div>
-
-              {/* Logs */}
-              <div>
-                <h4 style={{
-                  fontSize: '16px',
-                  fontWeight: 600,
-                  color: '#2c3e50',
-                  marginBottom: '15px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <FontAwesomeIcon icon={faListOl} />
-                  Logs de Execução ({rotinaDetalhes.logs.length})
-                </h4>
-
-                <div style={{
-                  border: '1px solid #e9ecef',
-                  borderRadius: '8px',
-                  maxHeight: '300px',
-                  overflowY: 'auto',
-                  background: '#f8f9fa'
-                }}>
-                  {rotinaDetalhes.logs.length === 0 ? (
-                    <div style={{
-                      padding: '30px',
-                      textAlign: 'center',
-                      color: '#95a5a6',
-                      fontSize: '14px'
-                    }}>
-                      Nenhum log disponível
-                    </div>
-                  ) : (
-                    rotinaDetalhes.logs.map((log, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          padding: '12px 15px',
-                          borderBottom: index < rotinaDetalhes.logs.length - 1 ? '1px solid #e9ecef' : 'none',
-                          display: 'flex',
-                          gap: '10px',
-                          alignItems: 'flex-start'
-                        }}
-                      >
-                        <div style={{
-                          fontSize: '11px',
-                          color: '#95a5a6',
-                          minWidth: '50px',
-                          fontFamily: 'monospace'
-                        }}>
-                          {new Date(log.timestamp).toLocaleTimeString('pt-BR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit'
-                          })}
-                        </div>
-                        
-                        <div style={{
-                          width: '4px',
-                          height: '4px',
-                          borderRadius: '50%',
-                          background: log.tipo === 'error' ? '#e74c3c' : log.tipo === 'success' ? '#2ecc71' : '#3498db',
-                          marginTop: '6px',
-                          flexShrink: 0
-                        }} />
-                        
-                        <div style={{
-                          flex: 1,
-                          fontSize: '13px',
-                          color: log.tipo === 'error' ? '#e74c3c' : '#2c3e50',
-                          lineHeight: '1.5'
-                        }}>
-                          {log.mensagem}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+                ))
+              )}
+              <div ref={logsEndRef} />
             </div>
 
-            {/* Footer do Modal */}
+            {/* Footer */}
             <div style={{
               padding: '15px 25px',
-              borderTop: '1px solid #e9ecef',
+              borderTop: '1px solid #e0e0e0',
               display: 'flex',
-              justifyContent: 'flex-end'
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: '#f8f9fa'
             }}>
+              <span style={{fontSize: '13px', color: '#7f8c8d'}}>
+                {logs.length} {logs.length === 1 ? 'log' : 'logs'} registrados
+              </span>
               <button
+                onClick={fecharLogs}
+                disabled={executando}
                 className="btn btn-secondary"
-                onClick={fecharModal}
+                style={{
+                  opacity: executando ? 0.5 : 1,
+                  cursor: executando ? 'not-allowed' : 'pointer'
+                }}
               >
-                Fechar
+                {executando ? (
+                  <>
+                    <FontAwesomeIcon icon={faSpinner} spin /> Aguardar Conclusão
+                  </>
+                ) : (
+                  <>
+                    <FontAwesomeIcon icon={faTimes} /> Fechar
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -939,6 +903,6 @@ function Rotinas() {
       )}
     </div>
   );
-}
+};
 
 export default Rotinas;
