@@ -358,7 +358,7 @@ function Rotinas() {
             alignItems: 'center',
             gap: '12px'
           }}>
-            <FontAwesomeIcon icon={faCog} style={{fontSize: '24px', color: '#7f8c8d'}} />
+            <FontAwesomeIcon icon={faScrewdriverWrench} style={{fontSize: '24px', color: '#7f8c8d'}} />
             <div>
               <strong style={{display: 'block', marginBottom: '5px', color: '#2c3e50'}}>
                 Painel de Controle de Rotinas
