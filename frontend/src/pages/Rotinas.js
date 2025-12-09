@@ -662,37 +662,6 @@ const Rotinas = () => {
                 </div>
               </div>
 
-              {/* Barra de Progresso/Status */}
-              <div style={{
-                height: '6px',
-                background: '#e0e0e0',
-                position: 'relative',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  height: '100%',
-                  width: executando ? '100%' : (arquivoSelecionado ? '50%' : '0%'),
-                  background: executando 
-                    ? 'linear-gradient(90deg, #3498db 0%, #2980b9 50%, #3498db 100%)'
-                    : 'linear-gradient(90deg, #3498db 0%, #2980b9 100%)',
-                  backgroundSize: executando ? '200% 100%' : '100% 100%',
-                  animation: executando ? 'progress 1.5s linear infinite' : 'none',
-                  transition: 'width 0.3s ease'
-                }}>
-                  <style>
-                    {`
-                      @keyframes progress {
-                        0% { background-position: 0% 0%; }
-                        100% { background-position: 200% 0%; }
-                      }
-                    `}
-                  </style>
-                </div>
-              </div>
-
               {/* Conteúdo do Card */}
               <div style={{padding: '30px'}}>
                 {/* Descrição */}
