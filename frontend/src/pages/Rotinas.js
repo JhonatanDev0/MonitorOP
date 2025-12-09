@@ -13,7 +13,9 @@ import {
   faInfoCircle,
   faTimesCircle,
   faScrewdriverWrench,
-  faFileExcel
+  faFileExcel,
+  faFilter,
+  faListCheck
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import '../styles/Dashboard.css';
@@ -370,7 +372,7 @@ const Rotinas = () => {
                 Painel de Controle de Rotinas
               </strong>
               <span style={{color: '#7f8c8d', fontSize: '14px'}}>
-                Faça upload de um arquivo Excel, selecione os parâmetros e execute a rotina de auditoria
+                Selecione os parâmetros e execute as rotina para atualização dos indicadores.
               </span>
             </div>
           </div>
@@ -406,7 +408,7 @@ const Rotinas = () => {
               alignItems: 'center',
               gap: '10px'
             }}>
-              <FontAwesomeIcon icon={faCog} style={{fontSize: '20px', color: '#3498db'}} />
+              <FontAwesomeIcon icon={faFilter} style={{fontSize: '20px', color: '#3498db'}} />
               Parâmetros de Execução
             </h3>
 
@@ -696,12 +698,12 @@ const Rotinas = () => {
               padding: '80px 20px',
               color: '#95a5a6'
             }}>
-              <FontAwesomeIcon icon={faCog} style={{fontSize: '64px', marginBottom: '20px', opacity: 0.3}} />
+              <FontAwesomeIcon icon={faListCheck} style={{fontSize: '64px', marginBottom: '20px', opacity: 0.3}} />
               <h3 style={{fontSize: '22px', marginBottom: '10px', color: '#7f8c8d'}}>
                 Nenhuma rotina disponível
               </h3>
               <p style={{fontSize: '15px'}}>
-                Selecione a Squad "Auditoria" e um Projeto para visualizar as rotinas disponíveis
+                Selecione uma Squad e um Projeto para visualizar as rotinas disponíveis.
               </p>
             </div>
           )}
