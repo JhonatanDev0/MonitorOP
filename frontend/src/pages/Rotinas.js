@@ -19,6 +19,7 @@ import {
   faClockRotateLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
+import { confirmAlert } from 'react-confirm-alert';
 import '../styles/Dashboard.css';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -208,33 +209,112 @@ const Rotinas = () => {
       return;
     }
 
-    if (!window.confirm(`Deseja realmente deletar o arquivo ${nomeArquivo}?`)) {
-      return;
-    }
+    confirmAlert({
+      customUI: ({ onClose }) => (
+        <div style={{
+          fontFamily: 'inherit',
+          width: '480px',
+          maxWidth: '90vw',
+          borderRadius: '12px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+          background: 'white',
+          overflow: 'hidden'
+        }}>
+          <h1 style={{
+            margin: 0,
+            padding: '20px 25px',
+            background: '#e74c3c',
+            color: 'white',
+            fontSize: '18px',
+            fontWeight: 600,
+            textAlign: 'center'
+          }}>
+            Confirmar Exclusão
+          </h1>
+          <div style={{
+            padding: '45px 35px',
+            textAlign: 'center',
+            fontSize: '15px',
+            color: '#2c3e50',
+            lineHeight: '1.8'
+          }}>
+            Tem certeza que deseja deletar o arquivo <strong>{nomeArquivo}</strong>? Esta ação não pode ser desfeita.
+          </div>
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            padding: '0 25px 25px 25px',
+            justifyContent: 'center'
+          }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '12px 24px',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                minWidth: '120px',
+                background: '#95a5a6',
+                color: 'white',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#7f8c8d'}
+              onMouseLeave={(e) => e.target.style.background = '#95a5a6'}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={async () => {
+                onClose();
+                try {
+                  const response = await fetch(`http://localhost:5000/api/auditoria/arquivo/${nomeArquivo}`, {
+                    method: 'DELETE'
+                  });
 
-    try {
-      const response = await fetch(`http://localhost:5000/api/auditoria/arquivo/${nomeArquivo}`, {
-        method: 'DELETE'
-      });
+                  if (!response.ok) {
+                    const erro = await response.json();
+                    throw new Error(erro.erro || 'Erro ao deletar arquivo');
+                  }
 
-      if (!response.ok) {
-        const erro = await response.json();
-        throw new Error(erro.erro || 'Erro ao deletar arquivo');
-      }
-
-      toast.success('Arquivo deletado com sucesso');
-      
-      // Se era o arquivo selecionado, desmarcar
-      if (arquivoSelecionado === nomeArquivo) {
-        setArquivoSelecionado(null);
-      }
-      
-      // Recarregar lista
-      await carregarArquivos();
-      
-    } catch (error) {
-      toast.error(error.message);
-    }
+                  toast.success('Arquivo deletado com sucesso');
+                  
+                  // Se era o arquivo selecionado, desmarcar
+                  if (arquivoSelecionado === nomeArquivo) {
+                    setArquivoSelecionado(null);
+                  }
+                  
+                  // Recarregar lista
+                  await carregarArquivos();
+                  
+                } catch (error) {
+                  toast.error(error.message);
+                }
+              }}
+              style={{
+                padding: '12px 24px',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                minWidth: '120px',
+                background: '#e74c3c',
+                color: 'white',
+                transition: 'all 0.3s'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#c0392b'}
+              onMouseLeave={(e) => e.target.style.background = '#e74c3c'}
+            >
+              Sim, deletar
+            </button>
+          </div>
+        </div>
+      ),
+      closeOnEscape: true,
+      closeOnClickOutside: true
+    });
   };
 
   const executarRotina = async () => {
