@@ -15,7 +15,8 @@ import {
   faScrewdriverWrench,
   faFileExcel,
   faFilter,
-  faListCheck
+  faListCheck,
+  faClockRotateLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import '../styles/Dashboard.css';
@@ -43,6 +44,8 @@ const Rotinas = () => {
   const eventSourceRef = useRef(null);
   const logsEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const [logsInlineOpen, setLogsInlineOpen] = useState(false);
+  const [statusExecucao, setStatusExecucao] = useState('nao-iniciado'); // 'nao-iniciado', 'em-andamento', 'concluido'
 
   // Função auxiliar que verifica permissão (aceita função ou booleano)
   const temPermissao = () => {
@@ -260,7 +263,8 @@ const Rotinas = () => {
 
     setExecutando(true);
     setLogs([]);
-    setLogsOpen(true);
+    setStatusExecucao('em-andamento');
+    setLogsInlineOpen(true);
 
     try {
       // Iniciar execução
@@ -291,6 +295,7 @@ const Rotinas = () => {
       eventSourceRef.current.onerror = () => {
         eventSourceRef.current?.close();
         setExecutando(false);
+        setStatusExecucao('concluido');
         
         // Recarregar lista de arquivos (o arquivo foi deletado)
         carregarArquivos();
@@ -302,7 +307,7 @@ const Rotinas = () => {
     } catch (error) {
       toast.error(error.message);
       setExecutando(false);
-      setLogsOpen(false);
+      setStatusExecucao('concluido');
     }
   };
 
@@ -539,152 +544,474 @@ const Rotinas = () => {
             </div>
           </div>
 
-          {/* UPLOAD DE ARQUIVO */}
+
+          {/* CARD DE AUDITORIA - Design Estruturado */}
           {mostrarRotina && (
             <div style={{
               background: 'white',
-              border: '2px solid #e0e0e0',
               borderRadius: '12px',
-              padding: '25px',
-              marginBottom: '25px'
+              overflow: 'hidden',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              border: '1px solid #e0e0e0'
             }}>
-              <h3 style={{
-                margin: '0 0 20px 0',
-                fontSize: '18px',
-                fontWeight: 600,
-                color: '#2c3e50',
+              {/* Header do Card */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+                padding: '20px 30px',
+                borderBottom: '1px solid #e0e0e0',
                 display: 'flex',
-                alignItems: 'center',
-                gap: '10px'
+                alignItems: 'center'
               }}>
-                <FontAwesomeIcon icon={faFileExcel} style={{fontSize: '20px', color: '#27ae60'}} />
-                Arquivo Excel
-              </h3>
-
-              {/* Botão de Upload */}
-              <div style={{marginBottom: '20px'}}>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileSelect}
-                  accept=".xlsm,.xlsx"
-                  style={{display: 'none'}}
-                  disabled={!temPermissao() || executando}
-                />
-                <button
-                  className="btn btn-primary"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={!temPermissao() || uploading || executando}
-                  style={{
-                    opacity: (!temPermissao() || uploading || executando) ? 0.5 : 1,
-                    cursor: (!temPermissao() || uploading || executando) ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  <FontAwesomeIcon icon={uploading ? faSpinner : faUpload} spin={uploading} />
-                  {uploading ? ' Enviando...' : ' Fazer Upload de Arquivo'}
-                </button>
-                <span style={{marginLeft: '10px', color: '#7f8c8d', fontSize: '14px'}}>
-                  Formatos: .xlsm, .xlsx
-                </span>
+                <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                  <div style={{
+                    width: '50px',
+                    height: '50px',
+                    background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '24px'
+                  }}>
+                    <FontAwesomeIcon icon={faScrewdriverWrench} />
+                  </div>
+                  <h3 style={{margin: 0, fontSize: '22px', fontWeight: 600, color: '#2c3e50'}}>
+                    Rotina de Auditoria
+                  </h3>
+                </div>
               </div>
 
-              {/* Lista de Arquivos */}
-              {arquivos.length > 0 ? (
-                <div>
-                  <h4 style={{fontSize: '15px', marginBottom: '10px', color: '#2c3e50'}}>
-                    Arquivos Disponíveis:
+              {/* Barra de Progresso/Status */}
+              <div style={{
+                height: '6px',
+                background: '#e0e0e0',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  height: '100%',
+                  width: executando ? '100%' : (arquivoSelecionado ? '50%' : '0%'),
+                  background: executando 
+                    ? 'linear-gradient(90deg, #3498db 0%, #2980b9 50%, #3498db 100%)'
+                    : 'linear-gradient(90deg, #3498db 0%, #2980b9 100%)',
+                  backgroundSize: executando ? '200% 100%' : '100% 100%',
+                  animation: executando ? 'progress 1.5s linear infinite' : 'none',
+                  transition: 'width 0.3s ease'
+                }}>
+                  <style>
+                    {`
+                      @keyframes progress {
+                        0% { background-position: 0% 0%; }
+                        100% { background-position: 200% 0%; }
+                      }
+                    `}
+                  </style>
+                </div>
+              </div>
+
+              {/* Conteúdo do Card */}
+              <div style={{padding: '30px'}}>
+                {/* Descrição */}
+                <div style={{
+                  marginBottom: '25px',
+                  padding: '20px',
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #3498db'
+                }}>
+                  <h4 style={{
+                    margin: '0 0 10px 0',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    color: '#2c3e50'
+                  }}>
+                    Descrição da Rotina
                   </h4>
-                  <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                    {arquivos.map(arquivo => (
-                      <div
-                        key={arquivo.nome}
-                        onClick={() => !executando && setArquivoSelecionado(arquivo.nome)}
+                  <p style={{margin: 0, color: '#7f8c8d', fontSize: '14px', lineHeight: '1.6'}}>
+                    Rotina automatizada de auditoria de dados. Faça upload do arquivo Excel (.xlsm ou .xlsx) 
+                    para processar e validar as informações de acordo com as regras de negócio definidas.
+                  </p>
+                </div>
+
+                {/* Área de Upload e Arquivo */}
+                <div style={{marginBottom: '25px'}}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '15px',
+                    padding: '20px',
+                    background: arquivoSelecionado ? '#e3f2fd' : '#f8f9fa',
+                    borderRadius: '8px',
+                    border: arquivoSelecionado ? '2px solid #3498db' : '2px dashed #d0d0d0',
+                    transition: 'all 0.3s'
+                  }}>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsm,.xlsx"
+                      onChange={handleFileSelect}
+                      style={{display: 'none'}}
+                      disabled={!temPermissao() || executando}
+                    />
+                    
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={!temPermissao() || uploading || executando}
+                      style={{
+                        padding: '12px 20px',
+                        background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: (!temPermissao() || uploading || executando) ? 'not-allowed' : 'pointer',
+                        opacity: (!temPermissao() || uploading || executando) ? 0.5 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s',
+                        flexShrink: 0
+                      }}
+                    >
+                      <FontAwesomeIcon icon={uploading ? faSpinner : faUpload} spin={uploading} />
+                      Upload file
+                    </button>
+
+                    <div style={{flex: 1, display: 'flex', alignItems: 'center', gap: '10px'}}>
+                      <FontAwesomeIcon 
+                        icon={faFileExcel} 
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 15px',
-                          background: arquivoSelecionado === arquivo.nome ? '#e3f2fd' : '#f8f9fa',
-                          border: `2px solid ${arquivoSelecionado === arquivo.nome ? '#2196f3' : '#e0e0e0'}`,
-                          borderRadius: '8px',
-                          cursor: executando ? 'not-allowed' : 'pointer',
-                          transition: 'all 0.2s',
-                          opacity: executando ? 0.6 : 1
+                          fontSize: '24px',
+                          color: arquivoSelecionado ? '#3498db' : '#95a5a6'
                         }}
-                        onMouseEnter={(e) => !executando && (e.currentTarget.style.borderColor = '#2196f3')}
-                        onMouseLeave={(e) => arquivoSelecionado !== arquivo.nome && !executando && (e.currentTarget.style.borderColor = '#e0e0e0')}
-                      >
-                        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
+                      />
+                      <span style={{
+                        fontSize: '15px',
+                        color: arquivoSelecionado ? '#2c3e50' : '#95a5a6',
+                        fontWeight: arquivoSelecionado ? 600 : 400
+                      }}>
+                        {arquivoSelecionado || 'Nenhum arquivo selecionado'}
+                      </span>
+                      {arquivoSelecionado && (
+                        <>
                           <FontAwesomeIcon 
-                            icon={faFileExcel} 
-                            style={{
-                              fontSize: '24px', 
-                              color: arquivoSelecionado === arquivo.nome ? '#2196f3' : '#27ae60'
-                            }} 
+                            icon={faCheckCircle} 
+                            style={{color: '#2ecc71', fontSize: '18px', marginLeft: 'auto'}}
                           />
-                          <div>
-                            <div style={{fontWeight: 600, color: '#2c3e50'}}>
-                              {arquivo.nome}
-                            </div>
-                            <div style={{fontSize: '13px', color: '#7f8c8d'}}>
+                          <button
+                            onClick={() => deletarArquivo(arquivoSelecionado)}
+                            disabled={!temPermissao() || executando}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#e74c3c',
+                              padding: '5px 10px',
+                              borderRadius: '4px',
+                              fontSize: '16px',
+                              opacity: (!temPermissao() || executando) ? 0.3 : 1,
+                              cursor: (!temPermissao() || executando) ? 'not-allowed' : 'pointer',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => !(!temPermissao() || executando) && (e.currentTarget.style.background = '#ffe6e6')}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            title="Remover arquivo"
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Lista de Arquivos Disponíveis (Dropdown) */}
+                  {arquivos.length > 1 && (
+                    <details style={{marginTop: '15px'}}>
+                      <summary style={{
+                        cursor: 'pointer',
+                        padding: '10px 15px',
+                        background: '#f8f9fa',
+                        borderRadius: '6px',
+                        color: '#7f8c8d',
+                        fontSize: '14px',
+                        fontWeight: 500,
+                        userSelect: 'none',
+                        listStyle: 'none',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <FontAwesomeIcon icon={faFileExcel} />
+                        Ver outros arquivos disponíveis ({arquivos.length - 1})
+                      </summary>
+                      <div style={{
+                        marginTop: '10px',
+                        padding: '10px',
+                        background: '#f8f9fa',
+                        borderRadius: '6px',
+                        maxHeight: '200px',
+                        overflowY: 'auto'
+                      }}>
+                        {arquivos.filter(a => a.nome !== arquivoSelecionado).map((arquivo, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              padding: '10px',
+                              background: 'white',
+                              borderRadius: '4px',
+                              marginBottom: '5px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              fontSize: '14px',
+                              color: '#7f8c8d',
+                              border: '1px solid #e0e0e0',
+                              transition: 'all 0.2s'
+                            }}
+                            onClick={() => !executando && setArquivoSelecionado(arquivo.nome)}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = '#e3f2fd';
+                              e.currentTarget.style.borderColor = '#3498db';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'white';
+                              e.currentTarget.style.borderColor = '#e0e0e0';
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faFileExcel} style={{color: '#3498db'}} />
+                            <span style={{flex: 1}}>{arquivo.nome}</span>
+                            <span style={{fontSize: '12px', color: '#95a5a6'}}>
                               {formatarTamanho(arquivo.tamanho)}
-                            </div>
+                            </span>
                           </div>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deletarArquivo(arquivo.nome);
-                          }}
-                          disabled={!temPermissao() || executando}
-                          className="btn btn-danger"
-                          style={{
-                            padding: '6px 12px',
-                            fontSize: '13px',
-                            opacity: (!temPermissao() || executando) ? 0.5 : 1,
-                            cursor: (!temPermissao() || executando) ? 'not-allowed' : 'pointer'
-                          }}
-                          title="Deletar arquivo"
-                        >
-                          <FontAwesomeIcon icon={faTrash} />
-                        </button>
+                        ))}
                       </div>
-                    ))}
+                    </details>
+                  )}
+                </div>
+
+                {/* Rodapé com Botões de Ação */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '15px',
+                  paddingTop: '20px',
+                  borderTop: '1px solid #e0e0e0'
+                }}>
+                  {/* Botão Status - Esquerda */}
+                  <button
+                    style={{
+                      padding: '12px 20px',
+                      background: statusExecucao === 'nao-iniciado' 
+                        ? 'linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)'
+                        : statusExecucao === 'em-andamento'
+                        ? 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)'
+                        : 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      minWidth: '160px'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    title={
+                      statusExecucao === 'nao-iniciado' 
+                        ? 'Rotina não iniciada'
+                        : statusExecucao === 'em-andamento'
+                        ? 'Rotina em execução'
+                        : 'Rotina concluída'
+                    }
+                  >
+                    <FontAwesomeIcon 
+                      icon={
+                        statusExecucao === 'nao-iniciado' 
+                          ? faInfoCircle
+                          : statusExecucao === 'em-andamento'
+                          ? faSpinner
+                          : faCheckCircle
+                      } 
+                      spin={statusExecucao === 'em-andamento'}
+                    />
+                    {statusExecucao === 'nao-iniciado' 
+                      ? 'Não iniciado'
+                      : statusExecucao === 'em-andamento'
+                      ? 'Em andamento...'
+                      : 'Concluído'
+                    }
+                  </button>
+
+                  {/* Botões Log e Executar - Direita */}
+                  <div style={{
+                    display: 'flex',
+                    gap: '10px'
+                  }}>
+                    {/* Botão Log */}
+                    <button
+                      onClick={() => setLogsInlineOpen(!logsInlineOpen)}
+                      style={{
+                        padding: '12px 20px',
+                        background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        minWidth: '100px'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                      title={logsInlineOpen ? "Ocultar logs" : "Visualizar logs"}
+                    >
+                      <FontAwesomeIcon icon={faClockRotateLeft} />
+                      Log
+                    </button>
+
+                    {/* Botão Executar */}
+                    <button
+                      onClick={executarRotina}
+                      disabled={!podeExecutar()}
+                      style={{
+                        padding: '12px 24px',
+                        background: !podeExecutar() 
+                          ? '#e0e0e0' 
+                          : 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
+                        color: !podeExecutar() ? '#95a5a6' : 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '15px',
+                        fontWeight: 600,
+                        cursor: !podeExecutar() ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        minWidth: '140px'
+                      }}
+                      onMouseEnter={(e) => podeExecutar() && (e.currentTarget.style.transform = 'translateY(-2px)')}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                      title={!arquivoSelecionado ? 'Selecione um arquivo para executar' : 'Executar rotina de auditoria'}
+                    >
+                      <FontAwesomeIcon icon={executando ? faSpinner : faPlay} spin={executando} />
+                      {executando ? 'Executando...' : 'Executar'}
+                    </button>
                   </div>
                 </div>
-              ) : (
-                <div style={{
-                  textAlign: 'center',
-                  padding: '40px',
-                  color: '#95a5a6',
-                  background: '#f8f9fa',
-                  borderRadius: '8px'
-                }}>
-                  <FontAwesomeIcon icon={faFileExcel} style={{fontSize: '48px', marginBottom: '15px', opacity: 0.3}} />
-                  <p style={{margin: 0}}>Nenhum arquivo disponível. Faça upload para começar.</p>
-                </div>
-              )}
 
-              {/* Botão Executar */}
-              <div style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #e0e0e0'}}>
-                <button
-                  className="btn btn-primary"
-                  onClick={executarRotina}
-                  disabled={!podeExecutar()}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    fontSize: '16px',
-                    opacity: !podeExecutar() ? 0.5 : 1,
-                    cursor: !podeExecutar() ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  <FontAwesomeIcon icon={executando ? faSpinner : faPlay} spin={executando} />
-                  {executando ? ' Executando Rotina...' : ' Executar Rotina de Auditoria'}
-                </button>
-                {!arquivoSelecionado && (
-                  <div style={{marginTop: '10px', textAlign: 'center', color: '#f39c12', fontSize: '14px'}}>
-                    <FontAwesomeIcon icon={faExclamationTriangle} /> Selecione um arquivo para executar
+                {/* Visualização Inline dos Logs */}
+                {logsInlineOpen && (
+                  <div style={{
+                    marginTop: '20px',
+                    paddingTop: '20px',
+                    borderTop: '2px solid #e0e0e0'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '15px'
+                    }}>
+                      <h4 style={{
+                        margin: 0,
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        color: '#2c3e50',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                      }}>
+                        <FontAwesomeIcon icon={faSpinner} spin={executando} style={{color: '#3498db'}} />
+                        Logs de Execução
+                        {executando && <span style={{fontSize: '14px', color: '#f39c12', fontWeight: 400}}>(Em andamento)</span>}
+                      </h4>
+                      <span style={{fontSize: '13px', color: '#7f8c8d'}}>
+                        {logs.length} {logs.length === 1 ? 'registro' : 'registros'}
+                      </span>
+                    </div>
+                    
+                    <div style={{
+                      background: '#1e1e1e',
+                      borderRadius: '8px',
+                      padding: '15px',
+                      maxHeight: '400px',
+                      overflowY: 'auto',
+                      fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                      fontSize: '13px',
+                      border: '1px solid #e0e0e0'
+                    }}>
+                      {logs.length === 0 ? (
+                        <div style={{
+                          textAlign: 'center',
+                          padding: '30px',
+                          color: '#888'
+                        }}>
+                          <FontAwesomeIcon icon={faInfoCircle} style={{fontSize: '28px', marginBottom: '10px'}} />
+                          <div>Nenhum log disponível</div>
+                          <div style={{fontSize: '12px', marginTop: '5px'}}>
+                            {executando ? 'Aguardando início da execução...' : 'Execute a rotina para ver os logs aqui'}
+                          </div>
+                        </div>
+                      ) : (
+                        logs.map((log, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              marginBottom: '8px',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '10px',
+                              lineHeight: '1.6'
+                            }}
+                          >
+                            <span style={{
+                              color: '#666',
+                              fontSize: '11px',
+                              fontFamily: 'monospace',
+                              flexShrink: 0
+                            }}>
+                              [{log.timestamp}]
+                            </span>
+                            <FontAwesomeIcon
+                              icon={getLogIcon(log.tipo)}
+                              style={{
+                                color: getLogColor(log.tipo),
+                                flexShrink: 0,
+                                marginTop: '3px',
+                                fontSize: '12px'
+                              }}
+                            />
+                            <span style={{
+                              color: getLogColor(log.tipo),
+                              wordBreak: 'break-word',
+                              flex: 1
+                            }}>
+                              {log.mensagem}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                      <div ref={logsEndRef} />
+                    </div>
                   </div>
                 )}
               </div>
