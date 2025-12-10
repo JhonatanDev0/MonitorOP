@@ -47,7 +47,6 @@ const Rotinas = () => {
   const fileInputRef = useRef(null);
   const [logsInlineOpen, setLogsInlineOpen] = useState(false);
   const [statusExecucao, setStatusExecucao] = useState('nao-iniciado'); // 'nao-iniciado', 'em-andamento', 'concluido'
-  const [execucaoAtual, setExecucaoAtual] = useState(null); // Dados da execução atual
 
   // Função auxiliar que verifica permissão (aceita função ou booleano)
   const temPermissao = () => {
@@ -68,79 +67,9 @@ const Rotinas = () => {
       .then(res => res.json())
       .then(data => setProjetos(data))
       .catch(err => toast.error('Erro ao carregar projetos'));
-
+    
     carregarArquivos();
   }, []);
-
-  // Reconectar a execuções ativas ao trocar de projeto
-  useEffect(() => {
-    if (filtros.projeto_id) {
-      verificarExecucaoAtiva();
-    }
-  }, [filtros.projeto_id]);
-
-  const verificarExecucaoAtiva = async () => {
-    if (!filtros.projeto_id) return;
-
-    try {
-      const response = await fetch(`http://localhost:5000/api/auditoria/execucoes/ativa/projeto/${filtros.projeto_id}`);
-      const data = await response.json();
-
-      if (data.ativa && data.execucao) {
-        // Há uma execução ativa para este projeto
-        const execucao = data.execucao;
-
-        setExecucaoAtual(execucao);
-        setStatusExecucao(execucao.status === 'em_andamento' ? 'em-andamento' : 'concluido');
-        setLogs(execucao.logs || []);
-        setLogsInlineOpen(true);
-
-        // Se ainda está em andamento, conectar ao stream
-        if (execucao.status === 'em_andamento') {
-          setExecutando(true);
-          setArquivoSelecionado(execucao.arquivo_nome);
-
-          // Conectar ao stream de logs
-          eventSourceRef.current = new EventSource('http://localhost:5000/api/auditoria/logs');
-
-          eventSourceRef.current.onmessage = (event) => {
-            const log = JSON.parse(event.data);
-            setLogs(prev => [...prev, log]);
-          };
-
-          eventSourceRef.current.onerror = () => {
-            eventSourceRef.current?.close();
-            setExecutando(false);
-            setStatusExecucao('concluido');
-
-            // Recarregar logs do banco
-            carregarLogsExecucao(execucao.id);
-          };
-
-          if (data.aviso) {
-            toast.warning(data.aviso);
-          } else {
-            toast.info('Reconectado à execução em andamento');
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar execução ativa:', error);
-    }
-  };
-
-  const carregarLogsExecucao = async (execucaoId) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/auditoria/execucoes/${execucaoId}`);
-      const data = await response.json();
-
-      if (data.logs) {
-        setLogs(data.logs);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar logs:', error);
-    }
-  };
 
   // Carregar arquivos disponíveis
   const carregarArquivos = async () => {
@@ -433,15 +362,6 @@ const Rotinas = () => {
       if (!response.ok) {
         const erro = await response.json();
         throw new Error(erro.erro || 'Erro ao iniciar rotina');
-      }
-
-      const result = await response.json();
-
-      // Buscar detalhes da execução criada
-      if (result.execucao_id) {
-        const execResponse = await fetch(`http://localhost:5000/api/auditoria/execucoes/${result.execucao_id}`);
-        const execData = await execResponse.json();
-        setExecucaoAtual(execData);
       }
 
       // Conectar ao stream de logs
@@ -1060,33 +980,24 @@ const Rotinas = () => {
                       alignItems: 'center',
                       marginBottom: '15px'
                     }}>
-                      <div style={{flex: 1}}>
-                        <h4 style={{
-                          margin: 0,
-                          fontSize: '16px',
-                          fontWeight: 600,
-                          color: '#2c3e50',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                          marginBottom: '5px'
-                        }}>
-                          <FontAwesomeIcon icon={faSpinner} spin={executando} style={{color: '#3498db'}} />
-                          Logs de Execução
-                          {executando && <span style={{fontSize: '14px', color: '#f39c12', fontWeight: 400}}>(Em andamento)</span>}
-                        </h4>
-                        {execucaoAtual && (
-                          <div style={{fontSize: '12px', color: '#7f8c8d', marginTop: '5px'}}>
-                            Executado por <strong>{execucaoAtual.usuario?.nome || 'Sistema'}</strong> em{' '}
-                            <strong>{new Date(execucaoAtual.inicio).toLocaleString('pt-BR')}</strong>
-                          </div>
-                        )}
-                      </div>
+                      <h4 style={{
+                        margin: 0,
+                        fontSize: '16px',
+                        fontWeight: 600,
+                        color: '#2c3e50',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px'
+                      }}>
+                        <FontAwesomeIcon icon={faSpinner} spin={executando} style={{color: '#3498db'}} />
+                        Logs de Execução
+                        {executando && <span style={{fontSize: '14px', color: '#f39c12', fontWeight: 400}}>(Em andamento)</span>}
+                      </h4>
                       <span style={{fontSize: '13px', color: '#7f8c8d'}}>
                         {logs.length} {logs.length === 1 ? 'registro' : 'registros'}
                       </span>
                     </div>
-
+                    
                     <div style={{
                       background: '#1e1e1e',
                       borderRadius: '8px',
@@ -1122,11 +1033,10 @@ const Rotinas = () => {
                             }}
                           >
                             <span style={{
-                              color: '#888',
+                              color: '#666',
                               fontSize: '11px',
                               fontFamily: 'monospace',
-                              flexShrink: 0,
-                              minWidth: '140px'
+                              flexShrink: 0
                             }}>
                               [{log.timestamp}]
                             </span>

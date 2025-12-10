@@ -1,5 +1,5 @@
 from app import create_app, db
-from app.models import Projeto, Squad, Atividade, Usuario, ExecucaoRotina, LogExecucao
+from app.models import Projeto, Squad, Atividade, Usuario
 
 app = create_app('development')
 
@@ -12,9 +12,7 @@ def make_shell_context():
         'Projeto': Projeto,
         'Squad': Squad,
         'Atividade': Atividade,
-        'Usuario': Usuario,
-        'ExecucaoRotina': ExecucaoRotina,
-        'LogExecucao': LogExecucao
+        'Usuario': Usuario
     }
 
 
