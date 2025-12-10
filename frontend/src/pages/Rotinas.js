@@ -437,20 +437,11 @@ const Rotinas = () => {
 
       const result = await response.json();
 
-      // Exibir aviso se estiver em modo compatibilidade
-      if (result.aviso) {
-        toast.warning(result.aviso);
-      }
-
-      // Buscar detalhes da execução criada (se houver ID)
+      // Buscar detalhes da execução criada
       if (result.execucao_id) {
-        try {
-          const execResponse = await fetch(`http://localhost:5000/api/auditoria/execucoes/${result.execucao_id}`);
-          const execData = await execResponse.json();
-          setExecucaoAtual(execData);
-        } catch (err) {
-          console.error('Erro ao buscar detalhes da execução:', err);
-        }
+        const execResponse = await fetch(`http://localhost:5000/api/auditoria/execucoes/${result.execucao_id}`);
+        const execData = await execResponse.json();
+        setExecucaoAtual(execData);
       }
 
       // Conectar ao stream de logs
