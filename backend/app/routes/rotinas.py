@@ -12,8 +12,6 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
-from app import db
-from app.models import ExecucaoRotina, LogExecucao, Usuario
 
 # Criar Blueprint (seguir padrão do projeto: usar 'bp')
 bp = Blueprint('rotinas', __name__, url_prefix='/api/auditoria')
@@ -24,8 +22,8 @@ bp = Blueprint('rotinas', __name__, url_prefix='/api/auditoria')
 execucao_lock = threading.Lock()
 execucao_ativa = {
     'rodando': False,
-    'execucao_id': None,  # ID da execução no banco
-    'projeto_id': None,  # Projeto vinculado
+    'usuario': None,
+    'inicio': None,
     'logs': [],
     'log_queue': None,
     'arquivo_processado': None  # Nome do arquivo sendo processado
@@ -52,24 +50,10 @@ def arquivo_permitido(filename):
 def formatar_log(tipo, mensagem):
     """Formata log com timestamp e tipo"""
     return {
-        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'timestamp': datetime.now().strftime('%H:%M:%S'),
         'tipo': tipo,
         'mensagem': mensagem
     }
-
-def salvar_log_banco(execucao_id, tipo, mensagem):
-    """Salva log no banco de dados"""
-    try:
-        log = LogExecucao(
-            execucao_id=execucao_id,
-            tipo=tipo,
-            mensagem=mensagem
-        )
-        db.session.add(log)
-        db.session.commit()
-    except Exception as e:
-        print(f"Erro ao salvar log no banco: {e}")
-        db.session.rollback()
 
 def deletar_arquivo_processado(arquivo_path):
     """Deleta o arquivo Excel após processamento"""
@@ -82,28 +66,20 @@ def deletar_arquivo_processado(arquivo_path):
         return False
     return False
 
-def executar_script_auditoria(log_queue, arquivo_nome, projeto_id, codigo_subprograma, execucao_id):
+def executar_script_auditoria(log_queue, arquivo_nome, projeto_id=None):
     """Executa o script Python e captura logs linha por linha"""
     arquivo_path = PASTA_AUDITORIA / arquivo_nome
-    status_final = 'concluido'
-    resultado_final = 'Rotina finalizada com sucesso'
-
+    
     try:
-        # Log inicial
-        log_msg = f'🚀 Iniciando processamento de: {arquivo_nome}'
-        log_queue.put(formatar_log('info', log_msg))
-        salvar_log_banco(execucao_id, 'info', log_msg)
-
+        log_queue.put(formatar_log('info', f'🚀 Iniciando processamento de: {arquivo_nome}'))
         if projeto_id:
-            log_msg = f'🏷️  Projeto ID: {projeto_id} | Código: {codigo_subprograma}'
-            log_queue.put(formatar_log('info', log_msg))
-            salvar_log_banco(execucao_id, 'info', log_msg)
-
-        # Comando que será executado (com código do subprograma)
+            log_queue.put(formatar_log('info', f'🏷️  Projeto: {projeto_id}'))
+        
+        # Comando que será executado (com projeto_id se fornecido)
         comando = ['python', str(SCRIPT_PATH), str(arquivo_path)]
-        if codigo_subprograma:
-            comando.append(str(codigo_subprograma))
-
+        if projeto_id:
+            comando.append(str(projeto_id))
+        
         # Executar o script Python
         processo = subprocess.Popen(
             comando,
@@ -114,7 +90,7 @@ def executar_script_auditoria(log_queue, arquivo_nome, projeto_id, codigo_subpro
             universal_newlines=True,
             cwd=str(SCRIPT_PATH.parent)
         )
-
+        
         # Ler stdout linha por linha
         for linha in processo.stdout:
             linha = linha.strip()
@@ -128,85 +104,47 @@ def executar_script_auditoria(log_queue, arquivo_nome, projeto_id, codigo_subpro
                     tipo = 'success'
                 else:
                     tipo = 'info'
-
-                log = formatar_log(tipo, linha)
-                log_queue.put(log)
-                salvar_log_banco(execucao_id, tipo, linha)
-
+                
+                log_queue.put(formatar_log(tipo, linha))
+        
         # Aguardar conclusão
         processo.wait()
-
+        
         # Verificar se houve erro
         if processo.returncode != 0:
-            status_final = 'erro'
             stderr = processo.stderr.read()
             if stderr:
-                log_msg = f'❌ Erro na execução: {stderr}'
-                log_queue.put(formatar_log('error', log_msg))
-                salvar_log_banco(execucao_id, 'error', log_msg)
-
-            resultado_final = '❌ Rotina finalizada com erros'
-            log_queue.put(formatar_log('error', resultado_final))
-            salvar_log_banco(execucao_id, 'error', resultado_final)
+                log_queue.put(formatar_log('error', f'❌ Erro na execução: {stderr}'))
+            log_queue.put(formatar_log('error', '❌ Rotina finalizada com erros'))
         else:
             # Mesmo com sucesso, ler stderr por segurança
             stderr = processo.stderr.read()
             if stderr:
-                log_msg = f'⚠️ Avisos: {stderr}'
-                log_queue.put(formatar_log('warning', log_msg))
-                salvar_log_banco(execucao_id, 'warning', log_msg)
-
-            resultado_final = '🎉 Rotina finalizada com sucesso!'
-            log_queue.put(formatar_log('success', resultado_final))
-            salvar_log_banco(execucao_id, 'success', resultado_final)
-
+                log_queue.put(formatar_log('warning', f'⚠️ Avisos: {stderr}'))
+            
+            log_queue.put(formatar_log('success', '🎉 Rotina finalizada com sucesso!'))
+            
             # Deletar arquivo após sucesso
-            log_msg = f'🗑️ Deletando arquivo: {arquivo_nome}'
-            log_queue.put(formatar_log('info', log_msg))
-            salvar_log_banco(execucao_id, 'info', log_msg)
-
+            log_queue.put(formatar_log('info', f'🗑️ Deletando arquivo: {arquivo_nome}'))
             if deletar_arquivo_processado(arquivo_path):
-                log_msg = f'✅ Arquivo deletado: {arquivo_nome}'
-                log_queue.put(formatar_log('success', log_msg))
-                salvar_log_banco(execucao_id, 'success', log_msg)
+                log_queue.put(formatar_log('success', f'✅ Arquivo deletado: {arquivo_nome}'))
             else:
-                log_msg = f'⚠️ Não foi possível deletar: {arquivo_nome}'
-                log_queue.put(formatar_log('warning', log_msg))
-                salvar_log_banco(execucao_id, 'warning', log_msg)
-
+                log_queue.put(formatar_log('warning', f'⚠️ Não foi possível deletar: {arquivo_nome}'))
+        
         # Sinal de término
         log_queue.put(None)
-
+        
     except Exception as e:
-        status_final = 'erro'
-        resultado_final = f'Erro crítico: {str(e)}'
-        log_msg = f'❌ {resultado_final}'
-        log_queue.put(formatar_log('error', log_msg))
-        salvar_log_banco(execucao_id, 'error', log_msg)
+        log_queue.put(formatar_log('error', f'❌ Erro crítico: {str(e)}'))
         log_queue.put(None)
-
+        
         # Tentar deletar arquivo mesmo em caso de erro
         deletar_arquivo_processado(arquivo_path)
-
-    finally:
-        # Atualizar status da execução no banco
-        try:
-            execucao = ExecucaoRotina.query.get(execucao_id)
-            if execucao:
-                execucao.status = status_final
-                execucao.fim = datetime.utcnow()
-                execucao.resultado = resultado_final
-                db.session.commit()
-        except Exception as e:
-            print(f"Erro ao atualizar status da execução: {e}")
-            db.session.rollback()
 
 def finalizar_execucao():
     """Aguarda término e libera lock"""
     with execucao_lock:
         execucao_ativa['rodando'] = False
-        execucao_ativa['execucao_id'] = None
-        execucao_ativa['projeto_id'] = None
         execucao_ativa['log_queue'] = None
         execucao_ativa['arquivo_processado'] = None
 
@@ -306,120 +244,73 @@ def deletar_arquivo_manual(filename):
 def status_auditoria():
     """Retorna status atual da execução"""
     with execucao_lock:
-        data = {
+        return jsonify({
             'rodando': execucao_ativa['rodando'],
-            'execucao_id': execucao_ativa['execucao_id'],
-            'projeto_id': execucao_ativa['projeto_id'],
+            'usuario': execucao_ativa['usuario'],
+            'inicio': execucao_ativa['inicio'],
             'logs_count': len(execucao_ativa['logs']),
             'arquivo_processado': execucao_ativa['arquivo_processado']
-        }
-
-        # Se há uma execução ativa, buscar detalhes do banco
-        if execucao_ativa['execucao_id']:
-            try:
-                execucao = ExecucaoRotina.query.get(execucao_ativa['execucao_id'])
-                if execucao:
-                    data['execucao'] = execucao.to_dict()
-            except:
-                pass
-
-        return jsonify(data)
+        })
 
 @bp.route('/executar', methods=['POST'])
 def executar_auditoria():
     """Inicia execução da rotina de auditoria"""
-
+    
     # Obter parâmetros
     arquivo_nome = request.json.get('arquivo')
-    projeto_id = request.json.get('projeto_id')  # ID do projeto no banco
-    squad_id = request.json.get('squad_id')  # ID da squad
-    usuario_login = request.json.get('usuario', 'Sistema')  # Login do usuário
-
+    projeto_id = request.json.get('projeto_id')  # ID do banco (pode não ser o código)
+    
     if not arquivo_nome:
         return jsonify({'erro': 'Nome do arquivo não fornecido'}), 400
-
-    if not projeto_id:
-        return jsonify({'erro': 'Projeto não fornecido'}), 400
-
-    if not squad_id:
-        return jsonify({'erro': 'Squad não fornecida'}), 400
-
+    
     # Extrair código do subprograma do nome do arquivo
     # Formato esperado: Relatorio_de_Qualidade_-2085_-_AVALIAMT_...
     import re
     match = re.search(r'-(\d+)_', arquivo_nome)
     codigo_subprograma = match.group(1) if match else None
-
+    
     # Verificar se arquivo existe
     arquivo_path = PASTA_AUDITORIA / secure_filename(arquivo_nome)
     if not arquivo_path.exists():
         return jsonify({'erro': 'Arquivo não encontrado'}), 404
-
-    # Buscar usuário pelo login
-    usuario = Usuario.query.filter_by(login=usuario_login).first()
-    if not usuario:
-        # Se não encontrar, tentar pelo nome
-        usuario = Usuario.query.filter_by(nome=usuario_login).first()
-        if not usuario:
-            return jsonify({'erro': 'Usuário não encontrado'}), 404
-
-    # Verificar se já está rodando para este projeto
+    
+    # Verificar se já está rodando
     with execucao_lock:
-        if execucao_ativa['rodando'] and execucao_ativa['projeto_id'] == projeto_id:
-            try:
-                execucao = ExecucaoRotina.query.get(execucao_ativa['execucao_id'])
-                return jsonify({
-                    'erro': 'Rotina já está em execução para este projeto',
-                    'execucao': execucao.to_dict() if execucao else None
-                }), 409
-            except:
-                pass
-
-        # Criar registro de execução no banco
-        try:
-            nova_execucao = ExecucaoRotina(
-                usuario_id=usuario.id,
-                projeto_id=projeto_id,
-                squad_id=squad_id,
-                arquivo_nome=arquivo_nome,
-                tipo_rotina='auditoria',
-                status='em_andamento'
-            )
-            db.session.add(nova_execucao)
-            db.session.commit()
-            execucao_id = nova_execucao.id
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'erro': f'Erro ao criar execução: {str(e)}'}), 500
-
+        if execucao_ativa['rodando']:
+            return jsonify({
+                'erro': 'Rotina já está em execução',
+                'usuario': execucao_ativa['usuario'],
+                'inicio': execucao_ativa['inicio'],
+                'arquivo': execucao_ativa['arquivo_processado']
+            }), 409
+        
         # Marcar como em execução
         execucao_ativa['rodando'] = True
-        execucao_ativa['execucao_id'] = execucao_id
-        execucao_ativa['projeto_id'] = projeto_id
+        execucao_ativa['usuario'] = request.json.get('usuario', 'Desconhecido')
+        execucao_ativa['inicio'] = datetime.now().isoformat()
         execucao_ativa['logs'] = []
         execucao_ativa['arquivo_processado'] = arquivo_nome
-
+        
         # Criar fila de logs
         log_queue = queue.Queue()
         execucao_ativa['log_queue'] = log_queue
-
-    # Iniciar thread para executar script
+    
+    # Iniciar thread para executar script (passar código extraído do arquivo)
     thread = threading.Thread(
         target=executar_script_auditoria,
-        args=(log_queue, arquivo_nome, projeto_id, codigo_subprograma, execucao_id),
+        args=(log_queue, arquivo_nome, codigo_subprograma),  # Usar código extraído
         daemon=True
     )
     thread.start()
-
+    
     # Thread para liberar lock ao final
     threading.Thread(target=lambda: (thread.join(), finalizar_execucao()), daemon=True).start()
-
+    
     return jsonify({
         'mensagem': 'Rotina iniciada com sucesso',
-        'execucao_id': execucao_id,
+        'inicio': execucao_ativa['inicio'],
         'arquivo': arquivo_nome,
-        'projeto_id': projeto_id,
-        'codigo_subprograma': codigo_subprograma
+        'projeto': codigo_subprograma  # Retornar código extraído
     })
 
 @bp.route('/logs', methods=['GET'])
@@ -502,144 +393,10 @@ def reset_lock():
     """Reset do lock em caso de travamento (usar apenas em desenvolvimento/debug)"""
     with execucao_lock:
         execucao_ativa['rodando'] = False
-        execucao_ativa['execucao_id'] = None
-        execucao_ativa['projeto_id'] = None
+        execucao_ativa['usuario'] = None
+        execucao_ativa['inicio'] = None
         execucao_ativa['logs'] = []
         execucao_ativa['log_queue'] = None
         execucao_ativa['arquivo_processado'] = None
-
+    
     return jsonify({'mensagem': 'Lock resetado com sucesso'})
-
-# =============================
-# ENDPOINTS DE HISTÓRICO E EXECUÇÕES
-# =============================
-
-@bp.route('/execucoes/projeto/<int:projeto_id>', methods=['GET'])
-def listar_execucoes_projeto(projeto_id):
-    """Lista todas as execuções de um projeto específico"""
-    try:
-        # Buscar execuções do projeto, ordenadas por data (mais recente primeiro)
-        execucoes = ExecucaoRotina.query.filter_by(
-            projeto_id=projeto_id
-        ).order_by(ExecucaoRotina.inicio.desc()).all()
-
-        return jsonify({
-            'projeto_id': projeto_id,
-            'total': len(execucoes),
-            'execucoes': [exec.to_dict() for exec in execucoes]
-        })
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-@bp.route('/execucoes/<int:execucao_id>', methods=['GET'])
-def detalhes_execucao(execucao_id):
-    """Retorna detalhes completos de uma execução, incluindo todos os logs"""
-    try:
-        execucao = ExecucaoRotina.query.get(execucao_id)
-        if not execucao:
-            return jsonify({'erro': 'Execução não encontrada'}), 404
-
-        return jsonify(execucao.to_dict_completo())
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-@bp.route('/execucoes/<int:execucao_id>/logs', methods=['GET'])
-def logs_execucao(execucao_id):
-    """Retorna apenas os logs de uma execução"""
-    try:
-        execucao = ExecucaoRotina.query.get(execucao_id)
-        if not execucao:
-            return jsonify({'erro': 'Execução não encontrada'}), 404
-
-        return jsonify({
-            'execucao_id': execucao_id,
-            'total_logs': len(execucao.logs),
-            'logs': [log.to_dict() for log in execucao.logs]
-        })
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-@bp.route('/execucoes/ativa/projeto/<int:projeto_id>', methods=['GET'])
-def execucao_ativa_projeto(projeto_id):
-    """Verifica se há execução ativa para um projeto e retorna seus dados"""
-    try:
-        # Verificar se há execução em memória
-        with execucao_lock:
-            if execucao_ativa['rodando'] and execucao_ativa['projeto_id'] == projeto_id:
-                execucao_id = execucao_ativa['execucao_id']
-                execucao = ExecucaoRotina.query.get(execucao_id)
-                if execucao:
-                    return jsonify({
-                        'ativa': True,
-                        'execucao': execucao.to_dict_completo()
-                    })
-
-        # Se não está em memória, buscar no banco por execuções "em_andamento"
-        execucao = ExecucaoRotina.query.filter_by(
-            projeto_id=projeto_id,
-            status='em_andamento'
-        ).order_by(ExecucaoRotina.inicio.desc()).first()
-
-        if execucao:
-            return jsonify({
-                'ativa': True,
-                'execucao': execucao.to_dict_completo(),
-                'aviso': 'Execução encontrada no banco mas não está na memória. Pode estar travada.'
-            })
-
-        return jsonify({'ativa': False})
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-@bp.route('/execucoes/ultima/projeto/<int:projeto_id>', methods=['GET'])
-def ultima_execucao_projeto(projeto_id):
-    """Retorna a última execução de um projeto (concluída ou em andamento)"""
-    try:
-        execucao = ExecucaoRotina.query.filter_by(
-            projeto_id=projeto_id
-        ).order_by(ExecucaoRotina.inicio.desc()).first()
-
-        if not execucao:
-            return jsonify({'mensagem': 'Nenhuma execução encontrada'}), 404
-
-        return jsonify(execucao.to_dict_completo())
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
-
-@bp.route('/historico', methods=['GET'])
-def historico_geral():
-    """Retorna histórico geral de todas as execuções"""
-    try:
-        # Parâmetros de filtro opcionais
-        limit = request.args.get('limit', 50, type=int)
-        offset = request.args.get('offset', 0, type=int)
-        projeto_id = request.args.get('projeto_id', type=int)
-        usuario_id = request.args.get('usuario_id', type=int)
-        status = request.args.get('status')
-
-        # Construir query
-        query = ExecucaoRotina.query
-
-        if projeto_id:
-            query = query.filter_by(projeto_id=projeto_id)
-        if usuario_id:
-            query = query.filter_by(usuario_id=usuario_id)
-        if status:
-            query = query.filter_by(status=status)
-
-        # Contar total
-        total = query.count()
-
-        # Buscar com paginação
-        execucoes = query.order_by(
-            ExecucaoRotina.inicio.desc()
-        ).limit(limit).offset(offset).all()
-
-        return jsonify({
-            'total': total,
-            'limit': limit,
-            'offset': offset,
-            'execucoes': [exec.to_dict() for exec in execucoes]
-        })
-    except Exception as e:
-        return jsonify({'erro': str(e)}), 500
