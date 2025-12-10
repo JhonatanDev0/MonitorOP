@@ -5,6 +5,7 @@ from app.routes.atividades import bp as atividades_bp
 from app.routes.auth import auth_bp
 from app.routes.usuarios import usuarios_bp
 from app.routes.dashboard_routes import bp as dashboard_bp
+from app.routes.recodificacao_routes import bp as recodificacao_bp
 
 main_bp = Blueprint('main', __name__)
 
@@ -15,3 +16,4 @@ main_bp.register_blueprint(atividades_bp)
 main_bp.register_blueprint(auth_bp)
 main_bp.register_blueprint(usuarios_bp)
 main_bp.register_blueprint(dashboard_bp)
+main_bp.register_blueprint(recodificacao_bp)
