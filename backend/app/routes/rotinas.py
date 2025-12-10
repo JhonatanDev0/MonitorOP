@@ -59,10 +59,6 @@ def formatar_log(tipo, mensagem):
 
 def salvar_log_banco(execucao_id, tipo, mensagem):
     """Salva log no banco de dados"""
-    # Se execucao_id for None, pular persistência (modo compatibilidade)
-    if execucao_id is None:
-        return
-
     try:
         log = LogExecucao(
             execucao_id=execucao_id,
@@ -72,12 +68,8 @@ def salvar_log_banco(execucao_id, tipo, mensagem):
         db.session.add(log)
         db.session.commit()
     except Exception as e:
-        # Falha silenciosa - não interromper execução se banco falhar
-        print(f"[AVISO] Não foi possível salvar log no banco: {e}")
-        try:
-            db.session.rollback()
-        except:
-            pass
+        print(f"Erro ao salvar log no banco: {e}")
+        db.session.rollback()
 
 def deletar_arquivo_processado(arquivo_path):
     """Deleta o arquivo Excel após processamento"""
@@ -197,22 +189,17 @@ def executar_script_auditoria(log_queue, arquivo_nome, projeto_id, codigo_subpro
         deletar_arquivo_processado(arquivo_path)
 
     finally:
-        # Atualizar status da execução no banco (se houver ID)
-        if execucao_id is not None:
-            try:
-                execucao = ExecucaoRotina.query.get(execucao_id)
-                if execucao:
-                    execucao.status = status_final
-                    execucao.fim = datetime.utcnow()
-                    execucao.resultado = resultado_final
-                    db.session.commit()
-                    print(f"[INFO] Status da execução {execucao_id} atualizado para: {status_final}")
-            except Exception as e:
-                print(f"[AVISO] Erro ao atualizar status da execução: {e}")
-                try:
-                    db.session.rollback()
-                except:
-                    pass
+        # Atualizar status da execução no banco
+        try:
+            execucao = ExecucaoRotina.query.get(execucao_id)
+            if execucao:
+                execucao.status = status_final
+                execucao.fim = datetime.utcnow()
+                execucao.resultado = resultado_final
+                db.session.commit()
+        except Exception as e:
+            print(f"Erro ao atualizar status da execução: {e}")
+            db.session.rollback()
 
 def finalizar_execucao():
     """Aguarda término e libera lock"""
@@ -368,22 +355,13 @@ def executar_auditoria():
     if not arquivo_path.exists():
         return jsonify({'erro': 'Arquivo não encontrado'}), 404
 
-    # Buscar usuário pelo login ou nome
+    # Buscar usuário pelo login
     usuario = Usuario.query.filter_by(login=usuario_login).first()
     if not usuario:
         # Se não encontrar, tentar pelo nome
         usuario = Usuario.query.filter_by(nome=usuario_login).first()
-
-    # Se ainda não encontrar, usar o primeiro usuário admin como fallback
-    if not usuario:
-        usuario = Usuario.query.filter_by(role='admin').first()
-
-    # Se não houver nenhum usuário, criar erro mais descritivo
-    if not usuario:
-        return jsonify({
-            'erro': 'Nenhum usuário encontrado no sistema. Execute o script init_admin.py para criar o primeiro usuário.',
-            'usuario_buscado': usuario_login
-        }), 404
+        if not usuario:
+            return jsonify({'erro': 'Usuário não encontrado'}), 404
 
     # Verificar se já está rodando para este projeto
     with execucao_lock:
@@ -395,14 +373,9 @@ def executar_auditoria():
                     'execucao': execucao.to_dict() if execucao else None
                 }), 409
             except:
-                return jsonify({
-                    'erro': 'Rotina já está em execução para este projeto'
-                }), 409
+                pass
 
-        # Tentar criar registro de execução no banco
-        execucao_id = None
-        modo_compatibilidade = False
-
+        # Criar registro de execução no banco
         try:
             nova_execucao = ExecucaoRotina(
                 usuario_id=usuario.id,
@@ -415,14 +388,9 @@ def executar_auditoria():
             db.session.add(nova_execucao)
             db.session.commit()
             execucao_id = nova_execucao.id
-            print(f"[INFO] Execução criada no banco com ID: {execucao_id}")
         except Exception as e:
-            # Modo compatibilidade: continuar sem persistência
             db.session.rollback()
-            erro_msg = str(e)
-            modo_compatibilidade = True
-            print(f"[AVISO] Executando em modo compatibilidade (sem persistência): {erro_msg}")
-            print(f"[AVISO] Para habilitar persistência, execute: python migrate_execucoes_rotina.py")
+            return jsonify({'erro': f'Erro ao criar execução: {str(e)}'}), 500
 
         # Marcar como em execução
         execucao_ativa['rodando'] = True
@@ -446,18 +414,13 @@ def executar_auditoria():
     # Thread para liberar lock ao final
     threading.Thread(target=lambda: (thread.join(), finalizar_execucao()), daemon=True).start()
 
-    resposta = {
+    return jsonify({
         'mensagem': 'Rotina iniciada com sucesso',
         'execucao_id': execucao_id,
         'arquivo': arquivo_nome,
         'projeto_id': projeto_id,
         'codigo_subprograma': codigo_subprograma
-    }
-
-    if modo_compatibilidade:
-        resposta['aviso'] = 'Executando em modo compatibilidade sem persistência. Execute a migração para habilitar histórico de logs.'
-
-    return jsonify(resposta)
+    })
 
 @bp.route('/logs', methods=['GET'])
 def logs_stream():
