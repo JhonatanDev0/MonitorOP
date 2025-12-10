@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChartLine, faClipboardList, faUsers, faListCheck, faSignOutAlt, faUserShield, faBars, faTimes, faUser, faKey, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faChartLine, faClipboardList, faUsers, faListCheck, faSignOutAlt, faUserShield, faBars, faTimes, faUser, faKey, faChevronDown, faCog } from '@fortawesome/free-solid-svg-icons';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-confirm-alert/src/react-confirm-alert.css';
@@ -12,6 +12,7 @@ import Dashboard from './pages/Dashboard';
 import Projetos from './pages/Projetos';
 import Squads from './pages/Squads';
 import Atividades from './pages/Atividades';
+import Rotinas from './pages/Rotinas';
 import Login from './pages/Login';
 import Usuarios from './pages/Usuarios';
 import NotFound from './pages/NotFound';
@@ -26,7 +27,7 @@ function HeaderNav({ sidebarOpen, setSidebarOpen, onAbrirTrocarSenha }) {
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
-  const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/usuarios', '/login'];
+  const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/rotinas', '/usuarios', '/login'];
   const ehRotaValida = rotasValidas.some(rota => 
     location.pathname === rota || location.pathname.startsWith(rota + '/')
   );
@@ -64,6 +65,12 @@ function HeaderNav({ sidebarOpen, setSidebarOpen, onAbrirTrocarSenha }) {
       label: 'Atividades',
       path: '/atividades',
       icon: faListCheck,
+      show: canEdit(),
+    },
+    {
+      label: 'Rotinas',
+      path: '/rotinas',
+      icon: faCog,
       show: canEdit(),
     },
     {
@@ -181,7 +188,7 @@ function AppContent() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [trocarSenhaModalOpen, setTrocarSenhaModalOpen] = useState(false);
 
-  const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/usuarios', '/login'];
+  const rotasValidas = ['/', '/projetos', '/squads', '/atividades', '/rotinas', '/usuarios', '/login'];
   const ehRotaValida = rotasValidas.some(rota => 
     location.pathname === rota || location.pathname.startsWith(rota + '/')
   );
@@ -227,6 +234,12 @@ function AppContent() {
           <Route path="/atividades" element={
             <PrivateRoute requireEdit={true}>
               <Atividades />
+            </PrivateRoute>
+          } />
+
+          <Route path="/rotinas" element={
+            <PrivateRoute requireEdit={true}>
+              <Rotinas />
             </PrivateRoute>
           } />
 
