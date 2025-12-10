@@ -236,13 +236,13 @@ function AppContent() {
               <Atividades />
             </PrivateRoute>
           } />
-          
+
           <Route path="/rotinas" element={
             <PrivateRoute requireEdit={true}>
               <Rotinas />
             </PrivateRoute>
           } />
-          
+
           <Route path="/usuarios" element={
             <PrivateRoute adminOnly={true}>
               <Usuarios />
