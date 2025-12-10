@@ -9,7 +9,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { atividadeService, projetoService, squadService } from '../services/api';
 import { dashboardService } from '../services/dashboardApi';
-import AuditoriaCharts from '../components/AuditoriaCharts';
 import RecodificacaoCharts from '../components/RecodificacaoCharts';
 import {
   Chart as ChartJS,
@@ -44,7 +43,6 @@ function Dashboard() {
   
   // Estados para os dados filtrados
   const [dadosFiltrados, setDadosFiltrados] = useState({
-    auditoria: [],
     recodificacao: []
   });
 
@@ -52,10 +50,6 @@ function Dashboard() {
   const [opcoesOrdemProducao, setOpcoesOrdemProducao] = useState([]);
   const [opcoesSquads, setOpcoesSquads] = useState([]);
   const [opcoesTiposAtividades, setOpcoesTiposAtividades] = useState([]);
-
-  // Estados para dados SQL Server - Auditoria
-  const [dadosAuditoriaSQLServer, setDadosAuditoriaSQLServer] = useState({});
-  const [loadingAuditoria, setLoadingAuditoria] = useState(false);
 
   // Estados para dados SQL Server - Recodificação
   const [dadosRecodificacaoSQLServer, setDadosRecodificacaoSQLServer] = useState({});
@@ -159,17 +153,6 @@ function Dashboard() {
     }
   }, [modoVisualizacao, atividades, filtros, projetos]);
 
-  // Carregar dados de auditoria do SQL Server quando projeto for selecionado
-  useEffect(() => {
-    if (filtros.projeto_id) {
-      carregarDadosAuditoriaProjeto(filtros.projeto_id);
-    } else if (projetos.length > 0) {
-      carregarDadosAuditoriaTodosProjetos();
-    } else {
-      setDadosAuditoriaSQLServer({});
-    }
-  }, [filtros.projeto_id, filtros.ordem_producao, projetos]);
-
   // Carregar dados de recodificação do SQL Server quando projeto for selecionado
   useEffect(() => {
     if (filtros.projeto_id) {
@@ -199,69 +182,6 @@ function Dashboard() {
       console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const carregarDadosAuditoriaProjeto = async (projetoId) => {
-    try {
-      setLoadingAuditoria(true);
-      
-      const projetoSelecionado = projetos.find(p => p.id === parseInt(projetoId));
-      
-      if (projetoSelecionado && projetoSelecionado.subprograma) {
-        const cdProjeto = projetoSelecionado.subprograma;
-        
-        const response = await dashboardService.getAuditoriaHistorico(cdProjeto);
-        
-        if (response.data.success) {
-          setDadosAuditoriaSQLServer({
-            [projetoId]: response.data.data
-          });
-        } else {
-          setDadosAuditoriaSQLServer({});
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao carregar dados de auditoria:', error);
-      setDadosAuditoriaSQLServer({});
-    } finally {
-      setLoadingAuditoria(false);
-    }
-  };
-
-  const carregarDadosAuditoriaTodosProjetos = async () => {
-    try {
-      setLoadingAuditoria(true);
-      
-      let projetosComSubprograma = projetos.filter(p => p.subprograma && p.subprograma.trim() !== '');
-      
-      if (filtros.ordem_producao) {
-        projetosComSubprograma = projetosComSubprograma.filter(p => p.ordem_producao === filtros.ordem_producao);
-      }
-      
-      const dadosTodosProjetos = {};
-      
-      await Promise.all(
-        projetosComSubprograma.map(async (projeto) => {
-          try {
-            const response = await dashboardService.getAuditoriaHistorico(projeto.subprograma);
-            
-            if (response.data.success && response.data.data.length > 0) {
-              dadosTodosProjetos[projeto.id] = response.data.data;
-            }
-          } catch (error) {
-            console.error(`Erro ao carregar dados do projeto ${projeto.id}:`, error);
-          }
-        })
-      );
-      
-      setDadosAuditoriaSQLServer(dadosTodosProjetos);
-      
-    } catch (error) {
-      console.error('Erro ao carregar dados de auditoria de todos os projetos:', error);
-      setDadosAuditoriaSQLServer({});
-    } finally {
-      setLoadingAuditoria(false);
     }
   };
 
@@ -391,38 +311,34 @@ function Dashboard() {
       const projetosFiltrados = projetos
         .filter(p => p.ordem_producao === filtros.ordem_producao)
         .map(p => p.id);
-      
-      atividadesFiltradas = atividadesFiltradas.filter(a => 
+
+      atividadesFiltradas = atividadesFiltradas.filter(a =>
         projetosFiltrados.includes(a.projeto.id)
       );
     }
 
     if (filtros.projeto_id) {
-      atividadesFiltradas = atividadesFiltradas.filter(a => 
+      atividadesFiltradas = atividadesFiltradas.filter(a =>
         a.projeto.id === parseInt(filtros.projeto_id)
       );
     }
 
     if (filtros.squad_id) {
-      atividadesFiltradas = atividadesFiltradas.filter(a => 
+      atividadesFiltradas = atividadesFiltradas.filter(a =>
         a.squad.id === parseInt(filtros.squad_id)
       );
     }
 
     if (filtros.tipo_atividade) {
-      atividadesFiltradas = atividadesFiltradas.filter(a => 
+      atividadesFiltradas = atividadesFiltradas.filter(a =>
         a.titulo === filtros.tipo_atividade
       );
     }
 
-    const auditoriaSquad = squads.find(s => s.nome === 'Auditoria');
     const recodificacaoSquad = squads.find(s => s.nome === 'Recodificação');
 
     setDadosFiltrados({
-      auditoria: atividadesFiltradas.filter(a => 
-        auditoriaSquad && a.squad.id === auditoriaSquad.id
-      ),
-      recodificacao: atividadesFiltradas.filter(a => 
+      recodificacao: atividadesFiltradas.filter(a =>
         recodificacaoSquad && a.squad.id === recodificacaoSquad.id
       )
     });
@@ -452,12 +368,6 @@ function Dashboard() {
       .sort((a, b) => a.label.localeCompare(b.label));
   };
 
-  const deveExibirSquadAuditoria = () => {
-    if (!filtros.squad_id) return true;
-    const auditoriaSquad = squads.find(s => s.nome === 'Auditoria');
-    return auditoriaSquad && parseInt(filtros.squad_id) === auditoriaSquad.id;
-  };
-
   const deveExibirSquadRecodificacao = () => {
     if (!filtros.squad_id) return true;
     const recodificacaoSquad = squads.find(s => s.nome === 'Recodificação');
@@ -469,15 +379,14 @@ function Dashboard() {
       const projeto = projetos.find(p => p.id === parseInt(filtros.projeto_id));
       return projeto ? [projeto] : [];
     } else {
-      let projetosComDados = projetos.filter(p => 
-        (dadosAuditoriaSQLServer[p.id] && dadosAuditoriaSQLServer[p.id].length > 0) ||
+      let projetosComDados = projetos.filter(p =>
         (dadosRecodificacaoSQLServer[p.id] && dadosRecodificacaoSQLServer[p.id].metricas && dadosRecodificacaoSQLServer[p.id].metricas.length > 0)
       );
-      
+
       if (filtros.ordem_producao) {
         projetosComDados = projetosComDados.filter(p => p.ordem_producao === filtros.ordem_producao);
       }
-      
+
       return projetosComDados;
     }
   };
@@ -964,43 +873,6 @@ function Dashboard() {
                 </div>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Squad Auditoria - Gráficos (apenas em modo detalhado) */}
-        {modoVisualizacao === 'detalhado' && deveExibirSquadAuditoria() && (
-          <div className="squad-section">
-            {loadingAuditoria ? (
-              <div className="loading">Carregando dados de auditoria...</div>
-            ) : projetosParaExibir.length === 0 ? (
-              <div className="empty-state">
-                <p>Nenhum projeto com dados de auditoria disponível</p>
-              </div>
-            ) : (
-              <div className="projetos-graficos-container">
-                {projetosParaExibir.map(projeto => {
-                  const atividadesAuditoriaProjeto = dadosFiltrados.auditoria.filter(
-                    a => a.projeto.id === projeto.id
-                  );
-
-                  // Só renderiza se tiver dados de auditoria
-                  if (!dadosAuditoriaSQLServer[projeto.id] || dadosAuditoriaSQLServer[projeto.id].length === 0) {
-                    return null;
-                  }
-
-                  return (
-                    <div key={`auditoria-${projeto.id}`} className="projeto-grafico-wrapper">
-                      <AuditoriaCharts 
-                        cdProjeto={projeto.subprograma}
-                        dados={dadosAuditoriaSQLServer[projeto.id] || []}
-                        atividadesSquad={atividadesAuditoriaProjeto}
-                        nomeProjeto={`${projeto.subprograma} - ${projeto.nome}`}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         )}
 

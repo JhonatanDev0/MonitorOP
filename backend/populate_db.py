@@ -16,7 +16,6 @@ with app.app_context():
     
     # Criar Squads
     print("Criando squads...")
-    squad1 = Squad(nome="Auditoria", descricao="Squad de auditoria")
     squad2 = Squad(nome="Recodificação", descricao="Squad de Recodificação")
     squad3 = Squad(nome="Processamento", descricao="Squad de Processamento")
     squad4 = Squad(nome="Categorização", descricao="Squad de Categorização")
@@ -24,9 +23,9 @@ with app.app_context():
     squad6 = Squad(nome="Cálculo", descricao="Squad de Cálculo")
     squad7 = Squad(nome="Validação", descricao="Squad de Validação")
     squad8 = Squad(nome="Recursos", descricao="Squad de Recursos")
-    
-    
-    db.session.add_all([squad1, squad2, squad3, squad4, squad5, squad6, squad7, squad8])
+
+
+    db.session.add_all([squad2, squad3, squad4, squad5, squad6, squad7, squad8])
     db.session.commit()
     
     # Criar Projetos
@@ -44,7 +43,7 @@ with app.app_context():
         tipos_processamento="Destaque",
         observacao=""
     )
-    projeto1.squads = [squad1, squad2, squad3, squad4, squad5, squad6, squad7, squad8]    
+    projeto1.squads = [squad2, squad3, squad4, squad5, squad6, squad7, squad8]    
         
     projeto2 = Projeto(
         subprograma="2075",
@@ -57,7 +56,7 @@ with app.app_context():
         tipos_processamento="Destaque",
         observacao=""
     )
-    projeto2.squads = [squad1, squad2, squad3, squad4, squad5, squad6, squad7, squad8]
+    projeto2.squads = [squad2, squad3, squad4, squad5, squad6, squad7, squad8]
     
     projeto3 = Projeto(
         subprograma="2132",
@@ -70,7 +69,7 @@ with app.app_context():
         tipos_processamento="Destaque",
         observacao=""
     )
-    projeto3.squads = [squad1, squad2, squad3, squad4, squad5, squad6, squad7, squad8]
+    projeto3.squads = [squad2, squad3, squad4, squad5, squad6, squad7, squad8]
     
     projeto4 = Projeto(
         subprograma="2085",
@@ -83,7 +82,7 @@ with app.app_context():
         tipos_processamento="Destaque e Transcrição",
         observacao=""
     )
-    projeto4.squads = [squad1, squad2, squad3, squad4, squad5, squad6, squad7, squad8]                
+    projeto4.squads = [squad2, squad3, squad4, squad5, squad6, squad7, squad8]                
     
     db.session.add_all([projeto1, projeto2, projeto3, projeto4])
     db.session.commit()
@@ -102,24 +101,6 @@ with app.app_context():
 
     atividades = [
 
-        # squad1 - Auditoria
-        Atividade(titulo="Transcrição", observacao="", 
-                inicio_programado=inicio_prog, inicio_realizado=inicio_real,
-                fim_programado=fim_prog, fim_realizado=fim_real,
-                prioridade="alta", status="concluida", projeto_id=projeto1.id, squad_id=squad1.id),
-        Atividade(titulo="Transcrição", observacao="", 
-                inicio_programado=inicio_prog, inicio_realizado=inicio_real,
-                fim_programado=fim_prog, fim_realizado=fim_real,
-                prioridade="alta", status="concluida", projeto_id=projeto2.id, squad_id=squad1.id),        
-        Atividade(titulo="Transcrição", observacao="", 
-                inicio_programado=inicio_prog, inicio_realizado=inicio_real,
-                fim_programado=fim_prog, fim_realizado=fim_real,
-                prioridade="alta", status="concluida", projeto_id=projeto3.id, squad_id=squad1.id),
-        Atividade(titulo="Transcrição", observacao="", 
-                inicio_programado=inicio_prog, inicio_realizado=inicio_real,
-                fim_programado=fim_prog, fim_realizado=fim_real,
-                prioridade="alta", status="concluida", projeto_id=projeto4.id, squad_id=squad1.id),
-                    
         # squad2 - Recodificação
         Atividade(titulo="CR Reserva", observacao="", 
                 inicio_programado=inicio_prog, inicio_realizado=inicio_real,
