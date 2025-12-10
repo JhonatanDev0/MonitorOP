@@ -33,6 +33,10 @@ const Rotinas = () => {
   const [projetosFiltrados, setProjetosFiltrados] = useState([]);
   const [showProjetoDropdown, setShowProjetoDropdown] = useState(false);
 
+  // Estados para execução
+  const [executando, setExecutando] = useState(false);
+  const [statusExecucao, setStatusExecucao] = useState('nao-iniciado'); // 'nao-iniciado', 'em-andamento', 'concluido'
+
   // Função auxiliar que verifica permissão
   const temPermissao = () => {
     if (typeof canEdit === 'function') {
@@ -90,6 +94,75 @@ const Rotinas = () => {
     setProjetoSearch('');
     setShowProjetoDropdown(false);
   };
+
+  const executarRotinaRecodificacao = async () => {
+    if (!temPermissao()) {
+      toast.error('Você não tem permissão para executar rotinas');
+      return;
+    }
+
+    if (!filtros.squad_id || !filtros.projeto_id) {
+      toast.warning('Selecione Squad e Projeto para executar a rotina');
+      return;
+    }
+
+    // Verificar se user existe e tem username
+    if (!currentUser) {
+      toast.error('Erro: Usuário não identificado. Faça login novamente.');
+      return;
+    }
+
+    const nomeUsuario = currentUser.username || currentUser.login || 'Sistema';
+
+    // Obter código do projeto (subprograma)
+    const projetoSelecionado = projetos.find(p => p.id === parseInt(filtros.projeto_id));
+    if (!projetoSelecionado || !projetoSelecionado.subprograma) {
+      toast.error('Projeto selecionado não possui código de subprograma');
+      return;
+    }
+
+    setExecutando(true);
+    setStatusExecucao('em-andamento');
+
+    try {
+      const response = await fetch('http://localhost:5000/api/recodificacao/executar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuario: nomeUsuario,
+          squad_id: filtros.squad_id,
+          projeto_id: filtros.projeto_id,
+          cd_projeto: projetoSelecionado.subprograma
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.erro || 'Erro ao executar rotina');
+      }
+
+      toast.success(`Rotina de Recodificação executada com sucesso para o projeto ${projetoSelecionado.subprograma}!`);
+      setStatusExecucao('concluido');
+
+    } catch (error) {
+      toast.error(error.message);
+      setStatusExecucao('nao-iniciado');
+    } finally {
+      setExecutando(false);
+    }
+  };
+
+  const podeExecutar = () => {
+    return temPermissao() &&
+           filtros.squad_id &&
+           filtros.projeto_id &&
+           !executando;
+  };
+
+  // Verificar se squad selecionada é Recodificação
+  const squadSelecionada = squads.find(s => s.id === parseInt(filtros.squad_id));
+  const mostrarRotinaRecodificacao = squadSelecionada && squadSelecionada.nome === 'Recodificação' && filtros.projeto_id;
 
   return (
     <div>
@@ -178,8 +251,10 @@ const Rotinas = () => {
                   onChange={(e) => {
                     setFiltros({...filtros, squad_id: e.target.value, projeto_id: ''});
                     setProjetoSearch('');
+                    setStatusExecucao('nao-iniciado');
                   }}
                   style={{width: '100%'}}
+                  disabled={executando}
                 >
                   <option value="">Selecione uma Squad</option>
                   {squads.map(s => (
@@ -209,12 +284,13 @@ const Rotinas = () => {
                       setShowProjetoDropdown(true);
                     }}
                     onFocus={() => setShowProjetoDropdown(true)}
-                    disabled={!filtros.squad_id}
+                    disabled={!filtros.squad_id || executando}
                     style={{width: '100%', paddingRight: filtros.projeto_id ? '40px' : '10px'}}
                   />
                   {filtros.projeto_id && (
                     <button
                       onClick={limparProjeto}
+                      disabled={executando}
                       style={{
                         position: 'absolute',
                         right: '10px',
@@ -223,14 +299,15 @@ const Rotinas = () => {
                         background: 'none',
                         border: 'none',
                         color: '#95a5a6',
-                        cursor: 'pointer',
+                        cursor: executando ? 'not-allowed' : 'pointer',
                         fontSize: '18px',
                         padding: '0',
                         width: '20px',
                         height: '20px',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        opacity: executando ? 0.5 : 1
                       }}
                       title="Limpar projeto"
                     >
@@ -257,14 +334,15 @@ const Rotinas = () => {
                     {projetosFiltrados.map(projeto => (
                       <div
                         key={projeto.id}
-                        onClick={() => selecionarProjeto(projeto)}
+                        onClick={() => !executando && selecionarProjeto(projeto)}
                         style={{
                           padding: '10px 15px',
-                          cursor: 'pointer',
+                          cursor: executando ? 'not-allowed' : 'pointer',
                           borderBottom: '1px solid #f0f0f0',
-                          transition: 'background 0.2s'
+                          transition: 'background 0.2s',
+                          opacity: executando ? 0.5 : 1
                         }}
-                        onMouseEnter={(e) => e.target.style.background = '#f8f9fa'}
+                        onMouseEnter={(e) => !executando && (e.target.style.background = '#f8f9fa')}
                         onMouseLeave={(e) => e.target.style.background = 'white'}
                       >
                         <div style={{fontWeight: 600, color: '#2c3e50', marginBottom: '3px'}}>
@@ -281,20 +359,178 @@ const Rotinas = () => {
             </div>
           </div>
 
-          {/* Mensagem de nenhuma rotina disponível */}
-          <div style={{
-            textAlign: 'center',
-            padding: '80px 20px',
-            color: '#95a5a6'
-          }}>
-            <FontAwesomeIcon icon={faListCheck} style={{fontSize: '64px', marginBottom: '20px', opacity: 0.3}} />
-            <h3 style={{fontSize: '22px', marginBottom: '10px', color: '#7f8c8d'}}>
-              Nenhuma rotina disponível
-            </h3>
-            <p style={{fontSize: '15px'}}>
-              Selecione uma Squad e um Projeto para visualizar as rotinas disponíveis.
-            </p>
-          </div>
+          {/* CARD DE RECODIFICAÇÃO */}
+          {mostrarRotinaRecodificacao && (
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              border: '1px solid #e0e0e0'
+            }}>
+              {/* Header do Card */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+                padding: '20px 30px',
+                borderBottom: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                  <div style={{
+                    width: '50px',
+                    height: '50px',
+                    background: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '24px'
+                  }}>
+                    <FontAwesomeIcon icon={faScrewdriverWrench} />
+                  </div>
+                  <h3 style={{margin: 0, fontSize: '22px', fontWeight: 600, color: '#2c3e50'}}>
+                    Rotina de Recodificação
+                  </h3>
+                </div>
+              </div>
+
+              {/* Conteúdo do Card */}
+              <div style={{padding: '30px'}}>
+                {/* Descrição */}
+                <div style={{
+                  marginBottom: '25px',
+                  padding: '20px',
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #9b59b6'
+                }}>
+                  <h4 style={{
+                    margin: '0 0 10px 0',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    color: '#2c3e50'
+                  }}>
+                    Descrição da Rotina
+                  </h4>
+                  <p style={{margin: 0, color: '#7f8c8d', fontSize: '14px', lineHeight: '1.6'}}>
+                    Rotina automatizada de monitoramento de recodificação. Esta rotina executará o processamento
+                    de dados de recodificação para o projeto selecionado através de uma stored procedure no SQL Server.
+                  </p>
+                </div>
+
+                {/* Informações do Projeto */}
+                {filtros.projeto_id && (
+                  <div style={{
+                    marginBottom: '25px',
+                    padding: '15px 20px',
+                    background: '#e8f4f8',
+                    borderRadius: '6px',
+                    border: '1px solid #b8dce8'
+                  }}>
+                    <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
+                      Projeto Selecionado:
+                    </div>
+                    <div style={{fontSize: '16px', fontWeight: 600, color: '#2c3e50'}}>
+                      {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.subprograma} - {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.nome}
+                    </div>
+                  </div>
+                )}
+
+                {/* Rodapé com Botões de Ação */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: '15px',
+                  paddingTop: '20px',
+                  borderTop: '1px solid #e0e0e0'
+                }}>
+                  {/* Botão Status - Esquerda */}
+                  <div style={{
+                    padding: '12px 20px',
+                    background: statusExecucao === 'nao-iniciado'
+                      ? 'linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)'
+                      : statusExecucao === 'em-andamento'
+                      ? 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)'
+                      : 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
+                    color: 'white',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    minWidth: '160px'
+                  }}>
+                    <FontAwesomeIcon
+                      icon={
+                        statusExecucao === 'nao-iniciado'
+                          ? faInfoCircle
+                          : statusExecucao === 'em-andamento'
+                          ? faSpinner
+                          : faCheckCircle
+                      }
+                      spin={statusExecucao === 'em-andamento'}
+                    />
+                    {statusExecucao === 'nao-iniciado'
+                      ? 'Não iniciado'
+                      : statusExecucao === 'em-andamento'
+                      ? 'Executando...'
+                      : 'Concluído'}
+                  </div>
+
+                  {/* Botão Executar - Direita */}
+                  <button
+                    onClick={executarRotinaRecodificacao}
+                    disabled={!podeExecutar()}
+                    style={{
+                      padding: '12px 24px',
+                      background: !podeExecutar()
+                        ? 'linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%)'
+                        : 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: !podeExecutar() ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      minWidth: '140px',
+                      justifyContent: 'center'
+                    }}
+                    onMouseEnter={(e) => podeExecutar() && (e.currentTarget.style.transform = 'translateY(-2px)')}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
+                    <FontAwesomeIcon icon={executando ? faSpinner : faPlay} spin={executando} />
+                    {executando ? 'Executando...' : 'Executar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Mensagem se não houver rotina disponível */}
+          {!mostrarRotinaRecodificacao && (
+            <div style={{
+              textAlign: 'center',
+              padding: '80px 20px',
+              color: '#95a5a6'
+            }}>
+              <FontAwesomeIcon icon={faListCheck} style={{fontSize: '64px', marginBottom: '20px', opacity: 0.3}} />
+              <h3 style={{fontSize: '22px', marginBottom: '10px', color: '#7f8c8d'}}>
+                Nenhuma rotina disponível
+              </h3>
+              <p style={{fontSize: '15px'}}>
+                Selecione uma Squad e um Projeto para visualizar as rotinas disponíveis.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
