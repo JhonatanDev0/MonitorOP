@@ -89,7 +89,7 @@ class SQLServerService:
                     INDICADOR AS TP_RESERVA,
                     PREVISTO AS QT_PREVISTO,
                     EFETIVO AS QT_EFETIVO
-                FROM TMP_RESERVA
+                FROM TMP_RECODIFICACAO
             """
             
             # Adicionar filtro se necessário
@@ -151,7 +151,7 @@ class SQLServerService:
                     INDICADOR AS TP_RESERVA,
                     PREVISTO AS QT_PREVISTO,
                     EFETIVO AS QT_EFETIVO
-                FROM TMP_RESERVA
+                FROM TMP_RECODIFICACAO
                 WHERE CD_PROJETO = ?
                 ORDER BY DT_CRIACAO ASC, INDICADOR ASC
             """
