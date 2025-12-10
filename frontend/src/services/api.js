@@ -9,6 +9,43 @@ const api = axios.create({
   },
 });
 
+// Configurar interceptor para adicionar token em todas as requisições
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Interceptor para tratar erros de autenticação
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Só redireciona para login se:
+    // 1. O erro for 401
+    // 2. A requisição NÃO for de login
+    // 3. O usuário NÃO estiver na página de login
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !error.config.url.includes('/auth/login') &&
+      window.location.pathname !== '/login'
+    ) {
+      // Token inválido ou expirado
+      localStorage.removeItem('token');
+      localStorage.removeItem('usuario');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Projetos
 export const projetoService = {
   listar: (page = null, perPage = 10) => {
@@ -67,13 +104,13 @@ export const atividadeService = {
 export const usuarioService = {
   listar: (page = null, perPage = 10) => {
     if (page) {
-      return axios.get(`${API_URL}/usuarios?page=${page}&per_page=${perPage}`);
+      return api.get(`/usuarios?page=${page}&per_page=${perPage}`);
     }
-    return axios.get(`${API_URL}/usuarios`);
+    return api.get('/usuarios');
   },
-  criar: (data) => axios.post(`${API_URL}/usuarios`, data),
-  atualizar: (id, data) => axios.put(`${API_URL}/usuarios/${id}`, data),
-  deletar: (id) => axios.delete(`${API_URL}/usuarios/${id}`)
+  criar: (data) => api.post('/usuarios', data),
+  atualizar: (id, data) => api.put(`/usuarios/${id}`, data),
+  deletar: (id) => api.delete(`/usuarios/${id}`)
 };
 
 export default api;
