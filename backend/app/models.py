@@ -108,7 +108,7 @@ class Atividade(db.Model):
 
 class Usuario(db.Model):
     __tablename__ = 'usuarios'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
     login = db.Column(db.String(50), unique=True, nullable=False)
@@ -116,17 +116,20 @@ class Usuario(db.Model):
     role = db.Column(db.String(20), nullable=False, default='analista')  # 'admin', 'gestor' ou 'analista'
     ativo = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
+    # Relacionamentos
+    execucoes_rotina = db.relationship('ExecucaoRotina', back_populates='usuario')
+
     def set_senha(self, senha):
         """Criptografa e salva a senha"""
         import bcrypt
         self.senha_hash = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    
+
     def check_senha(self, senha):
         """Verifica se a senha está correta"""
         import bcrypt
         return bcrypt.checkpw(senha.encode('utf-8'), self.senha_hash.encode('utf-8'))
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -135,4 +138,86 @@ class Usuario(db.Model):
             'role': self.role,
             'ativo': self.ativo,
             'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class ExecucaoRotina(db.Model):
+    __tablename__ = 'execucoes_rotina'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    projeto_id = db.Column(db.Integer, db.ForeignKey('projetos.id'), nullable=False)
+    squad_id = db.Column(db.Integer, db.ForeignKey('squads.id'), nullable=False)
+
+    # Informações da execução
+    arquivo_nome = db.Column(db.String(255), nullable=False)
+    tipo_rotina = db.Column(db.String(50), default='auditoria')  # 'auditoria', 'processamento', etc
+    status = db.Column(db.String(20), default='em_andamento')  # 'em_andamento', 'concluido', 'erro', 'cancelado'
+
+    # Timestamps
+    inicio = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    fim = db.Column(db.DateTime)
+
+    # Resultado
+    resultado = db.Column(db.Text)  # Mensagem final de sucesso ou erro
+
+    # Relacionamentos
+    usuario = db.relationship('Usuario', back_populates='execucoes_rotina')
+    projeto = db.relationship('Projeto')
+    squad = db.relationship('Squad')
+    logs = db.relationship('LogExecucao', back_populates='execucao', cascade='all, delete-orphan', order_by='LogExecucao.timestamp')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'usuario': {
+                'id': self.usuario.id,
+                'nome': self.usuario.nome,
+                'login': self.usuario.login
+            },
+            'projeto': {
+                'id': self.projeto.id,
+                'nome': self.projeto.nome,
+                'subprograma': self.projeto.subprograma
+            },
+            'squad': {
+                'id': self.squad.id,
+                'nome': self.squad.nome
+            },
+            'arquivo_nome': self.arquivo_nome,
+            'tipo_rotina': self.tipo_rotina,
+            'status': self.status,
+            'inicio': self.inicio.isoformat() if self.inicio else None,
+            'fim': self.fim.isoformat() if self.fim else None,
+            'resultado': self.resultado,
+            'total_logs': len(self.logs)
+        }
+
+    def to_dict_completo(self):
+        """Inclui todos os logs"""
+        data = self.to_dict()
+        data['logs'] = [log.to_dict() for log in self.logs]
+        return data
+
+
+class LogExecucao(db.Model):
+    __tablename__ = 'logs_execucao'
+
+    id = db.Column(db.Integer, primary_key=True)
+    execucao_id = db.Column(db.Integer, db.ForeignKey('execucoes_rotina.id'), nullable=False)
+
+    # Dados do log
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    tipo = db.Column(db.String(20), nullable=False)  # 'info', 'success', 'warning', 'error'
+    mensagem = db.Column(db.Text, nullable=False)
+
+    # Relacionamentos
+    execucao = db.relationship('ExecucaoRotina', back_populates='logs')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+            'tipo': self.tipo,
+            'mensagem': self.mensagem
         }
