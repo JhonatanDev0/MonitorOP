@@ -548,20 +548,47 @@ const Rotinas = () => {
                     <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
                       Projeto Selecionado:
                     </div>
-                    <div style={{fontSize: '16px', fontWeight: 600, color: '#2c3e50'}}>
+                    <div style={{fontSize: '16px', fontWeight: 600, color: '#2c3e50', marginBottom: '15px'}}>
                       {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.subprograma} - {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.nome}
                     </div>
-                    {jobAtual && (
-                      <>
-                        <div style={{fontSize: '13px', color: '#5a6c7d', marginTop: '10px', marginBottom: '5px'}}>
-                          Executado por: <strong>{jobAtual.usuario}</strong>
-                        </div>
-                        <div style={{fontSize: '13px', color: '#5a6c7d'}}>
-                          Início: {formatarTimestamp(jobAtual.data_inicio)}
-                          {jobAtual.data_fim && ` | Fim: ${formatarTimestamp(jobAtual.data_fim)}`}
-                        </div>
-                      </>
-                    )}
+
+                    {/* Informações da Execução */}
+                    <div style={{borderTop: '1px solid #b8dce8', paddingTop: '12px'}}>
+                      <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
+                        <strong>Executado por:</strong> {jobAtual ? jobAtual.usuario : '-'}
+                      </div>
+                      <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
+                        <strong>Início:</strong> {jobAtual ? formatarTimestamp(jobAtual.data_inicio) : '-'}
+                        {' | '}
+                        <strong>Fim:</strong> {jobAtual?.data_fim ? formatarTimestamp(jobAtual.data_fim) : '-'}
+                      </div>
+                      <div style={{fontSize: '13px', marginTop: '8px'}}>
+                        <strong>Status:</strong>{' '}
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 12px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          background: !jobAtual
+                            ? '#95a5a6'
+                            : jobAtual.status === 'concluido'
+                            ? '#27ae60'
+                            : jobAtual.status === 'erro'
+                            ? '#e74c3c'
+                            : '#f39c12',
+                          color: 'white'
+                        }}>
+                          {!jobAtual
+                            ? 'Não executado'
+                            : jobAtual.status === 'concluido'
+                            ? 'Executado'
+                            : jobAtual.status === 'erro'
+                            ? 'Erro'
+                            : 'Em execução'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -647,57 +674,14 @@ const Rotinas = () => {
                   </div>
                 )}
 
-                {/* Rodapé com Botões de Ação */}
+                {/* Rodapé com Botão de Ação */}
                 <div style={{
                   display: 'flex',
-                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  gap: '15px',
                   paddingTop: '20px',
                   borderTop: '1px solid #e0e0e0'
                 }}>
-                  {/* Botão Status - Esquerda */}
-                  <div style={{
-                    padding: '12px 20px',
-                    background: !jobAtual
-                      ? 'linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)'
-                      : jobAtual.status === 'em_andamento'
-                      ? 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)'
-                      : jobAtual.status === 'erro'
-                      ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)'
-                      : 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
-                    color: 'white',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    minWidth: '160px'
-                  }}>
-                    <FontAwesomeIcon
-                      icon={
-                        !jobAtual
-                          ? faInfoCircle
-                          : jobAtual.status === 'em_andamento'
-                          ? faSpinner
-                          : jobAtual.status === 'erro'
-                          ? faTimesCircle
-                          : faCheckCircle
-                      }
-                      spin={jobAtual?.status === 'em_andamento'}
-                    />
-                    {!jobAtual
-                      ? 'Não iniciado'
-                      : jobAtual.status === 'em_andamento'
-                      ? 'Executando...'
-                      : jobAtual.status === 'erro'
-                      ? 'Erro'
-                      : 'Concluído'}
-                  </div>
-
-                  {/* Botão Executar - Direita */}
+                  {/* Botão Executar - Esquerda */}
                   <button
                     onClick={executarRotinaRecodificacao}
                     disabled={!podeExecutar()}

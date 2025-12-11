@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 import threading
 import uuid
+import json
 
 bp = Blueprint('recodificacao', __name__, url_prefix='/api/recodificacao')
 
@@ -17,10 +18,48 @@ SQLSERVER_USER = os.environ.get('SQLSERVER_USER', 'SDV')
 SQLSERVER_PASSWORD = os.environ.get('SQLSERVER_PASSWORD', 'SDV_COA')
 SQLSERVER_DRIVER = os.environ.get('SQLSERVER_DRIVER', '{ODBC Driver 17 for SQL Server}')
 
+# Caminho do arquivo de persistência
+JOBS_FILE_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'jobs_recodificacao.json')
+
 # Armazenamento em memória dos jobs
 # Chave: job_id (baseado em projeto_id)
 # Valor: dict com informações do job
 jobs_storage = {}
+
+
+def carregar_jobs():
+    """Carrega os jobs do arquivo JSON"""
+    global jobs_storage
+    try:
+        # Criar diretório se não existir
+        os.makedirs(os.path.dirname(JOBS_FILE_PATH), exist_ok=True)
+
+        if os.path.exists(JOBS_FILE_PATH):
+            with open(JOBS_FILE_PATH, 'r', encoding='utf-8') as f:
+                jobs_storage = json.load(f)
+            print(f"[{datetime.now()}] Jobs carregados do arquivo: {len(jobs_storage)} jobs")
+        else:
+            jobs_storage = {}
+            print(f"[{datetime.now()}] Nenhum arquivo de jobs encontrado, iniciando vazio")
+    except Exception as e:
+        print(f"[{datetime.now()}] Erro ao carregar jobs: {str(e)}")
+        jobs_storage = {}
+
+
+def salvar_jobs():
+    """Salva os jobs no arquivo JSON"""
+    try:
+        # Criar diretório se não existir
+        os.makedirs(os.path.dirname(JOBS_FILE_PATH), exist_ok=True)
+
+        with open(JOBS_FILE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(jobs_storage, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[{datetime.now()}] Erro ao salvar jobs: {str(e)}")
+
+
+# Carregar jobs ao inicializar o módulo
+carregar_jobs()
 
 
 def get_connection():
@@ -49,6 +88,7 @@ def adicionar_log(job_id, tipo, mensagem):
         }
         jobs_storage[job_id]['logs'].append(log_entry)
         print(f"[{log_entry['timestamp']}] [{tipo.upper()}] {mensagem}")
+        salvar_jobs()  # Persistir após adicionar log
 
 
 def executar_rotina_background(job_id, usuario, cd_projeto):
@@ -83,6 +123,7 @@ def executar_rotina_background(job_id, usuario, cd_projeto):
         # Atualizar status do job
         jobs_storage[job_id]['status'] = 'concluido'
         jobs_storage[job_id]['data_fim'] = datetime.now().isoformat()
+        salvar_jobs()  # Persistir após conclusão
 
     except pyodbc.Error as db_error:
         error_msg = str(db_error)
@@ -90,6 +131,7 @@ def executar_rotina_background(job_id, usuario, cd_projeto):
         jobs_storage[job_id]['status'] = 'erro'
         jobs_storage[job_id]['erro'] = error_msg
         jobs_storage[job_id]['data_fim'] = datetime.now().isoformat()
+        salvar_jobs()  # Persistir após erro
 
     except Exception as e:
         error_msg = str(e)
@@ -97,6 +139,7 @@ def executar_rotina_background(job_id, usuario, cd_projeto):
         jobs_storage[job_id]['status'] = 'erro'
         jobs_storage[job_id]['erro'] = error_msg
         jobs_storage[job_id]['data_fim'] = datetime.now().isoformat()
+        salvar_jobs()  # Persistir após erro
 
 
 @bp.route('/executar', methods=['POST'])
@@ -151,6 +194,7 @@ def executar_rotina():
             'logs': [],
             'erro': None
         }
+        salvar_jobs()  # Persistir após criar job
 
         # Iniciar thread de execução
         thread = threading.Thread(
