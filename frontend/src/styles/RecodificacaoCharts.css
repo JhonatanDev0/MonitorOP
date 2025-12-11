@@ -503,7 +503,6 @@
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  transition: all 0.2s ease;
 }
 
 .modal-close-btn:hover {
