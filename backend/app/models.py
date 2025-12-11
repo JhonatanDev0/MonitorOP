@@ -102,7 +102,8 @@ class Atividade(db.Model):
             'status': self.status,
             'projeto': {'id': self.projeto.id, 'nome': self.projeto.nome},
             'squad': {'id': self.squad.id, 'nome': self.squad.nome},
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'historico_observacoes': [h.to_dict() for h in self.historico_observacoes] if hasattr(self, 'historico_observacoes') else []
         }
 
 
@@ -135,4 +136,24 @@ class Usuario(db.Model):
             'role': self.role,
             'ativo': self.ativo,
             'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class HistoricoObservacao(db.Model):
+    __tablename__ = 'historico_observacoes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    atividade_id = db.Column(db.Integer, db.ForeignKey('atividades.id'), nullable=False)
+    observacao = db.Column(db.Text, nullable=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relacionamento
+    atividade = db.relationship('Atividade', backref='historico_observacoes')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'atividade_id': self.atividade_id,
+            'observacao': self.observacao,
+            'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None
         }

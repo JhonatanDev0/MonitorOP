@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 from app import db
-from app.models import Atividade, Projeto, Squad
+from app.models import Atividade, Projeto, Squad, HistoricoObservacao
 from app.utils.pagination import paginate_query
 from datetime import datetime
 
@@ -138,6 +138,13 @@ def atualizar_atividade(id):
         if 'titulo' in data:
             atividade.titulo = data['titulo']
         if 'observacao' in data:
+            # Se a observação mudou e não está vazia, salvar no histórico
+            if data['observacao'] and data['observacao'] != atividade.observacao:
+                historico = HistoricoObservacao(
+                    atividade_id=atividade.id,
+                    observacao=atividade.observacao if atividade.observacao else data['observacao']
+                )
+                db.session.add(historico)
             atividade.observacao = data['observacao']
         if 'prioridade' in data:
             if data['prioridade'] not in ['baixa', 'media', 'alta']:

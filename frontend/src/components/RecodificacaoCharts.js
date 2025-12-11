@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
+  LogarithmicScale,
   BarElement,
   LineElement,
   PointElement,
@@ -11,13 +12,17 @@ import {
   Legend,
   ArcElement
 } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { Doughnut, Bar } from 'react-chartjs-2';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faChartPie, 
-  faInfoCircle, 
+import {
+  faChartPie,
+  faInfoCircle,
   faExclamationTriangle,
-  faCheckCircle 
+  faCheckCircle,
+  faTimes,
+  faHistory,
+  faFileAlt
 } from '@fortawesome/free-solid-svg-icons';
 import '../styles/RecodificacaoCharts.css';
 
@@ -25,13 +30,15 @@ import '../styles/RecodificacaoCharts.css';
 ChartJS.register(
   CategoryScale,
   LinearScale,
+  LogarithmicScale,
   BarElement,
   LineElement,
   PointElement,
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ChartDataLabels
 );
 
 // Mapeamento de tipos de atividade para nomes amigáveis
@@ -46,7 +53,21 @@ const TIPO_ATIVIDADE_MAP = {
 };
 
 function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto }) {
-  
+  const [modalAberto, setModalAberto] = useState(false);
+  const [observacaoSelecionada, setObservacaoSelecionada] = useState(null);
+
+  // Função para abrir modal de observações
+  const abrirModal = (metrica) => {
+    setObservacaoSelecionada(metrica);
+    setModalAberto(true);
+  };
+
+  // Função para fechar modal
+  const fecharModal = () => {
+    setModalAberto(false);
+    setObservacaoSelecionada(null);
+  };
+
   // Função para formatar data
   const formatarData = (dataString) => {
     if (!dataString) return '-';
@@ -187,16 +208,6 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
           mensagem: `Faltam ${faltante} solicitação(ões) para completar (${(100 - percentualAtividade).toFixed(1)}% restante)`,
           cor: '#f39c12'
         });
-
-        // Alerta de indevidos (só mostrar quando há pendência)
-        if (metrica.qt_indevido > 0) {
-          alertas.push({
-            tipo: 'indevido',
-            atividade: metrica.nomeAtividade,
-            mensagem: `${metrica.qt_indevido} solicitação(ões) indevida(s)`,
-            cor: '#f39c12'
-          });
-        }
       }
     });
 
@@ -229,11 +240,6 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
   const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: {
-      mode: 'nearest',
-      axis: 'x',
-      intersect: false
-    },
     plugins: {
       legend: {
         position: 'bottom',
@@ -242,56 +248,42 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
         display: false
       },
       tooltip: {
-        enabled: true,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        padding: 12,
-        titleFont: {
-          size: 14,
+        enabled: false  // Desabilitar tooltip
+      },
+      datalabels: {
+        display: true,
+        color: '#2c3e50',
+        font: {
+          size: 12,
           weight: 'bold'
         },
-        bodyFont: {
-          size: 13
-        },
-        callbacks: {
-          title: function(context) {
-            return context[0].label || '';
-          },
-          label: function(context) {
-            const label = context.dataset.label || '';
-            const value = context.parsed.y;
-
-            // Se for o dataset de Realizado, também mostrar percentual
-            if (context.datasetIndex === 1) {
-              const metricasProcessadas = processarMetricas();
-              const metrica = metricasProcessadas[context.dataIndex];
-              if (metrica) {
-                const realizadoComIndevido = metrica.qt_realizado + metrica.qt_indevido;
-                const percentual = metrica.qt_previsto > 0
-                  ? ((realizadoComIndevido / metrica.qt_previsto) * 100).toFixed(1)
-                  : 0;
-                return `${label}: ${value} (${percentual}% completo)`;
-              }
-            }
-
-            return `${label}: ${value}`;
-          },
-          afterBody: function(context) {
-            // Adicionar informação de indevidos se existir
-            const metricasProcessadas = processarMetricas();
-            const metrica = metricasProcessadas[context[0].dataIndex];
-            if (metrica && metrica.qt_indevido > 0) {
-              return [`\nIndevidos: ${metrica.qt_indevido}`];
-            }
-            return [];
-          }
-        }
+        anchor: 'end',
+        align: 'top',
+        offset: 4,
+        formatter: (value) => value
       }
     },
     scales: {
       y: {
-        beginAtZero: true,
+        type: 'logarithmic',
+        beginAtZero: false,
+        min: 0.1,
         ticks: {
-          stepSize: 1
+          callback: function(value, index, values) {
+            // Mostrar apenas valores inteiros importantes
+            if (value === 1 || value === 10 || value === 100 || value === 1000 || value === 10000) {
+              return value;
+            }
+            return null;
+          }
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)'
+        }
+      },
+      x: {
+        grid: {
+          display: false
         }
       }
     }
@@ -398,20 +390,7 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
                 className="atividade-card"
               >
                 <div className="atividade-header">
-                  <strong>
-                    {metrica.nomeAtividade}
-                    {metrica.atividade?.observacao && (
-                      <span className="custom-tooltip">
-                        <FontAwesomeIcon
-                          icon={faInfoCircle}
-                          className="tooltip-icon"
-                        />
-                        <span className="tooltip-text">
-                          {metrica.atividade.observacao}
-                        </span>
-                      </span>
-                    )}
-                  </strong>
+                  <strong>{metrica.nomeAtividade}</strong>
                   <span className={`percentual-badge ${percentualAtividade >= 100 ? 'concluido' : 'pendente'}`}>
                     {percentualAtividade.toFixed(1)}%
                   </span>
@@ -443,6 +422,15 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
                     />
                   </div>
                 </div>
+                {metrica.atividade?.observacao && (
+                  <button
+                    className="btn-observacao"
+                    onClick={() => abrirModal(metrica)}
+                  >
+                    <FontAwesomeIcon icon={faFileAlt} />
+                    Ver Observações
+                  </button>
+                )}
               </div>
             );
           })}
@@ -494,6 +482,59 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
           </div>
         </div>
       </div>
+
+      {/* Modal de Observações */}
+      {modalAberto && observacaoSelecionada && (
+        <div className="modal-overlay" onClick={fecharModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">
+                <FontAwesomeIcon icon={faFileAlt} />
+                Observações - {observacaoSelecionada.nomeAtividade}
+              </h3>
+              <button className="modal-close-btn" onClick={fecharModal}>
+                <FontAwesomeIcon icon={faTimes} />
+              </button>
+            </div>
+            <div className="modal-body">
+              {/* Observação Atual */}
+              <div className="observacao-atual">
+                <div className="observacao-atual-label">Observação Atual:</div>
+                <div className="observacao-atual-text">
+                  {observacaoSelecionada.atividade?.observacao || 'Nenhuma observação registrada.'}
+                </div>
+              </div>
+
+              {/* Histórico de Observações */}
+              <div className="historico-section">
+                <h4 className="historico-title">
+                  <FontAwesomeIcon icon={faHistory} />
+                  Histórico de Observações
+                </h4>
+                <div className="historico-lista">
+                  {observacaoSelecionada.atividade?.historico_observacoes?.length > 0 ? (
+                    observacaoSelecionada.atividade.historico_observacoes.map((hist, index) => (
+                      <div key={index} className="historico-item">
+                        <div className="historico-item-data">
+                          {formatarData(hist.data_criacao)}
+                        </div>
+                        <div className="historico-item-texto">
+                          {hist.observacao}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="sem-historico">
+                      <FontAwesomeIcon icon={faHistory} style={{ fontSize: '32px', marginBottom: '10px', opacity: 0.3 }} />
+                      <p>Nenhum histórico de observações disponível.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
