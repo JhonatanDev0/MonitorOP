@@ -209,7 +209,7 @@ function AppContent() {
         onAbrirTrocarSenha={handleAbrirTrocarSenha}
       />
 
-      <main className={!ehRotaValida || !isAuthenticated() ? 'container-fullscreen' : `container ${sidebarOpen ? 'sidebar-open' : ''}`}>
+      <main className={!ehRotaValida || !isAuthenticated() ? 'container-fullscreen' : 'container'}>
         <Routes>
           <Route path="/login" element={<Login />} />
           
