@@ -22,6 +22,9 @@ instance/
 *.sqlite
 *.sqlite3
 
+# Job storage (persistence data)
+backend/app/data/jobs_recodificacao.json
+
 # Environment variables
 .env
 .env.local
