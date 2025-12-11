@@ -156,11 +156,39 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
   };
 
   // Gerar alertas de observações e indevidos
-  const getAlertas = () => {
+  const getAlertas = (totalPrevisto, totalRealizado, totalIndevido) => {
     const metricasProcessadas = processarMetricas();
     const alertas = [];
 
+    // Alerta geral se não atingiu 100%
+    const totalRealizadoComIndevido = totalRealizado + totalIndevido;
+    const percentualAtual = totalPrevisto > 0 ? ((totalRealizadoComIndevido / totalPrevisto) * 100) : 0;
+
+    if (percentualAtual < 100 && totalPrevisto > 0) {
+      const diferencaFaltante = totalPrevisto - totalRealizadoComIndevido;
+      alertas.push({
+        tipo: 'pendente',
+        atividade: 'Geral',
+        mensagem: `Faltam ${diferencaFaltante} solicitação(ões) para atingir 100% (${(100 - percentualAtual).toFixed(1)}% restante)`,
+        cor: '#e74c3c'
+      });
+    }
+
     metricasProcessadas.forEach(metrica => {
+      // Alerta de atividade individual que não atingiu 100%
+      const realizadoComIndevido = metrica.qt_realizado + metrica.qt_indevido;
+      const percentualAtividade = metrica.qt_previsto > 0 ? ((realizadoComIndevido / metrica.qt_previsto) * 100) : 0;
+
+      if (percentualAtividade < 100 && metrica.qt_previsto > 0) {
+        const faltante = metrica.qt_previsto - realizadoComIndevido;
+        alertas.push({
+          tipo: 'pendente_atividade',
+          atividade: metrica.nomeAtividade,
+          mensagem: `Faltam ${faltante} solicitação(ões) para completar (${(100 - percentualAtividade).toFixed(1)}% restante)`,
+          cor: '#f39c12'
+        });
+      }
+
       // Alerta de indevidos
       if (metrica.qt_indevido > 0) {
         alertas.push({
@@ -168,16 +196,6 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
           atividade: metrica.nomeAtividade,
           mensagem: `${metrica.qt_indevido} solicitação(ões) indevida(s)`,
           cor: '#f39c12'
-        });
-      }
-
-      // Alerta de observação da atividade
-      if (metrica.atividade && metrica.atividade.observacao) {
-        alertas.push({
-          tipo: 'observacao',
-          atividade: metrica.nomeAtividade,
-          mensagem: metrica.atividade.observacao,
-          cor: '#3498db'
         });
       }
     });
@@ -220,7 +238,47 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
       },
       tooltip: {
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        padding: 12
+        padding: 12,
+        titleFont: {
+          size: 14,
+          weight: 'bold'
+        },
+        bodyFont: {
+          size: 13
+        },
+        callbacks: {
+          title: function(context) {
+            return context[0].label || '';
+          },
+          label: function(context) {
+            const label = context.dataset.label || '';
+            const value = context.parsed.y;
+
+            // Se for o dataset de Realizado, também mostrar percentual
+            if (context.datasetIndex === 1) {
+              const metricasProcessadas = processarMetricas();
+              const metrica = metricasProcessadas[context.dataIndex];
+              if (metrica) {
+                const realizadoComIndevido = metrica.qt_realizado + metrica.qt_indevido;
+                const percentual = metrica.qt_previsto > 0
+                  ? ((realizadoComIndevido / metrica.qt_previsto) * 100).toFixed(1)
+                  : 0;
+                return `${label}: ${value} (${percentual}% completo)`;
+              }
+            }
+
+            return `${label}: ${value}`;
+          },
+          afterBody: function(context) {
+            // Adicionar informação de indevidos se existir
+            const metricasProcessadas = processarMetricas();
+            const metrica = metricasProcessadas[context[0].dataIndex];
+            if (metrica && metrica.qt_indevido > 0) {
+              return [`\nIndevidos: ${metrica.qt_indevido}`];
+            }
+            return [];
+          }
+        }
       }
     },
     scales: {
@@ -242,19 +300,25 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
   }
 
   const metricasProcessadas = processarMetricas();
-  const alertas = getAlertas();
-  
+
   // Calcular totais
   const totalPrevisto = metricasProcessadas.reduce((sum, m) => sum + m.qt_previsto, 0);
   const totalRealizado = metricasProcessadas.reduce((sum, m) => sum + m.qt_realizado, 0);
   const totalIndevido = metricasProcessadas.reduce((sum, m) => sum + m.qt_indevido, 0);
-  
-  // Percentual geral
-  const percentualGeral = totalPrevisto > 0 
-    ? totalRealizado >= totalPrevisto 
-      ? 100.0 
-      : ((totalRealizado / totalPrevisto) * 100).toFixed(2)
+
+  // Percentual geral - incluindo indevidos no realizado para bater com previsto
+  const totalRealizadoComIndevido = totalRealizado + totalIndevido;
+  const percentualGeral = totalPrevisto > 0
+    ? totalRealizadoComIndevido >= totalPrevisto
+      ? 100.0
+      : ((totalRealizadoComIndevido / totalPrevisto) * 100).toFixed(2)
     : 0;
+
+  // Calcular diferença faltante
+  const diferencaFaltante = Math.max(0, totalPrevisto - totalRealizadoComIndevido);
+
+  // Gerar alertas após calcular totais
+  const alertas = getAlertas(totalPrevisto, totalRealizado, totalIndevido);
 
   return (
     <div className="recodificacao-charts">
@@ -315,49 +379,69 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
           Detalhamento por Atividade
         </h4>
         <div className="atividades-grid">
-          {metricasProcessadas.map((metrica, index) => (
-            <div key={index} className="atividade-card">
-              <div className="atividade-header">
-                <strong>{metrica.nomeAtividade}</strong>
-                <span className={`percentual-badge ${metrica.percentual_conclusao >= 100 ? 'concluido' : 'pendente'}`}>
-                  {metrica.percentual_conclusao.toFixed(1)}%
-                </span>
-              </div>
-              <div className="atividade-stats">
-                <div className="stat-row">
-                  <span className="stat-label">Previsto:</span>
-                  <span className="stat-value">{metrica.qt_previsto}</span>
+          {metricasProcessadas.map((metrica, index) => {
+            // Calcular percentual incluindo indevidos
+            const realizadoComIndevido = metrica.qt_realizado + metrica.qt_indevido;
+            const percentualAtividade = metrica.qt_previsto > 0
+              ? ((realizadoComIndevido / metrica.qt_previsto) * 100)
+              : 0;
+
+            return (
+              <div
+                key={index}
+                className="atividade-card"
+                title={metrica.atividade?.observacao || ''}
+              >
+                <div className="atividade-header">
+                  <strong>
+                    {metrica.nomeAtividade}
+                    {metrica.atividade?.observacao && (
+                      <FontAwesomeIcon
+                        icon={faInfoCircle}
+                        style={{
+                          marginLeft: '6px',
+                          fontSize: '14px',
+                          color: '#3498db',
+                          cursor: 'help'
+                        }}
+                        title={metrica.atividade.observacao}
+                      />
+                    )}
+                  </strong>
+                  <span className={`percentual-badge ${percentualAtividade >= 100 ? 'concluido' : 'pendente'}`}>
+                    {percentualAtividade.toFixed(1)}%
+                  </span>
                 </div>
-                <div className="stat-row">
-                  <span className="stat-label">Realizado:</span>
-                  <span className="stat-value success">{metrica.qt_realizado}</span>
-                </div>
-                {metrica.qt_indevido > 0 && (
+                <div className="atividade-stats">
                   <div className="stat-row">
-                    <span className="stat-label">Indevidos:</span>
-                    <span className="stat-value warning">{metrica.qt_indevido}</span>
+                    <span className="stat-label">Previsto:</span>
+                    <span className="stat-value">{metrica.qt_previsto}</span>
                   </div>
-                )}
-              </div>
-              <div className="atividade-progress">
-                <div className="progress-bar-small">
-                  <div 
-                    className="progress-fill-small" 
-                    style={{ 
-                      width: `${Math.min(metrica.percentual_conclusao, 100)}%`,
-                      backgroundColor: metrica.percentual_conclusao >= 100 ? '#2ecc71' : '#3498db'
-                    }}
-                  />
+                  <div className="stat-row">
+                    <span className="stat-label">Realizado:</span>
+                    <span className="stat-value success">{metrica.qt_realizado}</span>
+                  </div>
+                  {metrica.qt_indevido > 0 && (
+                    <div className="stat-row">
+                      <span className="stat-label">Indevidos:</span>
+                      <span className="stat-value warning">{metrica.qt_indevido}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="atividade-progress">
+                  <div className="progress-bar-small">
+                    <div
+                      className="progress-fill-small"
+                      style={{
+                        width: `${Math.min(percentualAtividade, 100)}%`,
+                        backgroundColor: percentualAtividade >= 100 ? '#2ecc71' : '#3498db'
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
-              {metrica.atividade && metrica.atividade.observacao && (
-                <div className="atividade-observacao">
-                  <FontAwesomeIcon icon={faInfoCircle} className="obs-icon" />
-                  <span className="obs-text">{metrica.atividade.observacao}</span>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
