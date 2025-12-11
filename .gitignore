@@ -27,6 +27,12 @@ instance/
 .env.local
 .env.*.local
 
+# Mas NÃO ignore os templates de ambiente (devem ser versionados)
+!.env.example
+!.env.localhost
+!.env.production
+!.env.trabalho
+
 # IDE
 .vscode/
 .idea/
@@ -55,10 +61,17 @@ frontend/coverage/
 
 # Misc
 .DS_Store
+frontend/.env
 frontend/.env.local
 frontend/.env.development.local
 frontend/.env.test.local
 frontend/.env.production.local
+
+# Mas NÃO ignore os templates de ambiente do frontend (devem ser versionados)
+!frontend/.env.example
+!frontend/.env.localhost
+!frontend/.env.production
+!frontend/.env.trabalho
 
 # Logs
 npm-debug.log*

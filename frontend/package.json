@@ -19,9 +19,16 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:local": "env-cmd -f .env.localhost react-scripts start",
     "start:trabalho": "env-cmd -f .env.trabalho react-scripts start",
+    "start:production": "env-cmd -f .env.production react-scripts start",
     "build": "react-scripts build",
+    "build:local": "env-cmd -f .env.localhost react-scripts build",
     "build:trabalho": "env-cmd -f .env.trabalho react-scripts build",
+    "build:production": "env-cmd -f .env.production react-scripts build",
+    "env:local": "cp .env.localhost .env && echo '✅ Ambiente configurado para LOCALHOST'",
+    "env:production": "cp .env.production .env && echo '✅ Ambiente configurado para REDE (192.168.6.31)'",
+    "env:trabalho": "cp .env.trabalho .env && echo '✅ Ambiente configurado para TRABALHO'",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
