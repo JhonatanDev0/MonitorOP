@@ -1,10 +1,12 @@
 """
-Rotas para execução de rotinas de Recodificação
+Rotas para execução de rotinas de Recodificação com sistema de jobs em background
 """
 from flask import Blueprint, request, jsonify
 import pyodbc
 import os
 from datetime import datetime
+import threading
+import uuid
 
 bp = Blueprint('recodificacao', __name__, url_prefix='/api/recodificacao')
 
@@ -14,6 +16,11 @@ SQLSERVER_DATABASE = os.environ.get('SQLSERVER_DATABASE', 'DB_MONITORAMENTO_OP')
 SQLSERVER_USER = os.environ.get('SQLSERVER_USER', 'SDV')
 SQLSERVER_PASSWORD = os.environ.get('SQLSERVER_PASSWORD', 'SDV_COA')
 SQLSERVER_DRIVER = os.environ.get('SQLSERVER_DRIVER', '{ODBC Driver 17 for SQL Server}')
+
+# Armazenamento em memória dos jobs
+# Chave: job_id (baseado em projeto_id)
+# Valor: dict com informações do job
+jobs_storage = {}
 
 
 def get_connection():
@@ -32,10 +39,70 @@ def get_connection():
         raise
 
 
+def adicionar_log(job_id, tipo, mensagem):
+    """Adiciona um log ao job"""
+    if job_id in jobs_storage:
+        log_entry = {
+            'timestamp': datetime.now().isoformat(),
+            'tipo': tipo,  # 'info', 'success', 'warning', 'error'
+            'mensagem': mensagem
+        }
+        jobs_storage[job_id]['logs'].append(log_entry)
+        print(f"[{log_entry['timestamp']}] [{tipo.upper()}] {mensagem}")
+
+
+def executar_rotina_background(job_id, usuario, cd_projeto):
+    """Executa a rotina em background (thread separada)"""
+    try:
+        adicionar_log(job_id, 'info', f'Usuário {usuario} iniciou a execução')
+        adicionar_log(job_id, 'info', f'Conectando ao SQL Server {SQLSERVER_HOST}...')
+
+        # Conectar ao SQL Server
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        adicionar_log(job_id, 'success', 'Conexão estabelecida com sucesso')
+        adicionar_log(job_id, 'info', f'Executando procedure para o projeto {cd_projeto}...')
+
+        # Executar a stored procedure
+        query = "EXEC DB_MONITORAMENTO_OP.dbo.sp_ExecutarMonitoramentoRecodificacao @CD_PROJETO = ?"
+        cursor.execute(query, (cd_projeto,))
+
+        adicionar_log(job_id, 'info', 'Procedure executada, processando commit...')
+
+        # Commit da transação
+        conn.commit()
+
+        adicionar_log(job_id, 'success', 'Commit realizado com sucesso')
+        adicionar_log(job_id, 'success', f'Rotina finalizada com sucesso para o projeto {cd_projeto}')
+
+        # Fechar conexão
+        cursor.close()
+        conn.close()
+
+        # Atualizar status do job
+        jobs_storage[job_id]['status'] = 'concluido'
+        jobs_storage[job_id]['data_fim'] = datetime.now().isoformat()
+
+    except pyodbc.Error as db_error:
+        error_msg = str(db_error)
+        adicionar_log(job_id, 'error', f'Erro no banco de dados: {error_msg}')
+        jobs_storage[job_id]['status'] = 'erro'
+        jobs_storage[job_id]['erro'] = error_msg
+        jobs_storage[job_id]['data_fim'] = datetime.now().isoformat()
+
+    except Exception as e:
+        error_msg = str(e)
+        adicionar_log(job_id, 'error', f'Erro ao executar rotina: {error_msg}')
+        jobs_storage[job_id]['status'] = 'erro'
+        jobs_storage[job_id]['erro'] = error_msg
+        jobs_storage[job_id]['data_fim'] = datetime.now().isoformat()
+
+
 @bp.route('/executar', methods=['POST'])
 def executar_rotina():
     """
-    Executa a rotina de monitoramento de recodificação
+    Inicia a execução da rotina de monitoramento de recodificação em background
 
     Payload esperado:
     {
@@ -60,49 +127,106 @@ def executar_rotina():
                 'erro': 'Dados incompletos. Forneça usuario, squad_id, projeto_id e cd_projeto'
             }), 400
 
-        # Conectar ao SQL Server
-        conn = get_connection()
-        cursor = conn.cursor()
+        # Criar job_id baseado no projeto
+        job_id = f'recodificacao_projeto_{projeto_id}'
 
-        # Executar a stored procedure
-        query = "EXEC DB_MONITORAMENTO_OP.dbo.sp_ExecutarMonitoramentoRecodificacao @CD_PROJETO = ?"
+        # Verificar se já existe um job em andamento para este projeto
+        if job_id in jobs_storage and jobs_storage[job_id]['status'] == 'em_andamento':
+            return jsonify({
+                'success': False,
+                'erro': 'Já existe uma execução em andamento para este projeto',
+                'job_id': job_id,
+                'status': jobs_storage[job_id]['status']
+            }), 409
 
-        # Log de execução
-        print(f"[{datetime.now()}] Executando rotina de Recodificação")
-        print(f"  Usuário: {usuario}")
-        print(f"  Projeto: {cd_projeto}")
-        print(f"  Query: {query}")
+        # Criar novo job
+        jobs_storage[job_id] = {
+            'job_id': job_id,
+            'projeto_id': projeto_id,
+            'cd_projeto': cd_projeto,
+            'usuario': usuario,
+            'status': 'em_andamento',
+            'data_inicio': datetime.now().isoformat(),
+            'data_fim': None,
+            'logs': [],
+            'erro': None
+        }
 
-        cursor.execute(query, (cd_projeto,))
-
-        # Commit da transação
-        conn.commit()
-
-        # Fechar conexão
-        cursor.close()
-        conn.close()
+        # Iniciar thread de execução
+        thread = threading.Thread(
+            target=executar_rotina_background,
+            args=(job_id, usuario, cd_projeto),
+            daemon=True
+        )
+        thread.start()
 
         return jsonify({
             'success': True,
-            'mensagem': f'Rotina de Recodificação executada com sucesso para o projeto {cd_projeto}',
-            'timestamp': datetime.now().isoformat()
+            'mensagem': f'Rotina iniciada em background para o projeto {cd_projeto}',
+            'job_id': job_id,
+            'status': 'em_andamento'
         }), 200
-
-    except pyodbc.Error as db_error:
-        error_msg = str(db_error)
-        print(f"[{datetime.now()}] Erro no banco de dados: {error_msg}")
-        return jsonify({
-            'success': False,
-            'erro': f'Erro ao executar procedure: {error_msg}'
-        }), 500
 
     except Exception as e:
         error_msg = str(e)
-        print(f"[{datetime.now()}] Erro geral: {error_msg}")
+        print(f"[{datetime.now()}] Erro ao iniciar rotina: {error_msg}")
         return jsonify({
             'success': False,
-            'erro': f'Erro ao executar rotina: {error_msg}'
+            'erro': f'Erro ao iniciar rotina: {error_msg}'
         }), 500
+
+
+@bp.route('/job/<job_id>', methods=['GET'])
+def get_job_status(job_id):
+    """
+    Retorna o status e logs de um job específico
+    """
+    if job_id not in jobs_storage:
+        return jsonify({
+            'success': False,
+            'erro': 'Job não encontrado'
+        }), 404
+
+    job = jobs_storage[job_id]
+
+    return jsonify({
+        'success': True,
+        'job': job
+    }), 200
+
+
+@bp.route('/job/projeto/<projeto_id>', methods=['GET'])
+def get_job_by_projeto(projeto_id):
+    """
+    Retorna o status e logs do job de um projeto específico
+    """
+    job_id = f'recodificacao_projeto_{projeto_id}'
+
+    if job_id not in jobs_storage:
+        return jsonify({
+            'success': False,
+            'erro': 'Nenhuma execução encontrada para este projeto',
+            'job_id': job_id
+        }), 404
+
+    job = jobs_storage[job_id]
+
+    return jsonify({
+        'success': True,
+        'job': job
+    }), 200
+
+
+@bp.route('/jobs', methods=['GET'])
+def get_all_jobs():
+    """
+    Retorna todos os jobs armazenados
+    """
+    return jsonify({
+        'success': True,
+        'jobs': list(jobs_storage.values()),
+        'total': len(jobs_storage)
+    }), 200
 
 
 @bp.route('/status', methods=['GET'])
