@@ -25,6 +25,9 @@ import { confirmAlert } from 'react-confirm-alert';
 import '../styles/Dashboard.css';
 import { useAuth } from '../contexts/AuthContext';
 
+// Configuração da API
+const API_URL = process.env.REACT_APP_API_URL || 'http://192.168.6.31:5000/api';
+
 const Rotinas = () => {
   const { user, canEdit } = useAuth();
   const currentUser = user;
@@ -52,12 +55,12 @@ const Rotinas = () => {
 
   // Carregar squads e projetos
   useEffect(() => {
-    fetch('http://localhost:5000/api/squads')
+    fetch(`${API_URL}/squads`)
       .then(res => res.json())
       .then(data => setSquads(data))
       .catch(err => toast.error('Erro ao carregar squads'));
 
-    fetch('http://localhost:5000/api/projetos')
+    fetch(`${API_URL}/projetos`)
       .then(res => res.json())
       .then(data => setProjetos(data))
       .catch(err => toast.error('Erro ao carregar projetos'));
@@ -89,7 +92,7 @@ const Rotinas = () => {
 
   const verificarStatusJob = async (projeto_id) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/recodificacao/job/projeto/${projeto_id}`);
+      const response = await fetch(`${API_URL}/recodificacao/job/projeto/${projeto_id}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -205,7 +208,7 @@ const Rotinas = () => {
     setLogsExpanded(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/recodificacao/executar', {
+      const response = await fetch(`${API_URL}/recodificacao/executar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
