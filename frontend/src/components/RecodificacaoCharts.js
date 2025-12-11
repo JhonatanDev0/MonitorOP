@@ -187,16 +187,16 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
           mensagem: `Faltam ${faltante} solicitação(ões) para completar (${(100 - percentualAtividade).toFixed(1)}% restante)`,
           cor: '#f39c12'
         });
-      }
 
-      // Alerta de indevidos
-      if (metrica.qt_indevido > 0) {
-        alertas.push({
-          tipo: 'indevido',
-          atividade: metrica.nomeAtividade,
-          mensagem: `${metrica.qt_indevido} solicitação(ões) indevida(s)`,
-          cor: '#f39c12'
-        });
+        // Alerta de indevidos (só mostrar quando há pendência)
+        if (metrica.qt_indevido > 0) {
+          alertas.push({
+            tipo: 'indevido',
+            atividade: metrica.nomeAtividade,
+            mensagem: `${metrica.qt_indevido} solicitação(ões) indevida(s)`,
+            cor: '#f39c12'
+          });
+        }
       }
     });
 
@@ -229,6 +229,11 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
   const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      mode: 'nearest',
+      axis: 'x',
+      intersect: false
+    },
     plugins: {
       legend: {
         position: 'bottom',
@@ -237,6 +242,7 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
         display: false
       },
       tooltip: {
+        enabled: true,
         backgroundColor: 'rgba(0, 0, 0, 0.8)',
         padding: 12,
         titleFont: {
@@ -390,22 +396,20 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
               <div
                 key={index}
                 className="atividade-card"
-                title={metrica.atividade?.observacao || ''}
               >
                 <div className="atividade-header">
                   <strong>
                     {metrica.nomeAtividade}
                     {metrica.atividade?.observacao && (
-                      <FontAwesomeIcon
-                        icon={faInfoCircle}
-                        style={{
-                          marginLeft: '6px',
-                          fontSize: '14px',
-                          color: '#3498db',
-                          cursor: 'help'
-                        }}
-                        title={metrica.atividade.observacao}
-                      />
+                      <span className="custom-tooltip">
+                        <FontAwesomeIcon
+                          icon={faInfoCircle}
+                          className="tooltip-icon"
+                        />
+                        <span className="tooltip-text">
+                          {metrica.atividade.observacao}
+                        </span>
+                      </span>
                     )}
                   </strong>
                   <span className={`percentual-badge ${percentualAtividade >= 100 ? 'concluido' : 'pendente'}`}>
