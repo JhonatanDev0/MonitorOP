@@ -233,7 +233,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: transparent;
+  background: rgba(0, 0, 0, 0.5);
   z-index: 98;
   animation: fadeIn 0.2s ease;
 }
@@ -398,11 +398,6 @@ main {
   width: 100%;
   min-height: calc(100vh - 200px);
   padding-top: 76px;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-main.sidebar-open {
-  margin-left: 220px;
 }
 
 /* ==================== CARDS & FORMS ==================== */
