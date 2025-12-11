@@ -16,7 +16,9 @@ import {
   faFileExcel,
   faFilter,
   faListCheck,
-  faClockRotateLeft
+  faClockRotateLeft,
+  faChevronDown,
+  faChevronUp
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
@@ -33,9 +35,12 @@ const Rotinas = () => {
   const [projetosFiltrados, setProjetosFiltrados] = useState([]);
   const [showProjetoDropdown, setShowProjetoDropdown] = useState(false);
 
-  // Estados para execução
+  // Estados para execução e job
   const [executando, setExecutando] = useState(false);
-  const [statusExecucao, setStatusExecucao] = useState('nao-iniciado'); // 'nao-iniciado', 'em-andamento', 'concluido'
+  const [jobAtual, setJobAtual] = useState(null);
+  const [logsExpanded, setLogsExpanded] = useState(false);
+  const logsEndRef = useRef(null);
+  const pollingInterval = useRef(null);
 
   // Função auxiliar que verifica permissão
   const temPermissao = () => {
@@ -57,6 +62,81 @@ const Rotinas = () => {
       .then(data => setProjetos(data))
       .catch(err => toast.error('Erro ao carregar projetos'));
   }, []);
+
+  // Verificar status do job quando o projeto muda
+  useEffect(() => {
+    if (filtros.projeto_id) {
+      verificarStatusJob(filtros.projeto_id);
+    } else {
+      setJobAtual(null);
+      pararPolling();
+    }
+  }, [filtros.projeto_id]);
+
+  // Auto-scroll dos logs
+  useEffect(() => {
+    if (logsExpanded && logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [jobAtual?.logs, logsExpanded]);
+
+  // Limpar polling ao desmontar componente
+  useEffect(() => {
+    return () => {
+      pararPolling();
+    };
+  }, []);
+
+  const verificarStatusJob = async (projeto_id) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/recodificacao/job/projeto/${projeto_id}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setJobAtual(data.job);
+
+          // Se está em andamento, iniciar polling
+          if (data.job.status === 'em_andamento') {
+            setExecutando(true);
+            iniciarPolling(projeto_id);
+            if (!logsExpanded) {
+              setLogsExpanded(true);
+            }
+          } else {
+            setExecutando(false);
+            pararPolling();
+          }
+        }
+      } else {
+        // Job não encontrado, limpar estado
+        setJobAtual(null);
+        setExecutando(false);
+        pararPolling();
+      }
+    } catch (error) {
+      console.error('Erro ao verificar status do job:', error);
+    }
+  };
+
+  const iniciarPolling = (projeto_id) => {
+    // Limpar polling anterior se existir
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+    }
+
+    // Polling a cada 2 segundos
+    pollingInterval.current = setInterval(() => {
+      verificarStatusJob(projeto_id);
+    }, 2000);
+  };
+
+  const pararPolling = () => {
+    if (pollingInterval.current) {
+      clearInterval(pollingInterval.current);
+      pollingInterval.current = null;
+    }
+  };
 
   // Filtrar projetos
   useEffect(() => {
@@ -122,7 +202,7 @@ const Rotinas = () => {
     }
 
     setExecutando(true);
-    setStatusExecucao('em-andamento');
+    setLogsExpanded(true);
 
     try {
       const response = await fetch('http://localhost:5000/api/recodificacao/executar', {
@@ -142,13 +222,16 @@ const Rotinas = () => {
         throw new Error(data.erro || 'Erro ao executar rotina');
       }
 
-      toast.success(`Rotina de Recodificação executada com sucesso para o projeto ${projetoSelecionado.subprograma}!`);
-      setStatusExecucao('concluido');
+      toast.success('Rotina iniciada em background!');
+
+      // Iniciar polling para atualizar status
+      iniciarPolling(filtros.projeto_id);
+
+      // Buscar status inicial
+      setTimeout(() => verificarStatusJob(filtros.projeto_id), 500);
 
     } catch (error) {
       toast.error(error.message);
-      setStatusExecucao('nao-iniciado');
-    } finally {
       setExecutando(false);
     }
   };
@@ -158,6 +241,37 @@ const Rotinas = () => {
            filtros.squad_id &&
            filtros.projeto_id &&
            !executando;
+  };
+
+  const formatarTimestamp = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const getLogIcon = (tipo) => {
+    switch(tipo) {
+      case 'success': return faCheckCircle;
+      case 'error': return faTimesCircle;
+      case 'warning': return faExclamationTriangle;
+      default: return faInfoCircle;
+    }
+  };
+
+  const getLogColor = (tipo) => {
+    switch(tipo) {
+      case 'success': return '#27ae60';
+      case 'error': return '#e74c3c';
+      case 'warning': return '#f39c12';
+      default: return '#3498db';
+    }
   };
 
   // Verificar se squad selecionada é Recodificação
@@ -251,7 +365,6 @@ const Rotinas = () => {
                   onChange={(e) => {
                     setFiltros({...filtros, squad_id: e.target.value, projeto_id: ''});
                     setProjetoSearch('');
-                    setStatusExecucao('nao-iniciado');
                   }}
                   style={{width: '100%'}}
                   disabled={executando}
@@ -380,7 +493,7 @@ const Rotinas = () => {
                   <div style={{
                     width: '50px',
                     height: '50px',
-                    background: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+                    background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                     borderRadius: '10px',
                     display: 'flex',
                     alignItems: 'center',
@@ -404,7 +517,7 @@ const Rotinas = () => {
                   padding: '20px',
                   background: '#f8f9fa',
                   borderRadius: '8px',
-                  borderLeft: '4px solid #9b59b6'
+                  borderLeft: '4px solid #3498db'
                 }}>
                   <h4 style={{
                     margin: '0 0 10px 0',
@@ -420,7 +533,7 @@ const Rotinas = () => {
                   </p>
                 </div>
 
-                {/* Informações do Projeto */}
+                {/* Informações do Projeto e Job */}
                 {filtros.projeto_id && (
                   <div style={{
                     marginBottom: '25px',
@@ -435,6 +548,99 @@ const Rotinas = () => {
                     <div style={{fontSize: '16px', fontWeight: 600, color: '#2c3e50'}}>
                       {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.subprograma} - {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.nome}
                     </div>
+                    {jobAtual && (
+                      <>
+                        <div style={{fontSize: '13px', color: '#5a6c7d', marginTop: '10px', marginBottom: '5px'}}>
+                          Executado por: <strong>{jobAtual.usuario}</strong>
+                        </div>
+                        <div style={{fontSize: '13px', color: '#5a6c7d'}}>
+                          Início: {formatarTimestamp(jobAtual.data_inicio)}
+                          {jobAtual.data_fim && ` | Fim: ${formatarTimestamp(jobAtual.data_fim)}`}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Área de Logs */}
+                {jobAtual && jobAtual.logs && jobAtual.logs.length > 0 && (
+                  <div style={{
+                    marginBottom: '25px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    overflow: 'hidden'
+                  }}>
+                    <button
+                      onClick={() => setLogsExpanded(!logsExpanded)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 20px',
+                        background: '#f8f9fa',
+                        border: 'none',
+                        borderBottom: logsExpanded ? '1px solid #e0e0e0' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: '#2c3e50'
+                      }}
+                    >
+                      <span>
+                        <FontAwesomeIcon icon={faClockRotateLeft} style={{marginRight: '8px'}} />
+                        Logs de Execução ({jobAtual.logs.length})
+                      </span>
+                      <FontAwesomeIcon icon={logsExpanded ? faChevronUp : faChevronDown} />
+                    </button>
+
+                    {logsExpanded && (
+                      <div style={{
+                        maxHeight: '300px',
+                        overflowY: 'auto',
+                        padding: '15px',
+                        background: '#fafafa'
+                      }}>
+                        {jobAtual.logs.map((log, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              padding: '10px',
+                              marginBottom: '8px',
+                              background: 'white',
+                              borderRadius: '4px',
+                              borderLeft: `3px solid ${getLogColor(log.tipo)}`,
+                              fontSize: '13px',
+                              display: 'flex',
+                              gap: '10px',
+                              alignItems: 'flex-start'
+                            }}
+                          >
+                            <FontAwesomeIcon
+                              icon={getLogIcon(log.tipo)}
+                              style={{
+                                color: getLogColor(log.tipo),
+                                marginTop: '2px',
+                                flexShrink: 0
+                              }}
+                            />
+                            <div style={{flex: 1}}>
+                              <div style={{
+                                fontSize: '11px',
+                                color: '#95a5a6',
+                                marginBottom: '4px'
+                              }}>
+                                {formatarTimestamp(log.timestamp)}
+                              </div>
+                              <div style={{color: '#2c3e50'}}>
+                                {log.mensagem}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <div ref={logsEndRef} />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -450,10 +656,12 @@ const Rotinas = () => {
                   {/* Botão Status - Esquerda */}
                   <div style={{
                     padding: '12px 20px',
-                    background: statusExecucao === 'nao-iniciado'
+                    background: !jobAtual
                       ? 'linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)'
-                      : statusExecucao === 'em-andamento'
+                      : jobAtual.status === 'em_andamento'
                       ? 'linear-gradient(135deg, #f39c12 0%, #e67e22 100%)'
+                      : jobAtual.status === 'erro'
+                      ? 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)'
                       : 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
                     color: 'white',
                     borderRadius: '6px',
@@ -467,18 +675,22 @@ const Rotinas = () => {
                   }}>
                     <FontAwesomeIcon
                       icon={
-                        statusExecucao === 'nao-iniciado'
+                        !jobAtual
                           ? faInfoCircle
-                          : statusExecucao === 'em-andamento'
+                          : jobAtual.status === 'em_andamento'
                           ? faSpinner
+                          : jobAtual.status === 'erro'
+                          ? faTimesCircle
                           : faCheckCircle
                       }
-                      spin={statusExecucao === 'em-andamento'}
+                      spin={jobAtual?.status === 'em_andamento'}
                     />
-                    {statusExecucao === 'nao-iniciado'
+                    {!jobAtual
                       ? 'Não iniciado'
-                      : statusExecucao === 'em-andamento'
+                      : jobAtual.status === 'em_andamento'
                       ? 'Executando...'
+                      : jobAtual.status === 'erro'
+                      ? 'Erro'
                       : 'Concluído'}
                   </div>
 
@@ -490,7 +702,7 @@ const Rotinas = () => {
                       padding: '12px 24px',
                       background: !podeExecutar()
                         ? 'linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%)'
-                        : 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+                        : 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '6px',
