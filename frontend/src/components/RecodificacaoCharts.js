@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import ReactDOM from 'react-dom';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -68,35 +69,60 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
     setObservacaoSelecionada(null);
   };
 
-  // Função para formatar data
+  // Função para formatar data (apenas data)
   const formatarData = (dataString) => {
     if (!dataString) return '-';
-    
+
     try {
       if (typeof dataString === 'string' && dataString.includes('-')) {
         const partes = dataString.split('T')[0].split('-');
         const [ano, mes, dia] = partes;
         return `${dia}/${mes}/${ano}`;
       }
-      
+
       if (typeof dataString === 'string' && dataString.includes('/')) {
         return dataString;
       }
-      
+
       const data = new Date(dataString);
-      
+
       if (isNaN(data.getTime())) {
         return '-';
       }
-      
+
       const dia = String(data.getDate()).padStart(2, '0');
       const mes = String(data.getMonth() + 1).padStart(2, '0');
       const ano = data.getFullYear();
-      
+
       return `${dia}/${mes}/${ano}`;
-      
+
     } catch (error) {
       console.error('Erro ao formatar data:', error);
+      return '-';
+    }
+  };
+
+  // Função para formatar data e hora (para histórico)
+  const formatarDataHora = (dataString) => {
+    if (!dataString) return '-';
+
+    try {
+      const data = new Date(dataString);
+
+      if (isNaN(data.getTime())) {
+        return '-';
+      }
+
+      const dia = String(data.getDate()).padStart(2, '0');
+      const mes = String(data.getMonth() + 1).padStart(2, '0');
+      const ano = data.getFullYear();
+      const horas = String(data.getHours()).padStart(2, '0');
+      const minutos = String(data.getMinutes()).padStart(2, '0');
+
+      return `${dia}/${mes}/${ano} às ${horas}:${minutos}`;
+
+    } catch (error) {
+      console.error('Erro ao formatar data e hora:', error);
       return '-';
     }
   };
@@ -240,6 +266,11 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
   const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 30  // Espaço para os valores acima das barras
+      }
+    },
     plugins: {
       legend: {
         position: 'bottom',
@@ -422,7 +453,7 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
                     />
                   </div>
                 </div>
-                {metrica.atividade?.observacao && (
+                {(metrica.atividade?.observacao || metrica.atividade?.historico_observacoes?.length > 0) && (
                   <button
                     className="btn-observacao"
                     onClick={() => abrirModal(metrica)}
@@ -483,8 +514,8 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
         </div>
       </div>
 
-      {/* Modal de Observações */}
-      {modalAberto && observacaoSelecionada && (
+      {/* Modal de Observações - Renderizado via Portal no body */}
+      {modalAberto && observacaoSelecionada && ReactDOM.createPortal(
         <div className="modal-overlay" onClick={fecharModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -516,7 +547,7 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
                     observacaoSelecionada.atividade.historico_observacoes.map((hist, index) => (
                       <div key={index} className="historico-item">
                         <div className="historico-item-data">
-                          {formatarData(hist.data_criacao)}
+                          {formatarDataHora(hist.data_criacao)}
                         </div>
                         <div className="historico-item-texto">
                           {hist.observacao}
@@ -533,7 +564,8 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
