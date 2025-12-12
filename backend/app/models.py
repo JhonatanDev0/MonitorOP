@@ -94,6 +94,9 @@ class Atividade(db.Model):
     squad = db.relationship('Squad', back_populates='atividades')
     
     def to_dict(self):
+        # Formatar nome completo do projeto
+        nome_completo_projeto = f"{self.projeto.subprograma} - {self.projeto.nome}" if self.projeto.subprograma else self.projeto.nome
+
         return {
             'id': self.id,
             'titulo': self.titulo,
@@ -104,7 +107,12 @@ class Atividade(db.Model):
             'fim_realizado': self.fim_realizado.isoformat() if self.fim_realizado else None,
             'prioridade': self.prioridade,
             'status': self.status,
-            'projeto': {'id': self.projeto.id, 'nome': self.projeto.nome},
+            'projeto': {
+                'id': self.projeto.id,
+                'nome': self.projeto.nome,
+                'subprograma': self.projeto.subprograma,
+                'nome_completo': nome_completo_projeto
+            },
             'squad': {'id': self.squad.id, 'nome': self.squad.nome},
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'historico_observacoes': [h.to_dict() for h in self.historico_observacoes] if hasattr(self, 'historico_observacoes') else []
