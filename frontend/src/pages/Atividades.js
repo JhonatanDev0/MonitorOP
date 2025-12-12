@@ -327,7 +327,7 @@ function Atividades() {
                   >
                     <option value="">Selecione...</option>
                     {projetos.map(p => (
-                      <option key={p.id} value={p.id}>{p.nome}</option>
+                      <option key={p.id} value={p.id}>{p.nome_completo || p.nome}</option>
                     ))}
                   </select>
                 </div>
@@ -459,7 +459,7 @@ function Atividades() {
                 >
                   <option value="">Todos</option>
                   {projetos.map(p => (
-                    <option key={p.id} value={p.id}>{p.nome}</option>
+                    <option key={p.id} value={p.id}>{p.nome_completo || p.nome}</option>
                   ))}
                 </select>
               </div>
@@ -561,7 +561,7 @@ function Atividades() {
                         <React.Fragment key={atividade.id}>
                           <tr>
                             <td><strong>{atividade.titulo}</strong></td>
-                            <td>{atividade.projeto.nome}</td>
+                            <td>{atividade.projeto.nome_completo || atividade.projeto.nome}</td>
                             <td>{atividade.squad.nome}</td>
                             <td>
                               {atividade.inicio_programado 
@@ -642,7 +642,7 @@ function Atividades() {
                                         >
                                           <option value="">Selecione...</option>
                                           {projetos.map(p => (
-                                            <option key={p.id} value={p.id}>{p.nome}</option>
+                                            <option key={p.id} value={p.id}>{p.nome_completo || p.nome}</option>
                                           ))}
                                         </select>
                                       </div>

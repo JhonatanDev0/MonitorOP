@@ -22,10 +22,14 @@ class Projeto(db.Model):
     atividades = db.relationship('Atividade', back_populates='projeto', cascade='all, delete-orphan')
     
     def to_dict(self):
+        # Formatar nome completo com código se existir
+        nome_completo = f"{self.subprograma} - {self.nome}" if self.subprograma else self.nome
+
         return {
             'id': self.id,
             'subprograma': self.subprograma,
             'nome': self.nome,
+            'nome_completo': nome_completo,
             'ordem_producao': self.ordem_producao,
             'data_aplicacao': self.data_aplicacao.isoformat() if self.data_aplicacao else None,
             'data_termino': self.data_termino.isoformat() if self.data_termino else None,
