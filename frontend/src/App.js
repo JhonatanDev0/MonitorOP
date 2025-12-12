@@ -18,6 +18,7 @@ import Usuarios from './pages/Usuarios';
 import NotFound from './pages/NotFound';
 import PrivateRoute from './components/PrivateRoute';
 import TrocarSenhaModal from './components/TrocarSenhaModal';
+import NotificationBell from './components/NotificationBell';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -105,6 +106,9 @@ function HeaderNav({ sidebarOpen, setSidebarOpen, onAbrirTrocarSenha }) {
 
           {/* Spacer para ocupar espaço */}
           <div className="header-spacer" />
+
+          {/* Notification Bell */}
+          <NotificationBell />
 
           {/* User Menu (direita do header) */}
           <div className="header-user-menu">
