@@ -169,3 +169,37 @@ class HistoricoObservacao(db.Model):
             'observacao': self.observacao,
             'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None
         }
+
+
+class Notificacao(db.Model):
+    __tablename__ = 'notificacoes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
+    tipo = db.Column(db.String(50), nullable=False)  # 'atividade', 'projeto', 'sistema'
+    titulo = db.Column(db.String(200), nullable=False)
+    mensagem = db.Column(db.Text, nullable=False)
+    prioridade = db.Column(db.String(20), default='info')  # 'critico', 'aviso', 'info'
+    lida = db.Column(db.Boolean, default=False)
+    link = db.Column(db.String(200))  # URL para o item relacionado
+    referencia_tipo = db.Column(db.String(50))  # 'atividade', 'projeto'
+    referencia_id = db.Column(db.Integer)  # ID do item relacionado
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relacionamento
+    usuario = db.relationship('Usuario', backref='notificacoes')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'usuario_id': self.usuario_id,
+            'tipo': self.tipo,
+            'titulo': self.titulo,
+            'mensagem': self.mensagem,
+            'prioridade': self.prioridade,
+            'lida': self.lida,
+            'link': self.link,
+            'referencia_tipo': self.referencia_tipo,
+            'referencia_id': self.referencia_id,
+            'data_criacao': self.data_criacao.isoformat() if self.data_criacao else None
+        }
