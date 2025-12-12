@@ -906,11 +906,11 @@ function Dashboard() {
 
                   return (
                     <div key={`recodificacao-${projeto.id}`} className="projeto-grafico-wrapper">
-                      <RecodificacaoCharts 
+                      <RecodificacaoCharts
                         cdProjeto={projeto.subprograma}
                         metricas={metricasFiltradas}
                         atividadesSquad={atividadesRecodificacaoProjeto}
-                        nomeProjeto={`${projeto.subprograma} - ${projeto.nome}`}
+                        nomeProjeto={projeto.nome_completo || projeto.nome}
                       />
                     </div>
                   );

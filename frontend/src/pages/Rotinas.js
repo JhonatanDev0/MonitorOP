@@ -149,7 +149,8 @@ const Rotinas = () => {
       const termo = projetoSearch.toLowerCase();
       const filtrados = projetos.filter(p =>
         (p.subprograma && p.subprograma.toLowerCase().includes(termo)) ||
-        (p.nome && p.nome.toLowerCase().includes(termo))
+        (p.nome && p.nome.toLowerCase().includes(termo)) ||
+        (p.nome_completo && p.nome_completo.toLowerCase().includes(termo))
       );
       setProjetosFiltrados(filtrados);
     }
@@ -168,7 +169,7 @@ const Rotinas = () => {
 
   const selecionarProjeto = (projeto) => {
     setFiltros({...filtros, projeto_id: projeto.id});
-    setProjetoSearch(`${projeto.subprograma || projeto.nome}`);
+    setProjetoSearch(projeto.nome_completo || projeto.nome);
     setShowProjetoDropdown(false);
   };
 
@@ -461,11 +462,8 @@ const Rotinas = () => {
                         onMouseEnter={(e) => !executando && (e.target.style.background = '#f8f9fa')}
                         onMouseLeave={(e) => e.target.style.background = 'white'}
                       >
-                        <div style={{fontWeight: 600, color: '#2c3e50', marginBottom: '3px'}}>
-                          {projeto.subprograma}
-                        </div>
-                        <div style={{fontSize: '13px', color: '#7f8c8d'}}>
-                          {projeto.nome}
+                        <div style={{fontWeight: 600, color: '#2c3e50'}}>
+                          {projeto.nome_completo || projeto.nome}
                         </div>
                       </div>
                     ))}
@@ -549,7 +547,8 @@ const Rotinas = () => {
                       Projeto Selecionado:
                     </div>
                     <div style={{fontSize: '16px', fontWeight: 600, color: '#2c3e50', marginBottom: '15px'}}>
-                      {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.subprograma} - {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.nome}
+                      {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.nome_completo ||
+                       projetos.find(p => p.id === parseInt(filtros.projeto_id))?.nome}
                     </div>
 
                     {/* Informações da Execução */}
