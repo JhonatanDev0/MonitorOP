@@ -432,7 +432,7 @@ function Projetos() {
                         <React.Fragment key={projeto.id}>
                           <tr>
                             <td><strong>{projeto.subprograma || '-'}</strong></td>
-                            <td>{projeto.nome_completo || projeto.nome}</td>
+                            <td>{projeto.nome}</td>
                             <td>{projeto.ordem_producao || '-'}</td>
                             <td>
                               {projeto.data_aplicacao && projeto.data_termino
@@ -479,7 +479,7 @@ function Projetos() {
                                 <div className="edit-form-wrapper">
                                   <div className="edit-form-header">
                                     <h4>
-                                      <FontAwesomeIcon icon={faEdit} /> Editando: {projeto.nome_completo || projeto.nome}
+                                      <FontAwesomeIcon icon={faEdit} /> Editando: {projeto.nome}
                                     </h4>
                                   </div>
                                   
