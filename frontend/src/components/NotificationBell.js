@@ -12,6 +12,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { confirmAlert } from 'react-confirm-alert';
 import '../styles/NotificationBell.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://192.168.6.31:5000/api';
@@ -93,20 +94,123 @@ const NotificationBell = () => {
   };
 
   const deletarTodas = async () => {
-    if (!window.confirm('Tem certeza que deseja deletar todas as notificações?')) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_URL}/notificacoes/deletar-todas`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      await carregarNotificacoes(true);
-    } catch (error) {
-      console.error('Erro ao deletar todas:', error);
-    }
+    confirmAlert({
+      customUI: ({ onClose }) => (
+        <div style={{
+          fontFamily: 'inherit',
+          width: '480px',
+          maxWidth: '90vw',
+          borderRadius: '12px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+          background: 'white',
+          overflow: 'hidden'
+        }}>
+          <h1 style={{
+            margin: 0,
+            padding: '20px 25px',
+            background: '#e74c3c',
+            color: 'white',
+            fontSize: '18px',
+            fontWeight: 600,
+            textAlign: 'center'
+          }}>
+            Confirmar Exclusão
+          </h1>
+          <div style={{
+            padding: '45px 35px',
+            textAlign: 'center',
+            fontSize: '15px',
+            color: '#2c3e50',
+            lineHeight: '1.8'
+          }}>
+            <FontAwesomeIcon
+              icon={faExclamationTriangle}
+              style={{
+                fontSize: '48px',
+                color: '#f39c12',
+                marginBottom: '20px'
+              }}
+            />
+            <p style={{ margin: '0 0 10px 0', fontWeight: 600, fontSize: '16px' }}>
+              Deletar todas as notificações?
+            </p>
+            <p style={{ margin: 0, color: '#7f8c8d' }}>
+              Esta ação não pode ser desfeita. Todas as suas notificações serão removidas permanentemente.
+            </p>
+          </div>
+          <div style={{
+            display: 'flex',
+            gap: '12px',
+            padding: '0 35px 35px 35px'
+          }}>
+            <button
+              onClick={onClose}
+              style={{
+                flex: 1,
+                padding: '14px 24px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                background: 'white',
+                color: '#2c3e50',
+                fontSize: '15px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#f8f9fa';
+                e.target.style.borderColor = '#bdc3c7';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'white';
+                e.target.style.borderColor = '#e0e0e0';
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={async () => {
+                onClose();
+                try {
+                  const token = localStorage.getItem('token');
+                  await axios.delete(`${API_URL}/notificacoes/deletar-todas`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                  });
+                  await carregarNotificacoes(true);
+                } catch (error) {
+                  console.error('Erro ao deletar todas:', error);
+                }
+              }}
+              style={{
+                flex: 1,
+                padding: '14px 24px',
+                border: 'none',
+                borderRadius: '8px',
+                background: '#e74c3c',
+                color: 'white',
+                fontSize: '15px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#c0392b';
+                e.target.style.transform = 'translateY(-1px)';
+                e.target.style.boxShadow = '0 4px 12px rgba(231, 76, 60, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = '#e74c3c';
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
+              }}
+            >
+              <FontAwesomeIcon icon={faTrashAlt} style={{ marginRight: '8px' }} />
+              Deletar Todas
+            </button>
+          </div>
+        </div>
+      )
+    });
   };
 
   const deletarNotificacao = async (id, event) => {
