@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt
 from app import db
 from app.models import Squad, Projeto
 from app.utils.pagination import paginate_query
+from app.utils.notificacao_utils import notificar_todos_gestores
 
 bp = Blueprint('squads', __name__, url_prefix='/api/squads')
 
@@ -72,7 +73,19 @@ def criar_squad():
         
         db.session.add(squad)
         db.session.commit()
-        
+
+        # Notificar gestores sobre nova squad
+        try:
+            notificar_todos_gestores(
+                tipo='sistema',
+                titulo='Nova Squad Criada',
+                mensagem=f'A squad "{squad.nome}" foi criada no sistema',
+                prioridade='info',
+                link='/squads'
+            )
+        except Exception as e:
+            print(f"Erro ao criar notificações: {e}")
+
         return jsonify(squad.to_dict()), 201
     except Exception as e:
         db.session.rollback()

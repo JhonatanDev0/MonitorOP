@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.models import db, Usuario
 from app.utils.pagination import paginate_query
+from app.utils.notificacao_utils import criar_notificacao
 
 usuarios_bp = Blueprint('usuarios', __name__, url_prefix='/api/usuarios')
 
@@ -68,7 +69,23 @@ def criar_usuario():
         
         db.session.add(usuario)
         db.session.commit()
-        
+
+        # Notificar outros admins sobre novo usuário
+        try:
+            admins = Usuario.query.filter_by(role='admin', ativo=True).all()
+            for admin in admins:
+                if admin.id != usuario.id:  # Não notificar o próprio usuário criado
+                    criar_notificacao(
+                        usuario_id=admin.id,
+                        tipo='sistema',
+                        titulo='Novo Usuário Criado',
+                        mensagem=f'O usuário "{usuario.nome}" ({usuario.role}) foi adicionado ao sistema',
+                        prioridade='info',
+                        link='/usuarios'
+                    )
+        except Exception as e:
+            print(f"Erro ao criar notificações: {e}")
+
         return jsonify(usuario.to_dict()), 201
         
     except Exception as e:
