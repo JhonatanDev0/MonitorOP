@@ -1,5 +1,4 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
 import threading
 import time
 from datetime import datetime
@@ -284,7 +283,6 @@ def executar_categorizacao(usuario, squad_id, projeto_id, cd_projeto):
 
 
 @bp.route('/executar', methods=['POST'])
-@jwt_required()
 def executar():
     """Executa a rotina de categorização em background"""
     try:
@@ -320,7 +318,6 @@ def executar():
 
 
 @bp.route('/job/projeto/<int:projeto_id>', methods=['GET'])
-@jwt_required()
 def buscar_job(projeto_id):
     """Busca o job de um projeto específico"""
     try:
