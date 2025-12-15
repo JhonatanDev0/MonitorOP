@@ -866,7 +866,7 @@ const Rotinas = () => {
                   <div style={{
                     width: '50px',
                     height: '50px',
-                    background: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+                    background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                     borderRadius: '10px',
                     display: 'flex',
                     alignItems: 'center',
@@ -890,7 +890,7 @@ const Rotinas = () => {
                   padding: '20px',
                   background: '#f8f9fa',
                   borderRadius: '8px',
-                  borderLeft: '4px solid #9b59b6'
+                  borderLeft: '4px solid #3498db'
                 }}>
                   <h4 style={{
                     margin: '0 0 10px 0',
@@ -912,9 +912,9 @@ const Rotinas = () => {
                   <div style={{
                     marginBottom: '25px',
                     padding: '15px 20px',
-                    background: '#f4ecf7',
+                    background: '#e8f4f8',
                     borderRadius: '6px',
-                    border: '1px solid #d7bde2'
+                    border: '1px solid #b8dce8'
                   }}>
                     <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
                       Projeto Selecionado:
@@ -924,7 +924,7 @@ const Rotinas = () => {
                     </div>
 
                     {/* Informações da Execução */}
-                    <div style={{borderTop: '1px solid #d7bde2', paddingTop: '12px'}}>
+                    <div style={{borderTop: '1px solid #b8dce8', paddingTop: '12px'}}>
                       <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
                         <strong>Executado por:</strong> {jobAtualCategorizacao ? jobAtualCategorizacao.usuario : '-'}
                       </div>
@@ -1060,7 +1060,7 @@ const Rotinas = () => {
                       padding: '12px 24px',
                       background: !podeExecutarCategorizacao()
                         ? 'linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%)'
-                        : 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+                        : 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '6px',
