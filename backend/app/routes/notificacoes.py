@@ -99,6 +99,26 @@ def marcar_todas_lidas():
         return jsonify({'error': str(e)}), 500
 
 
+@bp.route('/deletar-todas', methods=['DELETE'])
+@jwt_required()
+def deletar_todas():
+    """Deleta todas as notificações do usuário"""
+    try:
+        usuario_id = get_jwt_identity()
+
+        count = Notificacao.query.filter_by(usuario_id=usuario_id).delete()
+        db.session.commit()
+
+        return jsonify({
+            'message': f'{count} notificação(ões) deletada(s) com sucesso',
+            'quantidade': count
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
 @bp.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
 def deletar_notificacao(id):

@@ -95,10 +95,16 @@
   color: #2c3e50;
 }
 
-.btn-marcar-todas {
+.notification-header-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.btn-marcar-todas,
+.btn-deletar-todas {
   background: none;
   border: none;
-  color: #3498db;
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 6px;
@@ -106,9 +112,22 @@
   transition: all 0.2s ease;
 }
 
+.btn-marcar-todas {
+  color: #3498db;
+}
+
 .btn-marcar-todas:hover {
   background: #e8f4f8;
   color: #2980b9;
+}
+
+.btn-deletar-todas {
+  color: #e74c3c;
+}
+
+.btn-deletar-todas:hover {
+  background: #fde8e8;
+  color: #c0392b;
 }
 
 .notification-list {
