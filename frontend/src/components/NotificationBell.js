@@ -5,6 +5,7 @@ import {
   faCheck,
   faCheckDouble,
   faTimes,
+  faTrashAlt,
   faExclamationTriangle,
   faInfoCircle,
   faExclamationCircle
@@ -91,6 +92,23 @@ const NotificationBell = () => {
     }
   };
 
+  const deletarTodas = async () => {
+    if (!window.confirm('Tem certeza que deseja deletar todas as notificações?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_URL}/notificacoes/deletar-todas`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      await carregarNotificacoes(true);
+    } catch (error) {
+      console.error('Erro ao deletar todas:', error);
+    }
+  };
+
   const deletarNotificacao = async (id, event) => {
     event.stopPropagation();
     try {
@@ -169,14 +187,25 @@ const NotificationBell = () => {
         <div className="notification-dropdown">
           <div className="notification-header">
             <h4>Notificações</h4>
-            {totalNaoLidas > 0 && (
-              <button
-                className="btn-marcar-todas"
-                onClick={marcarTodasLidas}
-                title="Marcar todas como lidas"
-              >
-                <FontAwesomeIcon icon={faCheckDouble} />
-              </button>
+            {notificacoes.length > 0 && (
+              <div className="notification-header-actions">
+                {totalNaoLidas > 0 && (
+                  <button
+                    className="btn-marcar-todas"
+                    onClick={marcarTodasLidas}
+                    title="Marcar todas como lidas"
+                  >
+                    <FontAwesomeIcon icon={faCheckDouble} />
+                  </button>
+                )}
+                <button
+                  className="btn-deletar-todas"
+                  onClick={deletarTodas}
+                  title="Deletar todas"
+                >
+                  <FontAwesomeIcon icon={faTrashAlt} />
+                </button>
+              </div>
             )}
           </div>
 
