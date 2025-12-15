@@ -38,12 +38,19 @@ const Rotinas = () => {
   const [projetosFiltrados, setProjetosFiltrados] = useState([]);
   const [showProjetoDropdown, setShowProjetoDropdown] = useState(false);
 
-  // Estados para execução e job
+  // Estados para execução e job - Recodificação
   const [executando, setExecutando] = useState(false);
   const [jobAtual, setJobAtual] = useState(null);
   const [logsExpanded, setLogsExpanded] = useState(false);
   const logsEndRef = useRef(null);
   const pollingInterval = useRef(null);
+
+  // Estados para execução e job - Categorização
+  const [executandoCategorizacao, setExecutandoCategorizacao] = useState(false);
+  const [jobAtualCategorizacao, setJobAtualCategorizacao] = useState(null);
+  const [logsExpandedCategorizacao, setLogsExpandedCategorizacao] = useState(false);
+  const logsEndRefCategorizacao = useRef(null);
+  const pollingIntervalCategorizacao = useRef(null);
 
   // Função auxiliar que verifica permissão
   const temPermissao = () => {
@@ -66,27 +73,38 @@ const Rotinas = () => {
       .catch(err => toast.error('Erro ao carregar projetos'));
   }, []);
 
-  // Verificar status do job quando o projeto muda
+  // Verificar status do job quando o projeto muda - Recodificação
   useEffect(() => {
     if (filtros.projeto_id) {
       verificarStatusJob(filtros.projeto_id);
+      verificarStatusJobCategorizacao(filtros.projeto_id);
     } else {
       setJobAtual(null);
+      setJobAtualCategorizacao(null);
       pararPolling();
+      pararPollingCategorizacao();
     }
   }, [filtros.projeto_id]);
 
-  // Auto-scroll dos logs
+  // Auto-scroll dos logs - Recodificação
   useEffect(() => {
     if (logsExpanded && logsEndRef.current) {
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [jobAtual?.logs, logsExpanded]);
 
+  // Auto-scroll dos logs - Categorização
+  useEffect(() => {
+    if (logsExpandedCategorizacao && logsEndRefCategorizacao.current) {
+      logsEndRefCategorizacao.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [jobAtualCategorizacao?.logs, logsExpandedCategorizacao]);
+
   // Limpar polling ao desmontar componente
   useEffect(() => {
     return () => {
       pararPolling();
+      pararPollingCategorizacao();
     };
   }, []);
 
@@ -246,6 +264,118 @@ const Rotinas = () => {
            !executando;
   };
 
+  // ===== FUNÇÕES PARA CATEGORIZAÇÃO =====
+
+  const verificarStatusJobCategorizacao = async (projeto_id) => {
+    try {
+      const response = await fetch(`${API_URL}/categorizacao/job/projeto/${projeto_id}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setJobAtualCategorizacao(data.job);
+
+          if (data.job.status === 'em_andamento') {
+            setExecutandoCategorizacao(true);
+            iniciarPollingCategorizacao(projeto_id);
+            if (!logsExpandedCategorizacao) {
+              setLogsExpandedCategorizacao(true);
+            }
+          } else {
+            setExecutandoCategorizacao(false);
+            pararPollingCategorizacao();
+          }
+        }
+      } else {
+        setJobAtualCategorizacao(null);
+        setExecutandoCategorizacao(false);
+        pararPollingCategorizacao();
+      }
+    } catch (error) {
+      console.error('Erro ao verificar status do job de categorização:', error);
+    }
+  };
+
+  const iniciarPollingCategorizacao = (projeto_id) => {
+    if (pollingIntervalCategorizacao.current) {
+      clearInterval(pollingIntervalCategorizacao.current);
+    }
+
+    pollingIntervalCategorizacao.current = setInterval(() => {
+      verificarStatusJobCategorizacao(projeto_id);
+    }, 2000);
+  };
+
+  const pararPollingCategorizacao = () => {
+    if (pollingIntervalCategorizacao.current) {
+      clearInterval(pollingIntervalCategorizacao.current);
+      pollingIntervalCategorizacao.current = null;
+    }
+  };
+
+  const executarRotinaCategorizacao = async () => {
+    if (!temPermissao()) {
+      toast.error('Você não tem permissão para executar rotinas');
+      return;
+    }
+
+    if (!filtros.squad_id || !filtros.projeto_id) {
+      toast.warning('Selecione Squad e Projeto para executar a rotina');
+      return;
+    }
+
+    if (!currentUser) {
+      toast.error('Erro: Usuário não identificado. Faça login novamente.');
+      return;
+    }
+
+    const nomeUsuario = currentUser.username || currentUser.login || 'Sistema';
+
+    const projetoSelecionado = projetos.find(p => p.id === parseInt(filtros.projeto_id));
+    if (!projetoSelecionado || !projetoSelecionado.subprograma) {
+      toast.error('Projeto selecionado não possui código de subprograma');
+      return;
+    }
+
+    setExecutandoCategorizacao(true);
+    setLogsExpandedCategorizacao(true);
+
+    try {
+      const response = await fetch(`${API_URL}/categorizacao/executar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuario: nomeUsuario,
+          squad_id: filtros.squad_id,
+          projeto_id: filtros.projeto_id,
+          cd_projeto: projetoSelecionado.subprograma
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.erro || 'Erro ao executar rotina');
+      }
+
+      toast.success('Rotina de categorização iniciada em background!');
+
+      iniciarPollingCategorizacao(filtros.projeto_id);
+      setTimeout(() => verificarStatusJobCategorizacao(filtros.projeto_id), 500);
+
+    } catch (error) {
+      toast.error(error.message);
+      setExecutandoCategorizacao(false);
+    }
+  };
+
+  const podeExecutarCategorizacao = () => {
+    return temPermissao() &&
+           filtros.squad_id &&
+           filtros.projeto_id &&
+           !executandoCategorizacao;
+  };
+
   const formatarTimestamp = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -277,9 +407,10 @@ const Rotinas = () => {
     }
   };
 
-  // Verificar se squad selecionada é Recodificação
+  // Verificar se squad selecionada é Recodificação ou Categorização
   const squadSelecionada = squads.find(s => s.id === parseInt(filtros.squad_id));
   const mostrarRotinaRecodificacao = squadSelecionada && squadSelecionada.nome === 'Recodificação' && filtros.projeto_id;
+  const mostrarRotinaCategorizacao = squadSelecionada && squadSelecionada.nome === 'Categorização' && filtros.projeto_id;
 
   return (
     <div>
@@ -370,7 +501,7 @@ const Rotinas = () => {
                     setProjetoSearch('');
                   }}
                   style={{width: '100%'}}
-                  disabled={executando}
+                  disabled={executando || executandoCategorizacao}
                 >
                   <option value="">Selecione uma Squad</option>
                   {squads.map(s => (
@@ -400,13 +531,13 @@ const Rotinas = () => {
                       setShowProjetoDropdown(true);
                     }}
                     onFocus={() => setShowProjetoDropdown(true)}
-                    disabled={!filtros.squad_id || executando}
+                    disabled={!filtros.squad_id || executando || executandoCategorizacao}
                     style={{width: '100%', paddingRight: filtros.projeto_id ? '40px' : '10px'}}
                   />
                   {filtros.projeto_id && (
                     <button
                       onClick={limparProjeto}
-                      disabled={executando}
+                      disabled={executando || executandoCategorizacao}
                       style={{
                         position: 'absolute',
                         right: '10px',
@@ -415,7 +546,7 @@ const Rotinas = () => {
                         background: 'none',
                         border: 'none',
                         color: '#95a5a6',
-                        cursor: executando ? 'not-allowed' : 'pointer',
+                        cursor: (executando || executandoCategorizacao) ? 'not-allowed' : 'pointer',
                         fontSize: '18px',
                         padding: '0',
                         width: '20px',
@@ -423,7 +554,7 @@ const Rotinas = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        opacity: executando ? 0.5 : 1
+                        opacity: (executando || executandoCategorizacao) ? 0.5 : 1
                       }}
                       title="Limpar projeto"
                     >
@@ -450,15 +581,15 @@ const Rotinas = () => {
                     {projetosFiltrados.map(projeto => (
                       <div
                         key={projeto.id}
-                        onClick={() => !executando && selecionarProjeto(projeto)}
+                        onClick={() => !(executando || executandoCategorizacao) && selecionarProjeto(projeto)}
                         style={{
                           padding: '10px 15px',
-                          cursor: executando ? 'not-allowed' : 'pointer',
+                          cursor: (executando || executandoCategorizacao) ? 'not-allowed' : 'pointer',
                           borderBottom: '1px solid #f0f0f0',
                           transition: 'background 0.2s',
-                          opacity: executando ? 0.5 : 1
+                          opacity: (executando || executandoCategorizacao) ? 0.5 : 1
                         }}
-                        onMouseEnter={(e) => !executando && (e.target.style.background = '#f8f9fa')}
+                        onMouseEnter={(e) => !(executando || executandoCategorizacao) && (e.target.style.background = '#f8f9fa')}
                         onMouseLeave={(e) => e.target.style.background = 'white'}
                       >
                         <div style={{fontWeight: 600, color: '#2c3e50', marginBottom: '3px'}}>
@@ -714,8 +845,248 @@ const Rotinas = () => {
             </div>
           )}
 
+          {/* CARD DE CATEGORIZAÇÃO */}
+          {mostrarRotinaCategorizacao && (
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              border: '1px solid #e0e0e0'
+            }}>
+              {/* Header do Card */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+                padding: '20px 30px',
+                borderBottom: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                  <div style={{
+                    width: '50px',
+                    height: '50px',
+                    background: 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '24px'
+                  }}>
+                    <FontAwesomeIcon icon={faListCheck} />
+                  </div>
+                  <h3 style={{margin: 0, fontSize: '22px', fontWeight: 600, color: '#2c3e50'}}>
+                    Rotina de Categorização
+                  </h3>
+                </div>
+              </div>
+
+              {/* Conteúdo do Card */}
+              <div style={{padding: '30px'}}>
+                {/* Descrição */}
+                <div style={{
+                  marginBottom: '25px',
+                  padding: '20px',
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #9b59b6'
+                }}>
+                  <h4 style={{
+                    margin: '0 0 10px 0',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    color: '#2c3e50'
+                  }}>
+                    Descrição da Rotina
+                  </h4>
+                  <p style={{margin: 0, color: '#7f8c8d', fontSize: '14px', lineHeight: '1.6'}}>
+                    Rotina automatizada de monitoramento de categorização da ata de sala. Esta rotina executará o
+                    processamento de dados com CTEs complexas, coletando métricas dos processos de categorização
+                    (PREVISTO_T1-T4 e EFETIVO_T1-T4) e sincronizando com a tabela TMP_CATEGORIZACAO através de MERGE.
+                  </p>
+                </div>
+
+                {/* Informações do Projeto e Job */}
+                {filtros.projeto_id && (
+                  <div style={{
+                    marginBottom: '25px',
+                    padding: '15px 20px',
+                    background: '#f4ecf7',
+                    borderRadius: '6px',
+                    border: '1px solid #d7bde2'
+                  }}>
+                    <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
+                      Projeto Selecionado:
+                    </div>
+                    <div style={{fontSize: '16px', fontWeight: 600, color: '#2c3e50', marginBottom: '15px'}}>
+                      {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.subprograma} - {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.nome}
+                    </div>
+
+                    {/* Informações da Execução */}
+                    <div style={{borderTop: '1px solid #d7bde2', paddingTop: '12px'}}>
+                      <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
+                        <strong>Executado por:</strong> {jobAtualCategorizacao ? jobAtualCategorizacao.usuario : '-'}
+                      </div>
+                      <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
+                        <strong>Início:</strong> {jobAtualCategorizacao ? formatarTimestamp(jobAtualCategorizacao.data_inicio) : '-'}
+                        {' | '}
+                        <strong>Fim:</strong> {jobAtualCategorizacao?.data_fim ? formatarTimestamp(jobAtualCategorizacao.data_fim) : '-'}
+                      </div>
+                      <div style={{fontSize: '13px', marginTop: '8px'}}>
+                        <strong>Status:</strong>{' '}
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 12px',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          background: !jobAtualCategorizacao
+                            ? '#95a5a6'
+                            : jobAtualCategorizacao.status === 'concluido'
+                            ? '#27ae60'
+                            : jobAtualCategorizacao.status === 'erro'
+                            ? '#e74c3c'
+                            : '#f39c12',
+                          color: 'white'
+                        }}>
+                          {!jobAtualCategorizacao
+                            ? 'Não executado'
+                            : jobAtualCategorizacao.status === 'concluido'
+                            ? 'Executado'
+                            : jobAtualCategorizacao.status === 'erro'
+                            ? 'Erro'
+                            : 'Em execução'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Área de Logs */}
+                {jobAtualCategorizacao && jobAtualCategorizacao.logs && jobAtualCategorizacao.logs.length > 0 && (
+                  <div style={{
+                    marginBottom: '25px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    overflow: 'hidden'
+                  }}>
+                    <button
+                      onClick={() => setLogsExpandedCategorizacao(!logsExpandedCategorizacao)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 20px',
+                        background: '#f8f9fa',
+                        border: 'none',
+                        borderBottom: logsExpandedCategorizacao ? '1px solid #e0e0e0' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: '#2c3e50'
+                      }}
+                    >
+                      <span>
+                        <FontAwesomeIcon icon={faClockRotateLeft} style={{marginRight: '8px'}} />
+                        Logs de Execução ({jobAtualCategorizacao.logs.length})
+                      </span>
+                      <FontAwesomeIcon icon={logsExpandedCategorizacao ? faChevronUp : faChevronDown} />
+                    </button>
+
+                    {logsExpandedCategorizacao && (
+                      <div style={{
+                        maxHeight: '300px',
+                        overflowY: 'auto',
+                        padding: '15px',
+                        background: '#fafafa'
+                      }}>
+                        {jobAtualCategorizacao.logs.map((log, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              padding: '10px',
+                              marginBottom: '8px',
+                              background: 'white',
+                              borderRadius: '4px',
+                              borderLeft: `3px solid ${getLogColor(log.tipo)}`,
+                              fontSize: '13px',
+                              display: 'flex',
+                              gap: '10px',
+                              alignItems: 'flex-start'
+                            }}
+                          >
+                            <FontAwesomeIcon
+                              icon={getLogIcon(log.tipo)}
+                              style={{
+                                color: getLogColor(log.tipo),
+                                marginTop: '2px',
+                                flexShrink: 0
+                              }}
+                            />
+                            <div style={{flex: 1}}>
+                              <div style={{
+                                fontSize: '11px',
+                                color: '#95a5a6',
+                                marginBottom: '4px'
+                              }}>
+                                {formatarTimestamp(log.timestamp)}
+                              </div>
+                              <div style={{color: '#2c3e50'}}>
+                                {log.mensagem}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <div ref={logsEndRefCategorizacao} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Rodapé com Botão de Ação */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  paddingTop: '20px',
+                  borderTop: '1px solid #e0e0e0'
+                }}>
+                  {/* Botão Executar - Esquerda */}
+                  <button
+                    onClick={executarRotinaCategorizacao}
+                    disabled={!podeExecutarCategorizacao()}
+                    style={{
+                      padding: '12px 24px',
+                      background: !podeExecutarCategorizacao()
+                        ? 'linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%)'
+                        : 'linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: !podeExecutarCategorizacao() ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      minWidth: '140px',
+                      justifyContent: 'center'
+                    }}
+                    onMouseEnter={(e) => podeExecutarCategorizacao() && (e.currentTarget.style.transform = 'translateY(-2px)')}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
+                    <FontAwesomeIcon icon={executandoCategorizacao ? faSpinner : faPlay} spin={executandoCategorizacao} />
+                    {executandoCategorizacao ? 'Executando...' : 'Executar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Mensagem se não houver rotina disponível */}
-          {!mostrarRotinaRecodificacao && (
+          {!mostrarRotinaRecodificacao && !mostrarRotinaCategorizacao && (
             <div style={{
               textAlign: 'center',
               padding: '80px 20px',

@@ -24,6 +24,7 @@ instance/
 
 # Job storage (persistence data)
 backend/app/data/jobs_recodificacao.json
+backend/app/data/jobs_categorizacao.json
 
 # Environment variables
 .env
