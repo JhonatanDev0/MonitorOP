@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt
 from app import db
 from app.models import Projeto, Squad
 from app.utils.pagination import paginate_query
+from app.utils.notificacao_utils import notificar_novo_projeto
 from datetime import datetime
 
 bp = Blueprint('projetos', __name__, url_prefix='/api/projetos')
@@ -85,7 +86,14 @@ def criar_projeto():
         
         db.session.add(projeto)
         db.session.commit()
-        
+
+        # Notificar gestores e admins sobre novo projeto
+        try:
+            notificar_novo_projeto(projeto)
+        except Exception as e:
+            # Log do erro mas não falha a criação do projeto
+            print(f"Erro ao criar notificações: {e}")
+
         return jsonify(projeto.to_dict()), 201
     except Exception as e:
         db.session.rollback()

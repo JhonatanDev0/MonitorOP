@@ -1,8 +1,9 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt
+from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
 from app import db
-from app.models import Atividade, Projeto, Squad, HistoricoObservacao
+from app.models import Atividade, Projeto, Squad, HistoricoObservacao, Usuario
 from app.utils.pagination import paginate_query
+from app.utils.notificacao_utils import notificar_todos_gestores
 from datetime import datetime
 
 bp = Blueprint('atividades', __name__, url_prefix='/api/atividades')
@@ -133,7 +134,11 @@ def atualizar_atividade(id):
         
         atividade = Atividade.query.get_or_404(id)
         data = request.get_json()
-        
+
+        # Armazenar valores anteriores para detectar mudanças importantes
+        status_anterior = atividade.status
+        prioridade_anterior = atividade.prioridade
+
         # Atualizar campos
         if 'titulo' in data:
             atividade.titulo = data['titulo']
@@ -174,7 +179,31 @@ def atualizar_atividade(id):
             atividade.squad_id = data['squad_id']
         
         db.session.commit()
-        
+
+        # Notificar gestores/admins sobre mudanças importantes
+        try:
+            # Atividade concluída
+            if status_anterior != 'concluida' and atividade.status == 'concluida':
+                notificar_todos_gestores(
+                    tipo='atividade',
+                    titulo='Atividade Concluída',
+                    mensagem=f'A atividade "{atividade.titulo}" foi marcada como concluída',
+                    prioridade='info',
+                    link='/atividades'
+                )
+            # Prioridade aumentada para alta
+            elif prioridade_anterior != 'alta' and atividade.prioridade == 'alta':
+                notificar_todos_gestores(
+                    tipo='atividade',
+                    titulo='Atividade com Alta Prioridade',
+                    mensagem=f'A atividade "{atividade.titulo}" foi marcada como prioridade ALTA',
+                    prioridade='aviso',
+                    link='/atividades'
+                )
+        except Exception as e:
+            # Log do erro mas não falha a atualização
+            print(f"Erro ao criar notificações: {e}")
+
         return jsonify(atividade.to_dict()), 200
     except Exception as e:
         db.session.rollback()
@@ -191,9 +220,23 @@ def deletar_atividade(id):
             return jsonify({'error': 'Acesso negado. Apenas admin e gestor podem deletar atividades'}), 403
         
         atividade = Atividade.query.get_or_404(id)
+        titulo_atividade = atividade.titulo  # Guardar antes de deletar
+
         db.session.delete(atividade)
         db.session.commit()
-        
+
+        # Notificar gestores sobre exclusão
+        try:
+            notificar_todos_gestores(
+                tipo='atividade',
+                titulo='Atividade Deletada',
+                mensagem=f'A atividade "{titulo_atividade}" foi removida do sistema',
+                prioridade='aviso',
+                link='/atividades'
+            )
+        except Exception as e:
+            print(f"Erro ao criar notificações: {e}")
+
         return jsonify({'message': 'Atividade deletada com sucesso'}), 200
     except Exception as e:
         db.session.rollback()
