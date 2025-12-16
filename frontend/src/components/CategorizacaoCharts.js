@@ -35,10 +35,10 @@ const ATIVIDADE_PARA_TAREFA_MAP = {
   'T1': ['T1'],
   'T2': ['T2'],
   'T3': ['T3'],
-  'T4': ['T4_1', 'T4_2', 'T4_3'],  // T4 mostra todos os 3 tipos
-  'T4_1': ['T4_1'],
-  'T4_2': ['T4_2'],
-  'T4_3': ['T4_3']
+  'T4': ['T4_1', 'T4_2', 'T4_3'],  // T4 genérico mostra todos os 3 tipos
+  'T4 Sujeito': ['T4_1'],
+  'T4 Dedução': ['T4_2'],
+  'T4 Recuperação': ['T4_3']
 };
 
 function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
@@ -48,19 +48,14 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
       return ['T1', 'T2', 'T3', 'T4_1', 'T4_2', 'T4_3']; // Todas
     }
 
-    console.log('🔍 Debug T4 - Filtro recebido:', tipoAtividadeFiltro);
-
     // Mapear o filtro para as tarefas correspondentes
     const tarefas = ATIVIDADE_PARA_TAREFA_MAP[tipoAtividadeFiltro];
-
-    console.log('🔍 Debug T4 - Tarefas mapeadas:', tarefas);
 
     if (tarefas) {
       return tarefas;
     }
 
     // Se não encontrou no mapeamento, mostrar todas
-    console.log('⚠️ T4 não encontrado no mapeamento, mostrando todas');
     return ['T1', 'T2', 'T3', 'T4_1', 'T4_2', 'T4_3'];
   };
 
