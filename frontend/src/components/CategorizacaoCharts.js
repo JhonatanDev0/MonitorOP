@@ -47,14 +47,22 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
       return ['T1', 'T2', 'T3', 'T4_1', 'T4_2', 'T4_3']; // Todas
     }
 
+    console.log('=== CATEGORIZAÇÃO FILTRO DEBUG ===');
+    console.log('Filtro recebido:', tipoAtividadeFiltro);
+    console.log('Tipo:', typeof tipoAtividadeFiltro);
+    console.log('Mapeamento disponível:', Object.keys(ATIVIDADE_PARA_TAREFA_MAP));
+
     // Mapear o filtro para as tarefas correspondentes
     const tarefas = ATIVIDADE_PARA_TAREFA_MAP[tipoAtividadeFiltro];
+
+    console.log('Tarefas mapeadas:', tarefas);
 
     if (tarefas) {
       return tarefas;
     }
 
     // Se não encontrou no mapeamento, mostrar todas
+    console.log('⚠️ Nenhum mapeamento encontrado, mostrando todas');
     return ['T1', 'T2', 'T3', 'T4_1', 'T4_2', 'T4_3'];
   };
 
@@ -229,7 +237,9 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
   // Calcular percentuais por tarefa
   const calcularPercentual = (efetivo, previsto) => {
     if (!previsto || previsto === 0) return 0;
-    return ((efetivo / previsto) * 100).toFixed(1);
+    const percentual = (efetivo / previsto) * 100;
+    // Retornar com 2 casas decimais para mais precisão
+    return percentual.toFixed(2);
   };
 
   return (
