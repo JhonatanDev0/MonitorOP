@@ -333,3 +333,83 @@ def buscar_job(projeto_id):
 
     except Exception as e:
         return jsonify({'erro': str(e)}), 500
+
+
+@bp.route('/metricas/<cd_projeto>', methods=['GET'])
+def buscar_metricas(cd_projeto):
+    """Busca as métricas de categorização de um projeto específico"""
+    import pyodbc
+
+    try:
+        # Configuração do SQL Server
+        SQLSERVER_HOST = os.environ.get('SQLSERVER_HOST_PRIMARY', '192.168.250.8,61433')
+        SQLSERVER_DATABASE = os.environ.get('SQLSERVER_DATABASE', 'DB_MONITORAMENTO_OP')
+        SQLSERVER_USER = os.environ.get('SQLSERVER_USER', 'SDV')
+        SQLSERVER_PASSWORD = os.environ.get('SQLSERVER_PASSWORD', 'SDV_COA')
+        SQLSERVER_DRIVER = os.environ.get('SQLSERVER_DRIVER', '{ODBC Driver 17 for SQL Server}')
+
+        # Conectar ao SQL Server
+        conn_str = (
+            f'DRIVER={SQLSERVER_DRIVER};'
+            f'SERVER={SQLSERVER_HOST};'
+            f'DATABASE={SQLSERVER_DATABASE};'
+            f'UID={SQLSERVER_USER};'
+            f'PWD={SQLSERVER_PASSWORD}'
+        )
+
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        # Buscar dados da TMP_CATEGORIZACAO
+        query = """
+            SELECT
+                CD_PROJETO,
+                PREVISTO_T1, EFETIVO_T1,
+                PREVISTO_T2, EFETIVO_T2,
+                PREVISTO_T3, EFETIVO_T3,
+                PREVISTO_T4, EFETIVO_T4_1, EFETIVO_T4_2, EFETIVO_T4_3,
+                DT_EXPORTACAO
+            FROM TMP_CATEGORIZACAO
+            WHERE CD_PROJETO = ?
+        """
+
+        cursor.execute(query, (cd_projeto,))
+        row = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if not row:
+            return jsonify({
+                'success': False,
+                'message': 'Nenhum dado encontrado para este projeto'
+            }), 404
+
+        # Formatar data de exportação
+        dt_exportacao = row.DT_EXPORTACAO
+        if dt_exportacao:
+            dt_exportacao = dt_exportacao.strftime('%d/%m/%Y às %H:%M')
+
+        # Montar resposta
+        metricas = {
+            'CD_PROJETO': row.CD_PROJETO,
+            'PREVISTO_T1': row.PREVISTO_T1 or 0,
+            'EFETIVO_T1': row.EFETIVO_T1 or 0,
+            'PREVISTO_T2': row.PREVISTO_T2 or 0,
+            'EFETIVO_T2': row.EFETIVO_T2 or 0,
+            'PREVISTO_T3': row.PREVISTO_T3 or 0,
+            'EFETIVO_T3': row.EFETIVO_T3 or 0,
+            'PREVISTO_T4': row.PREVISTO_T4 or 0,
+            'EFETIVO_T4_1': row.EFETIVO_T4_1 or 0,
+            'EFETIVO_T4_2': row.EFETIVO_T4_2 or 0,
+            'EFETIVO_T4_3': row.EFETIVO_T4_3 or 0,
+            'DT_EXPORTACAO': dt_exportacao
+        }
+
+        return jsonify({
+            'success': True,
+            'metricas': metricas
+        }), 200
+
+    except Exception as e:
+        return jsonify({'erro': str(e)}), 500
