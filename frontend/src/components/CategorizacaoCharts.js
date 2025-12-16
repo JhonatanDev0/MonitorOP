@@ -311,7 +311,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
           {/* T4 - Finalização (T4 Sujeito) */}
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T4 - Finalização (T4 Sujeito)</strong>
+              <strong>T4 - Sujeito</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T4_1, metricas.PREVISTO_T4) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T4_1, metricas.PREVISTO_T4)}%
               </span>
@@ -342,7 +342,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
           {/* T4 - Finalização (T4 Dedução) */}
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T4 - Finalização (T4 Dedução)</strong>
+              <strong>T4 - Dedução</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T4_2, metricas.PREVISTO_T4) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T4_2, metricas.PREVISTO_T4)}%
               </span>
@@ -373,7 +373,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
           {/* T4 - Finalização (T4 Recuperação) */}
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T4 - Finalização (T4 Recuperação)</strong>
+              <strong>T4 - Recuperação</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T4_3, metricas.PREVISTO_T4) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T4_3, metricas.PREVISTO_T4)}%
               </span>
