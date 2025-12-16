@@ -274,11 +274,11 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           Detalhamento por Tarefa
         </h4>
         <div className="atividades-grid">
-          {/* T1 - Categorização */}
+          {/* T1 */}
           {tarefasVisiveis.includes('T1') && (
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T1 - Categorização</strong>
+              <strong>T1</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T1, metricas.PREVISTO_T1) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T1, metricas.PREVISTO_T1)}%
               </span>
@@ -307,11 +307,11 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           </div>
           )}
 
-          {/* T2 - Revisão */}
+          {/* T2 */}
           {tarefasVisiveis.includes('T2') && (
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T2 - Revisão</strong>
+              <strong>T2</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T2, metricas.PREVISTO_T2) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T2, metricas.PREVISTO_T2)}%
               </span>
@@ -340,11 +340,11 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           </div>
           )}
 
-          {/* T3 - Validação */}
+          {/* T3 */}
           {tarefasVisiveis.includes('T3') && (
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T3 - Validação</strong>
+              <strong>T3</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T3, metricas.PREVISTO_T3) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T3, metricas.PREVISTO_T3)}%
               </span>
