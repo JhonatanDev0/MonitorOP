@@ -10,6 +10,7 @@ import {
 import { atividadeService, projetoService, squadService } from '../services/api';
 import { dashboardService } from '../services/dashboardApi';
 import RecodificacaoCharts from '../components/RecodificacaoCharts';
+import CategorizacaoCharts from '../components/CategorizacaoCharts';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -54,6 +55,10 @@ function Dashboard() {
   // Estados para dados SQL Server - Recodificação
   const [dadosRecodificacaoSQLServer, setDadosRecodificacaoSQLServer] = useState({});
   const [loadingRecodificacao, setLoadingRecodificacao] = useState(false);
+
+  // Estados para dados SQL Server - Categorização
+  const [dadosCategorizacaoSQLServer, setDadosCategorizacaoSQLServer] = useState({});
+  const [loadingCategorizacao, setLoadingCategorizacao] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -164,6 +169,17 @@ function Dashboard() {
     }
   }, [filtros.projeto_id, filtros.ordem_producao, projetos]);
 
+  // Carregar dados de categorização do SQL Server quando projeto for selecionado
+  useEffect(() => {
+    if (filtros.projeto_id) {
+      carregarDadosCategorizacaoProjeto(filtros.projeto_id);
+    } else if (projetos.length > 0) {
+      carregarDadosCategorizacaoTodosProjetos();
+    } else {
+      setDadosCategorizacaoSQLServer({});
+    }
+  }, [filtros.projeto_id, filtros.ordem_producao, projetos]);
+
   const carregarDados = async () => {
     try {
       setLoading(true);
@@ -245,6 +261,69 @@ function Dashboard() {
       setDadosRecodificacaoSQLServer({});
     } finally {
       setLoadingRecodificacao(false);
+    }
+  };
+
+  const carregarDadosCategorizacaoProjeto = async (projetoId) => {
+    try {
+      setLoadingCategorizacao(true);
+
+      const projetoSelecionado = projetos.find(p => p.id === parseInt(projetoId));
+
+      if (projetoSelecionado && projetoSelecionado.subprograma) {
+        const cdProjeto = projetoSelecionado.subprograma;
+
+        const response = await dashboardService.getCategorizacaoMetricas(cdProjeto);
+
+        if (response.data.success) {
+          setDadosCategorizacaoSQLServer({
+            [projetoId]: response.data.metricas
+          });
+        } else {
+          setDadosCategorizacaoSQLServer({});
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados de categorização:', error);
+      setDadosCategorizacaoSQLServer({});
+    } finally {
+      setLoadingCategorizacao(false);
+    }
+  };
+
+  const carregarDadosCategorizacaoTodosProjetos = async () => {
+    try {
+      setLoadingCategorizacao(true);
+
+      let projetosComSubprograma = projetos.filter(p => p.subprograma && p.subprograma.trim() !== '');
+
+      if (filtros.ordem_producao) {
+        projetosComSubprograma = projetosComSubprograma.filter(p => p.ordem_producao === filtros.ordem_producao);
+      }
+
+      const dadosTodosProjetos = {};
+
+      await Promise.all(
+        projetosComSubprograma.map(async (projeto) => {
+          try {
+            const response = await dashboardService.getCategorizacaoMetricas(projeto.subprograma);
+
+            if (response.data.success && response.data.metricas) {
+              dadosTodosProjetos[projeto.id] = response.data.metricas;
+            }
+          } catch (error) {
+            console.error(`Erro ao carregar dados de categorização do projeto ${projeto.id}:`, error);
+          }
+        })
+      );
+
+      setDadosCategorizacaoSQLServer(dadosTodosProjetos);
+
+    } catch (error) {
+      console.error('Erro ao carregar dados de categorização de todos os projetos:', error);
+      setDadosCategorizacaoSQLServer({});
+    } finally {
+      setLoadingCategorizacao(false);
     }
   };
 
@@ -372,6 +451,12 @@ function Dashboard() {
     if (!filtros.squad_id) return true;
     const recodificacaoSquad = squads.find(s => s.nome === 'Recodificação');
     return recodificacaoSquad && parseInt(filtros.squad_id) === recodificacaoSquad.id;
+  };
+
+  const deveExibirSquadCategorizacao = () => {
+    if (!filtros.squad_id) return true;
+    const categorizacaoSquad = squads.find(s => s.nome === 'Categorização');
+    return categorizacaoSquad && parseInt(filtros.squad_id) === categorizacaoSquad.id;
   };
 
   const obterProjetosParaExibir = () => {
@@ -910,6 +995,38 @@ function Dashboard() {
                         cdProjeto={projeto.subprograma}
                         metricas={metricasFiltradas}
                         atividadesSquad={atividadesRecodificacaoProjeto}
+                        nomeProjeto={projeto.nome_completo || projeto.nome}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Squad Categorização - Gráficos (apenas em modo detalhado) */}
+        {modoVisualizacao === 'detalhado' && deveExibirSquadCategorizacao() && (
+          <div className="squad-section">
+            {loadingCategorizacao ? (
+              <div className="loading">Carregando dados de categorização...</div>
+            ) : projetosParaExibir.length === 0 ? (
+              <div className="empty-state">
+                <p>Nenhum projeto com dados de categorização disponível</p>
+              </div>
+            ) : (
+              <div className="projetos-graficos-container">
+                {projetosParaExibir.map(projeto => {
+                  const metricasCategorizacao = dadosCategorizacaoSQLServer[projeto.id];
+
+                  if (!metricasCategorizacao) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={`categorizacao-${projeto.id}`} className="projeto-grafico-wrapper">
+                      <CategorizacaoCharts
+                        metricas={metricasCategorizacao}
                         nomeProjeto={projeto.nome_completo || projeto.nome}
                       />
                     </div>

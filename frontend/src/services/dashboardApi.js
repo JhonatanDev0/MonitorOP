@@ -28,6 +28,13 @@ export const dashboardService = {
   getRecodificacaoMetricas: (cdProjeto) => {
     return dashboardApi.get(`/dashboard/recodificacao/metricas/${cdProjeto}`);
   },
+
+  // ==================== CATEGORIZAÇÃO ====================
+
+  // Buscar métricas de categorização
+  getCategorizacaoMetricas: (cdProjeto) => {
+    return dashboardApi.get(`/categorizacao/metricas/${cdProjeto}`);
+  },
 };
 
 export default dashboardApi;
