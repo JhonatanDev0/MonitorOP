@@ -204,14 +204,14 @@ function Dashboard() {
   const carregarDadosRecodificacaoProjeto = async (projetoId) => {
     try {
       setLoadingRecodificacao(true);
-      
+
       const projetoSelecionado = projetos.find(p => p.id === parseInt(projetoId));
-      
+
       if (projetoSelecionado && projetoSelecionado.subprograma) {
         const cdProjeto = projetoSelecionado.subprograma;
-        
+
         const response = await dashboardService.getRecodificacaoMetricas(cdProjeto);
-        
+
         if (response.data.success) {
           setDadosRecodificacaoSQLServer({
             [projetoId]: response.data.data
@@ -221,7 +221,10 @@ function Dashboard() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar dados de recodificação:', error);
+      // Não logar erro 404 - significa apenas que não há dados para o projeto
+      if (error.response && error.response.status !== 404) {
+        console.error('Erro ao carregar dados de recodificação:', error);
+      }
       setDadosRecodificacaoSQLServer({});
     } finally {
       setLoadingRecodificacao(false);
@@ -244,12 +247,15 @@ function Dashboard() {
         projetosComSubprograma.map(async (projeto) => {
           try {
             const response = await dashboardService.getRecodificacaoMetricas(projeto.subprograma);
-            
+
             if (response.data.success && response.data.data.metricas && response.data.data.metricas.length > 0) {
               dadosTodosProjetos[projeto.id] = response.data.data;
             }
           } catch (error) {
-            console.error(`Erro ao carregar dados de recodificação do projeto ${projeto.id}:`, error);
+            // Não logar erro 404 - significa apenas que não há dados para o projeto
+            if (error.response && error.response.status !== 404) {
+              console.error(`Erro ao carregar dados de recodificação do projeto ${projeto.id}:`, error);
+            }
           }
         })
       );
@@ -284,7 +290,10 @@ function Dashboard() {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar dados de categorização:', error);
+      // Não logar erro 404 - significa apenas que não há dados para o projeto
+      if (error.response && error.response.status !== 404) {
+        console.error('Erro ao carregar dados de categorização:', error);
+      }
       setDadosCategorizacaoSQLServer({});
     } finally {
       setLoadingCategorizacao(false);
@@ -312,7 +321,10 @@ function Dashboard() {
               dadosTodosProjetos[projeto.id] = response.data.metricas;
             }
           } catch (error) {
-            console.error(`Erro ao carregar dados de categorização do projeto ${projeto.id}:`, error);
+            // Não logar erro 404 - significa apenas que não há dados para o projeto
+            if (error.response && error.response.status !== 404) {
+              console.error(`Erro ao carregar dados de categorização do projeto ${projeto.id}:`, error);
+            }
           }
         })
       );

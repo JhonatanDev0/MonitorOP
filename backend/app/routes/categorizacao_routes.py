@@ -386,9 +386,12 @@ def buscar_metricas(cd_projeto):
             }), 404
 
         # Formatar data de exportação
-        dt_exportacao = row.DT_EXPORTACAO
-        if dt_exportacao:
-            dt_exportacao = dt_exportacao.strftime('%d/%m/%Y às %H:%M')
+        dt_exportacao = None
+        if row.DT_EXPORTACAO:
+            try:
+                dt_exportacao = row.DT_EXPORTACAO.strftime('%d/%m/%Y às %H:%M')
+            except:
+                dt_exportacao = str(row.DT_EXPORTACAO)
 
         # Montar resposta
         metricas = {
@@ -411,5 +414,16 @@ def buscar_metricas(cd_projeto):
             'metricas': metricas
         }), 200
 
+    except pyodbc.Error as e:
+        print(f"Erro de banco de dados ao buscar métricas de categorização: {str(e)}")
+        return jsonify({
+            'success': False,
+            'erro': 'Erro ao conectar ao banco de dados',
+            'detalhes': str(e)
+        }), 500
     except Exception as e:
-        return jsonify({'erro': str(e)}), 500
+        print(f"Erro ao buscar métricas de categorização: {str(e)}")
+        return jsonify({
+            'success': False,
+            'erro': str(e)
+        }), 500
