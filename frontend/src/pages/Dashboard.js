@@ -1040,6 +1040,7 @@ function Dashboard() {
                       <CategorizacaoCharts
                         metricas={metricasCategorizacao}
                         nomeProjeto={projeto.nome_completo || projeto.nome}
+                        tipoAtividadeFiltro={filtros.tipo_atividade}
                       />
                     </div>
                   );

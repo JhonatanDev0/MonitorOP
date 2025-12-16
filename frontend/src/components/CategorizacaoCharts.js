@@ -30,7 +30,28 @@ ChartJS.register(
   ChartDataLabels
 );
 
-function CategorizacaoCharts({ metricas, nomeProjeto }) {
+function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
+  // Mapeamento de tipos de atividade para tarefas
+  const TIPO_ATIVIDADE_MAP = {
+    'T1 - Categorização (T1)': 'T1',
+    'T2 - Revisão (T2)': 'T2',
+    'T3 - Validação (T3)': 'T3',
+    'T4 - Finalização (T4 Sujeito)': 'T4_1',
+    'T4 - Finalização (T4 Dedução)': 'T4_2',
+    'T4 - Finalização (T4 Recuperação)': 'T4_3'
+  };
+
+  // Determinar quais tarefas devem ser exibidas
+  const getTarefasVisiveis = () => {
+    if (!tipoAtividadeFiltro) {
+      return ['T1', 'T2', 'T3', 'T4_1', 'T4_2', 'T4_3']; // Todas
+    }
+    const tarefa = TIPO_ATIVIDADE_MAP[tipoAtividadeFiltro];
+    return tarefa ? [tarefa] : [];
+  };
+
+  const tarefasVisiveis = getTarefasVisiveis();
+
   // Função para formatar data
   const formatarData = (dataString) => {
     if (!dataString) return '-';
@@ -65,23 +86,22 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
   const getBarChartData = () => {
     if (!metricas) return null;
 
-    const labels = ['T1', 'T2', 'T3', 'T4 Sujeito', 'T4 Dedução', 'T4 Recuperação'];
-    const previstos = [
-      metricas.PREVISTO_T1 || 0,
-      metricas.PREVISTO_T2 || 0,
-      metricas.PREVISTO_T3 || 0,
-      metricas.PREVISTO_T4 || 0,
-      metricas.PREVISTO_T4 || 0,
-      metricas.PREVISTO_T4 || 0
-    ];
-    const efetivos = [
-      metricas.EFETIVO_T1 || 0,
-      metricas.EFETIVO_T2 || 0,
-      metricas.EFETIVO_T3 || 0,
-      metricas.EFETIVO_T4_1 || 0,
-      metricas.EFETIVO_T4_2 || 0,
-      metricas.EFETIVO_T4_3 || 0
-    ];
+    // Dados completos
+    const allData = {
+      T1: { label: 'T1', previsto: metricas.PREVISTO_T1 || 0, efetivo: metricas.EFETIVO_T1 || 0 },
+      T2: { label: 'T2', previsto: metricas.PREVISTO_T2 || 0, efetivo: metricas.EFETIVO_T2 || 0 },
+      T3: { label: 'T3', previsto: metricas.PREVISTO_T3 || 0, efetivo: metricas.EFETIVO_T3 || 0 },
+      T4_1: { label: 'T4 Sujeito', previsto: metricas.PREVISTO_T4 || 0, efetivo: metricas.EFETIVO_T4_1 || 0 },
+      T4_2: { label: 'T4 Dedução', previsto: metricas.PREVISTO_T4 || 0, efetivo: metricas.EFETIVO_T4_2 || 0 },
+      T4_3: { label: 'T4 Recuperação', previsto: metricas.PREVISTO_T4 || 0, efetivo: metricas.EFETIVO_T4_3 || 0 }
+    };
+
+    // Filtrar baseado nas tarefas visíveis
+    const dadosFiltrados = tarefasVisiveis.map(tarefa => allData[tarefa]).filter(Boolean);
+
+    const labels = dadosFiltrados.map(d => d.label);
+    const previstos = dadosFiltrados.map(d => d.previsto);
+    const efetivos = dadosFiltrados.map(d => d.efetivo);
 
     return {
       labels,
@@ -163,12 +183,40 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
     );
   }
 
-  // Calcular totais
-  const totalPrevisto = (metricas.PREVISTO_T1 || 0) + (metricas.PREVISTO_T2 || 0) +
-                        (metricas.PREVISTO_T3 || 0) + ((metricas.PREVISTO_T4 || 0) * 3);
-  const totalEfetivo = (metricas.EFETIVO_T1 || 0) + (metricas.EFETIVO_T2 || 0) +
-                       (metricas.EFETIVO_T3 || 0) + (metricas.EFETIVO_T4_1 || 0) +
-                       (metricas.EFETIVO_T4_2 || 0) + (metricas.EFETIVO_T4_3 || 0);
+  // Calcular totais baseado nas tarefas visíveis
+  const calcularTotais = () => {
+    let previsto = 0;
+    let efetivo = 0;
+
+    if (tarefasVisiveis.includes('T1')) {
+      previsto += metricas.PREVISTO_T1 || 0;
+      efetivo += metricas.EFETIVO_T1 || 0;
+    }
+    if (tarefasVisiveis.includes('T2')) {
+      previsto += metricas.PREVISTO_T2 || 0;
+      efetivo += metricas.EFETIVO_T2 || 0;
+    }
+    if (tarefasVisiveis.includes('T3')) {
+      previsto += metricas.PREVISTO_T3 || 0;
+      efetivo += metricas.EFETIVO_T3 || 0;
+    }
+    if (tarefasVisiveis.includes('T4_1')) {
+      previsto += metricas.PREVISTO_T4 || 0;
+      efetivo += metricas.EFETIVO_T4_1 || 0;
+    }
+    if (tarefasVisiveis.includes('T4_2')) {
+      previsto += metricas.PREVISTO_T4 || 0;
+      efetivo += metricas.EFETIVO_T4_2 || 0;
+    }
+    if (tarefasVisiveis.includes('T4_3')) {
+      previsto += metricas.PREVISTO_T4 || 0;
+      efetivo += metricas.EFETIVO_T4_3 || 0;
+    }
+
+    return { previsto, efetivo };
+  };
+
+  const { previsto: totalPrevisto, efetivo: totalEfetivo } = calcularTotais();
 
   // Calcular percentuais por tarefa
   const calcularPercentual = (efetivo, previsto) => {
@@ -216,6 +264,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
         </h4>
         <div className="atividades-grid">
           {/* T1 - Categorização */}
+          {tarefasVisiveis.includes('T1') && (
           <div className="atividade-card">
             <div className="atividade-header">
               <strong>T1 - Categorização</strong>
@@ -245,8 +294,10 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
               </div>
             </div>
           </div>
+          )}
 
           {/* T2 - Revisão */}
+          {tarefasVisiveis.includes('T2') && (
           <div className="atividade-card">
             <div className="atividade-header">
               <strong>T2 - Revisão</strong>
@@ -276,8 +327,10 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
               </div>
             </div>
           </div>
+          )}
 
           {/* T3 - Validação */}
+          {tarefasVisiveis.includes('T3') && (
           <div className="atividade-card">
             <div className="atividade-header">
               <strong>T3 - Validação</strong>
@@ -307,8 +360,10 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
               </div>
             </div>
           </div>
+          )}
 
           {/* T4 - Sujeito */}
+          {tarefasVisiveis.includes('T4_1') && (
           <div className="atividade-card">
             <div className="atividade-header">
               <strong>T4 - Sujeito</strong>
@@ -338,8 +393,10 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
               </div>
             </div>
           </div>
+          )}
 
           {/* T4 - Dedução */}
+          {tarefasVisiveis.includes('T4_2') && (
           <div className="atividade-card">
             <div className="atividade-header">
               <strong>T4 - Dedução</strong>
@@ -369,8 +426,10 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
               </div>
             </div>
           </div>
+          )}
 
           {/* T4 - Recuperação */}
+          {tarefasVisiveis.includes('T4_3') && (
           <div className="atividade-card">
             <div className="atividade-header">
               <strong>T4 - Recuperação</strong>
@@ -400,6 +459,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
               </div>
             </div>
           </div>
+          )}
         </div>
       </div>
 
