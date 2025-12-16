@@ -263,11 +263,11 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           Detalhamento por Tarefa
         </h4>
         <div className="atividades-grid">
-          {/* T1 - Categorização (T1) */}
+          {/* T1 - Categorização */}
           {tarefasVisiveis.includes('T1') && (
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T1 - Categorização (T1)</strong>
+              <strong>T1 - Categorização</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T1, metricas.PREVISTO_T1) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T1, metricas.PREVISTO_T1)}%
               </span>
@@ -296,11 +296,11 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           </div>
           )}
 
-          {/* T2 - Revisão (T2) */}
+          {/* T2 - Revisão */}
           {tarefasVisiveis.includes('T2') && (
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T2 - Revisão (T2)</strong>
+              <strong>T2 - Revisão</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T2, metricas.PREVISTO_T2) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T2, metricas.PREVISTO_T2)}%
               </span>
@@ -329,11 +329,11 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           </div>
           )}
 
-          {/* T3 - Validação (T3) */}
+          {/* T3 - Validação */}
           {tarefasVisiveis.includes('T3') && (
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T3 - Validação (T3)</strong>
+              <strong>T3 - Validação</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T3, metricas.PREVISTO_T3) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T3, metricas.PREVISTO_T3)}%
               </span>
@@ -362,11 +362,11 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           </div>
           )}
 
-          {/* T4 - Finalização (T4 Sujeito) */}
+          {/* T4 - Sujeito */}
           {tarefasVisiveis.includes('T4_1') && (
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T4 - Finalização (T4 Sujeito)</strong>
+              <strong>T4 - Sujeito</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T4_1, metricas.PREVISTO_T4) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T4_1, metricas.PREVISTO_T4)}%
               </span>
@@ -395,11 +395,11 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           </div>
           )}
 
-          {/* T4 - Finalização (T4 Dedução) */}
+          {/* T4 - Dedução */}
           {tarefasVisiveis.includes('T4_2') && (
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T4 - Finalização (T4 Dedução)</strong>
+              <strong>T4 - Dedução</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T4_2, metricas.PREVISTO_T4) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T4_2, metricas.PREVISTO_T4)}%
               </span>
@@ -428,11 +428,11 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           </div>
           )}
 
-          {/* T4 - Finalização (T4 Recuperação) */}
+          {/* T4 - Recuperação */}
           {tarefasVisiveis.includes('T4_3') && (
           <div className="atividade-card">
             <div className="atividade-header">
-              <strong>T4 - Finalização (T4 Recuperação)</strong>
+              <strong>T4 - Recuperação</strong>
               <span className={`percentual-badge ${calcularPercentual(metricas.EFETIVO_T4_3, metricas.PREVISTO_T4) >= 100 ? 'concluido' : 'pendente'}`}>
                 {calcularPercentual(metricas.EFETIVO_T4_3, metricas.PREVISTO_T4)}%
               </span>
