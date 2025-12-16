@@ -30,24 +30,32 @@ ChartJS.register(
   ChartDataLabels
 );
 
-function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
-  // Mapeamento de tipos de atividade para tarefas
-  const TIPO_ATIVIDADE_MAP = {
-    'T1 - Categorização (T1)': 'T1',
-    'T2 - Revisão (T2)': 'T2',
-    'T3 - Validação (T3)': 'T3',
-    'T4 - Finalização (T4 Sujeito)': 'T4_1',
-    'T4 - Finalização (T4 Dedução)': 'T4_2',
-    'T4 - Finalização (T4 Recuperação)': 'T4_3'
-  };
+// Mapeamento de títulos de atividades para códigos de tarefas
+const ATIVIDADE_PARA_TAREFA_MAP = {
+  'T1 - Categorização': ['T1'],
+  'T2 - Revisão': ['T2'],
+  'T3 - Validação': ['T3'],
+  'T4 - Sujeito': ['T4_1'],
+  'T4 - Dedução': ['T4_2'],
+  'T4 - Recuperação': ['T4_3']
+};
 
-  // Determinar quais tarefas devem ser exibidas
+function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
+  // Determinar quais tarefas devem ser exibidas baseado no filtro
   const getTarefasVisiveis = () => {
     if (!tipoAtividadeFiltro) {
       return ['T1', 'T2', 'T3', 'T4_1', 'T4_2', 'T4_3']; // Todas
     }
-    const tarefa = TIPO_ATIVIDADE_MAP[tipoAtividadeFiltro];
-    return tarefa ? [tarefa] : [];
+
+    // Mapear o filtro para as tarefas correspondentes
+    const tarefas = ATIVIDADE_PARA_TAREFA_MAP[tipoAtividadeFiltro];
+
+    if (tarefas) {
+      return tarefas;
+    }
+
+    // Se não encontrou no mapeamento, mostrar todas
+    return ['T1', 'T2', 'T3', 'T4_1', 'T4_2', 'T4_3'];
   };
 
   const tarefasVisiveis = getTarefasVisiveis();
