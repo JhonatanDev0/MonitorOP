@@ -48,14 +48,19 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
       return ['T1', 'T2', 'T3', 'T4_1', 'T4_2', 'T4_3']; // Todas
     }
 
+    console.log('🔍 Debug T4 - Filtro recebido:', tipoAtividadeFiltro);
+
     // Mapear o filtro para as tarefas correspondentes
     const tarefas = ATIVIDADE_PARA_TAREFA_MAP[tipoAtividadeFiltro];
+
+    console.log('🔍 Debug T4 - Tarefas mapeadas:', tarefas);
 
     if (tarefas) {
       return tarefas;
     }
 
     // Se não encontrou no mapeamento, mostrar todas
+    console.log('⚠️ T4 não encontrado no mapeamento, mostrando todas');
     return ['T1', 'T2', 'T3', 'T4_1', 'T4_2', 'T4_3'];
   };
 
