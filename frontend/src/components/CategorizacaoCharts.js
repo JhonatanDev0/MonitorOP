@@ -32,12 +32,12 @@ ChartJS.register(
 
 // Mapeamento de títulos de atividades para códigos de tarefas
 const ATIVIDADE_PARA_TAREFA_MAP = {
-  'T1 - Categorização (T1)': ['T1'],
-  'T2 - Revisão (T2)': ['T2'],
-  'T3 - Validação (T3)': ['T3'],
-  'T4 - Finalização (T4 Sujeito)': ['T4_1'],
-  'T4 - Finalização (T4 Dedução)': ['T4_2'],
-  'T4 - Finalização (T4 Recuperação)': ['T4_3']
+  'T1 - Categorização': ['T1'],
+  'T2 - Revisão': ['T2'],
+  'T3 - Validação': ['T3'],
+  'T4 - Sujeito': ['T4_1'],
+  'T4 - Dedução': ['T4_2'],
+  'T4 - Recuperação': ['T4_3']
 };
 
 function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
