@@ -8,6 +8,7 @@ import sqlalchemy as sa
 from sqlalchemy import text
 import traceback
 import time
+import pyodbc
 
 bp = Blueprint('frop_digitalizacao', __name__, url_prefix='/api/frop-digitalizacao')
 
@@ -151,7 +152,35 @@ def executar_frop_digitalizacao(usuario, squad_id, projeto_id, cd_projeto):
             print(f"[FROP DIGITALIZACAO] Executando query para projeto {cd_projeto}...")
             inicio_query = time.time()
 
-            df = pd.read_sql(query_origem, engine_origem)
+            # Usar pyodbc diretamente para melhor performance
+            print(f"[FROP DIGITALIZACAO] Criando conexão pyodbc direta...")
+            conn_str = (
+                f"DRIVER={{ODBC Driver 17 for SQL Server}};"
+                f"SERVER={origem_server};"
+                f"DATABASE={origem_database};"
+                f"UID={origem_user};"
+                f"PWD={origem_password};"
+                f"Connection Timeout=300;"
+            )
+
+            conn = pyodbc.connect(conn_str, timeout=300)
+            conn.timeout = 300
+            cursor = conn.cursor()
+
+            print(f"[FROP DIGITALIZACAO] Executando query SQL...")
+            cursor.execute(query_origem)
+
+            print(f"[FROP DIGITALIZACAO] Buscando resultados...")
+            rows = cursor.fetchall()
+            columns = [column[0] for column in cursor.description]
+
+            print(f"[FROP DIGITALIZACAO] Convertendo para DataFrame...")
+            df = pd.DataFrame.from_records(rows, columns=columns)
+
+            cursor.close()
+            conn.close()
+
+            print(f"[FROP DIGITALIZACAO] Dados lidos com sucesso!")
 
             tempo_query = time.time() - inicio_query
             print(f"[FROP DIGITALIZACAO] Query executada em {tempo_query:.2f} segundos")
@@ -159,6 +188,8 @@ def executar_frop_digitalizacao(usuario, squad_id, projeto_id, cd_projeto):
             logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Query executada em {tempo_query:.2f}s, {len(df)} registro(s) retornado(s)")
             atualizar_job(projeto_id, 'em_andamento', 60, logs)
         except Exception as e:
+            print(f"[FROP DIGITALIZACAO] ERRO na query: {str(e)}")
+            traceback.print_exc()
             raise Exception(f"Erro ao executar query ORIGEM: {str(e)}")
 
         if df.empty:
