@@ -7,6 +7,7 @@ import pandas as pd
 import sqlalchemy as sa
 from sqlalchemy import text
 import traceback
+import time
 
 bp = Blueprint('frop_digitalizacao', __name__, url_prefix='/api/frop-digitalizacao')
 
@@ -77,8 +78,10 @@ def executar_frop_digitalizacao(usuario, squad_id, projeto_id, cd_projeto):
             engine_origem = sa.create_engine(
                 f"mssql+pyodbc://{origem_user}:{origem_password}"
                 f"@{origem_server}/{origem_database}"
-                "?driver=ODBC+Driver+17+for+SQL+Server",
-                fast_executemany=True
+                "?driver=ODBC+Driver+17+for+SQL+Server&timeout=300",
+                fast_executemany=True,
+                pool_pre_ping=True,
+                connect_args={'timeout': 300}
             )
             logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Conexão ORIGEM criada")
             atualizar_job(projeto_id, 'em_andamento', 25, logs)
@@ -141,11 +144,19 @@ def executar_frop_digitalizacao(usuario, squad_id, projeto_id, cd_projeto):
         """
 
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Consultando dados de digitalização...")
+        logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Aguarde, esta consulta pode demorar alguns minutos...")
         atualizar_job(projeto_id, 'em_andamento', 50, logs)
 
         try:
+            print(f"[FROP DIGITALIZACAO] Executando query para projeto {cd_projeto}...")
+            inicio_query = time.time()
+
             df = pd.read_sql(query_origem, engine_origem)
-            logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Query executada, {len(df)} registro(s) retornado(s)")
+
+            tempo_query = time.time() - inicio_query
+            print(f"[FROP DIGITALIZACAO] Query executada em {tempo_query:.2f} segundos")
+
+            logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Query executada em {tempo_query:.2f}s, {len(df)} registro(s) retornado(s)")
             atualizar_job(projeto_id, 'em_andamento', 60, logs)
         except Exception as e:
             raise Exception(f"Erro ao executar query ORIGEM: {str(e)}")
