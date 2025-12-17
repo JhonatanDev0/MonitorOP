@@ -18,7 +18,8 @@ import {
   faListCheck,
   faClockRotateLeft,
   faChevronDown,
-  faChevronUp
+  faChevronUp,
+  faBox
 } from '@fortawesome/free-solid-svg-icons';
 import { toast } from 'react-toastify';
 import { confirmAlert } from 'react-confirm-alert';
@@ -52,6 +53,13 @@ const Rotinas = () => {
   const logsEndRefCategorizacao = useRef(null);
   const pollingIntervalCategorizacao = useRef(null);
 
+  // Estados para execução e job - Frop Pacote
+  const [executandoFropPacote, setExecutandoFropPacote] = useState(false);
+  const [jobAtualFropPacote, setJobAtualFropPacote] = useState(null);
+  const [logsExpandedFropPacote, setLogsExpandedFropPacote] = useState(false);
+  const logsEndRefFropPacote = useRef(null);
+  const pollingIntervalFropPacote = useRef(null);
+
   // Função auxiliar que verifica permissão
   const temPermissao = () => {
     if (typeof canEdit === 'function') {
@@ -78,11 +86,14 @@ const Rotinas = () => {
     if (filtros.projeto_id) {
       verificarStatusJob(filtros.projeto_id);
       verificarStatusJobCategorizacao(filtros.projeto_id);
+      verificarStatusJobFropPacote(filtros.projeto_id);
     } else {
       setJobAtual(null);
       setJobAtualCategorizacao(null);
+      setJobAtualFropPacote(null);
       pararPolling();
       pararPollingCategorizacao();
+      pararPollingFropPacote();
     }
   }, [filtros.projeto_id]);
 
@@ -100,11 +111,19 @@ const Rotinas = () => {
     }
   }, [jobAtualCategorizacao?.logs, logsExpandedCategorizacao]);
 
+  // Auto-scroll dos logs - Frop Pacote
+  useEffect(() => {
+    if (logsExpandedFropPacote && logsEndRefFropPacote.current) {
+      logsEndRefFropPacote.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [jobAtualFropPacote?.logs, logsExpandedFropPacote]);
+
   // Limpar polling ao desmontar componente
   useEffect(() => {
     return () => {
       pararPolling();
       pararPollingCategorizacao();
+      pararPollingFropPacote();
     };
   }, []);
 
@@ -376,6 +395,118 @@ const Rotinas = () => {
            !executandoCategorizacao;
   };
 
+  // ========== FROP PACOTE ==========
+
+  const verificarStatusJobFropPacote = async (projeto_id) => {
+    try {
+      const response = await fetch(`${API_URL}/frop-pacote/job/projeto/${projeto_id}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setJobAtualFropPacote(data.job);
+
+          if (data.job.status === 'em_andamento') {
+            setExecutandoFropPacote(true);
+            iniciarPollingFropPacote(projeto_id);
+            if (!logsExpandedFropPacote) {
+              setLogsExpandedFropPacote(true);
+            }
+          } else {
+            setExecutandoFropPacote(false);
+            pararPollingFropPacote();
+          }
+        }
+      } else {
+        setJobAtualFropPacote(null);
+        setExecutandoFropPacote(false);
+        pararPollingFropPacote();
+      }
+    } catch (error) {
+      console.error('Erro ao verificar status do job de Frop Pacote:', error);
+    }
+  };
+
+  const iniciarPollingFropPacote = (projeto_id) => {
+    if (pollingIntervalFropPacote.current) {
+      clearInterval(pollingIntervalFropPacote.current);
+    }
+
+    pollingIntervalFropPacote.current = setInterval(() => {
+      verificarStatusJobFropPacote(projeto_id);
+    }, 2000);
+  };
+
+  const pararPollingFropPacote = () => {
+    if (pollingIntervalFropPacote.current) {
+      clearInterval(pollingIntervalFropPacote.current);
+      pollingIntervalFropPacote.current = null;
+    }
+  };
+
+  const executarRotinaFropPacote = async () => {
+    if (!temPermissao()) {
+      toast.error('Você não tem permissão para executar rotinas');
+      return;
+    }
+
+    if (!filtros.squad_id || !filtros.projeto_id) {
+      toast.warning('Selecione Squad e Projeto para executar a rotina');
+      return;
+    }
+
+    if (!currentUser) {
+      toast.error('Erro: Usuário não identificado. Faça login novamente.');
+      return;
+    }
+
+    const nomeUsuario = currentUser.username || currentUser.login || 'Sistema';
+
+    const projetoSelecionado = projetos.find(p => p.id === parseInt(filtros.projeto_id));
+    if (!projetoSelecionado || !projetoSelecionado.subprograma) {
+      toast.error('Projeto selecionado não possui código de subprograma');
+      return;
+    }
+
+    setExecutandoFropPacote(true);
+    setLogsExpandedFropPacote(true);
+
+    try {
+      const response = await fetch(`${API_URL}/frop-pacote/executar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuario: nomeUsuario,
+          squad_id: filtros.squad_id,
+          projeto_id: filtros.projeto_id,
+          cd_projeto: projetoSelecionado.subprograma
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.erro || 'Erro ao executar rotina');
+      }
+
+      toast.success('Rotina Frop Pacote iniciada em background!');
+
+      iniciarPollingFropPacote(filtros.projeto_id);
+      setTimeout(() => verificarStatusJobFropPacote(filtros.projeto_id), 500);
+
+    } catch (error) {
+      toast.error(error.message);
+      setExecutandoFropPacote(false);
+    }
+  };
+
+  const podeExecutarFropPacote = () => {
+    return temPermissao() &&
+           filtros.squad_id &&
+           filtros.projeto_id &&
+           !executandoFropPacote;
+  };
+
   const formatarTimestamp = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -411,6 +542,7 @@ const Rotinas = () => {
   const squadSelecionada = squads.find(s => s.id === parseInt(filtros.squad_id));
   const mostrarRotinaRecodificacao = squadSelecionada && squadSelecionada.nome === 'Recodificação' && filtros.projeto_id;
   const mostrarRotinaCategorizacao = squadSelecionada && squadSelecionada.nome === 'Categorização' && filtros.projeto_id;
+  const mostrarRotinaFropPacote = squadSelecionada && squadSelecionada.nome === 'Processamento' && filtros.projeto_id;
 
   return (
     <div>
@@ -1085,8 +1217,230 @@ const Rotinas = () => {
             </div>
           )}
 
+          {/* CARD DE FROP PACOTE */}
+          {mostrarRotinaFropPacote && (
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              border: '1px solid #e0e0e0'
+            }}>
+              {/* Header do Card */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+                padding: '20px 30px',
+                borderBottom: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                  <div style={{
+                    width: '50px',
+                    height: '50px',
+                    background: 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '24px'
+                  }}>
+                    <FontAwesomeIcon icon={faBox} />
+                  </div>
+                  <h3 style={{margin: 0, fontSize: '22px', fontWeight: 600, color: '#2c3e50'}}>
+                    Rotina Frop Pacote
+                  </h3>
+                </div>
+              </div>
+
+              {/* Conteúdo do Card */}
+              <div style={{padding: '30px'}}>
+                {/* Descrição */}
+                <div style={{
+                  marginBottom: '25px',
+                  padding: '20px',
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #e67e22'
+                }}>
+                  <h4 style={{
+                    margin: '0 0 10px 0',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    color: '#2c3e50'
+                  }}>
+                    Descrição da Rotina
+                  </h4>
+                  <p style={{margin: 0, color: '#7f8c8d', fontSize: '14px', lineHeight: '1.6'}}>
+                    Rotina automatizada que realiza a comparação entre pacotes planejados (BP) e pacotes no SIA.
+                    A rotina busca dados de unidades do tipo PACOTE, calcula métricas (planejado, SIA, ausentes)
+                    e grava os resultados na tabela TMP_FROP_PACOTE para monitoramento.
+                  </p>
+                </div>
+
+                {/* Informações do Projeto e Job */}
+                {filtros.projeto_id && (
+                  <div style={{
+                    marginBottom: '25px',
+                    padding: '15px 20px',
+                    background: '#fef5e7',
+                    borderRadius: '6px',
+                    border: '1px solid #f8c471'
+                  }}>
+                    <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
+                      Projeto Selecionado:
+                    </div>
+                    <div style={{fontSize: '16px', fontWeight: 600, color: '#2c3e50', marginBottom: '15px'}}>
+                      {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.subprograma} - {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.nome}
+                    </div>
+
+                    {/* Informações da Execução */}
+                    {jobAtualFropPacote && (
+                      <div style={{borderTop: '1px solid #f8c471', paddingTop: '12px'}}>
+                        <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
+                          <strong>Início:</strong> {formatarTimestamp(jobAtualFropPacote.inicio)}
+                          {' | '}
+                          <strong>Fim:</strong> {jobAtualFropPacote?.fim ? formatarTimestamp(jobAtualFropPacote.fim) : '-'}
+                        </div>
+                        <div style={{fontSize: '13px', marginTop: '8px'}}>
+                          <strong>Status:</strong>{' '}
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '4px 12px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            background: !jobAtualFropPacote
+                              ? '#95a5a6'
+                              : jobAtualFropPacote.status === 'concluido'
+                              ? '#27ae60'
+                              : jobAtualFropPacote.status === 'erro'
+                              ? '#e74c3c'
+                              : '#f39c12',
+                            color: 'white'
+                          }}>
+                            {!jobAtualFropPacote
+                              ? 'Não executado'
+                              : jobAtualFropPacote.status === 'concluido'
+                              ? 'Executado'
+                              : jobAtualFropPacote.status === 'erro'
+                              ? 'Erro'
+                              : 'Em execução'}
+                          </span>
+                          {jobAtualFropPacote?.status === 'em_andamento' && (
+                            <span style={{marginLeft: '10px', color: '#7f8c8d'}}>
+                              {jobAtualFropPacote.progresso}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Área de Logs */}
+                {jobAtualFropPacote && jobAtualFropPacote.logs && jobAtualFropPacote.logs.length > 0 && (
+                  <div style={{
+                    marginBottom: '25px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    overflow: 'hidden'
+                  }}>
+                    <button
+                      onClick={() => setLogsExpandedFropPacote(!logsExpandedFropPacote)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 20px',
+                        background: '#f8f9fa',
+                        border: 'none',
+                        borderBottom: logsExpandedFropPacote ? '1px solid #e0e0e0' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: '#2c3e50'
+                      }}
+                    >
+                      <span>
+                        <FontAwesomeIcon icon={faClockRotateLeft} style={{marginRight: '8px'}} />
+                        Logs de Execução ({jobAtualFropPacote.logs.length})
+                      </span>
+                      <FontAwesomeIcon icon={logsExpandedFropPacote ? faChevronUp : faChevronDown} />
+                    </button>
+
+                    {logsExpandedFropPacote && (
+                      <div style={{
+                        maxHeight: '300px',
+                        overflowY: 'auto',
+                        padding: '15px',
+                        background: '#fafafa'
+                      }}>
+                        {jobAtualFropPacote.logs.map((log, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              padding: '8px 12px',
+                              marginBottom: '6px',
+                              background: 'white',
+                              borderRadius: '4px',
+                              fontSize: '13px',
+                              color: '#2c3e50',
+                              fontFamily: 'monospace'
+                            }}
+                          >
+                            {log}
+                          </div>
+                        ))}
+                        <div ref={logsEndRefFropPacote} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Rodapé com Botão de Ação */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  paddingTop: '20px',
+                  borderTop: '1px solid #e0e0e0'
+                }}>
+                  <button
+                    onClick={executarRotinaFropPacote}
+                    disabled={!podeExecutarFropPacote()}
+                    style={{
+                      padding: '12px 24px',
+                      background: !podeExecutarFropPacote()
+                        ? 'linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%)'
+                        : 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: !podeExecutarFropPacote() ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      minWidth: '140px',
+                      justifyContent: 'center'
+                    }}
+                    onMouseEnter={(e) => podeExecutarFropPacote() && (e.currentTarget.style.transform = 'translateY(-2px)')}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
+                    <FontAwesomeIcon icon={executandoFropPacote ? faSpinner : faPlay} spin={executandoFropPacote} />
+                    {executandoFropPacote ? 'Executando...' : 'Executar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Mensagem se não houver rotina disponível */}
-          {!mostrarRotinaRecodificacao && !mostrarRotinaCategorizacao && (
+          {!mostrarRotinaRecodificacao && !mostrarRotinaCategorizacao && !mostrarRotinaFropPacote && (
             <div style={{
               textAlign: 'center',
               padding: '80px 20px',
