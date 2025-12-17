@@ -60,6 +60,13 @@ const Rotinas = () => {
   const logsEndRefFropPacote = useRef(null);
   const pollingIntervalFropPacote = useRef(null);
 
+  // Estados para execução e job - Frop Digitalização
+  const [executandoFropDigitalizacao, setExecutandoFropDigitalizacao] = useState(false);
+  const [jobAtualFropDigitalizacao, setJobAtualFropDigitalizacao] = useState(null);
+  const [logsExpandedFropDigitalizacao, setLogsExpandedFropDigitalizacao] = useState(false);
+  const logsEndRefFropDigitalizacao = useRef(null);
+  const pollingIntervalFropDigitalizacao = useRef(null);
+
   // Função auxiliar que verifica permissão
   const temPermissao = () => {
     if (typeof canEdit === 'function') {
@@ -87,13 +94,16 @@ const Rotinas = () => {
       verificarStatusJob(filtros.projeto_id);
       verificarStatusJobCategorizacao(filtros.projeto_id);
       verificarStatusJobFropPacote(filtros.projeto_id);
+      verificarStatusJobFropDigitalizacao(filtros.projeto_id);
     } else {
       setJobAtual(null);
       setJobAtualCategorizacao(null);
       setJobAtualFropPacote(null);
+      setJobAtualFropDigitalizacao(null);
       pararPolling();
       pararPollingCategorizacao();
       pararPollingFropPacote();
+      pararPollingFropDigitalizacao();
     }
   }, [filtros.projeto_id]);
 
@@ -118,12 +128,20 @@ const Rotinas = () => {
     }
   }, [jobAtualFropPacote?.logs, logsExpandedFropPacote]);
 
+  // Auto-scroll dos logs - Frop Digitalização
+  useEffect(() => {
+    if (logsExpandedFropDigitalizacao && logsEndRefFropDigitalizacao.current) {
+      logsEndRefFropDigitalizacao.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [jobAtualFropDigitalizacao?.logs, logsExpandedFropDigitalizacao]);
+
   // Limpar polling ao desmontar componente
   useEffect(() => {
     return () => {
       pararPolling();
       pararPollingCategorizacao();
       pararPollingFropPacote();
+      pararPollingFropDigitalizacao();
     };
   }, []);
 
@@ -507,6 +525,118 @@ const Rotinas = () => {
            !executandoFropPacote;
   };
 
+  // ========== FROP DIGITALIZAÇÃO ==========
+
+  const verificarStatusJobFropDigitalizacao = async (projeto_id) => {
+    try {
+      const response = await fetch(`${API_URL}/frop-digitalizacao/job/projeto/${projeto_id}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setJobAtualFropDigitalizacao(data.job);
+
+          if (data.job.status === 'em_andamento') {
+            setExecutandoFropDigitalizacao(true);
+            iniciarPollingFropDigitalizacao(projeto_id);
+            if (!logsExpandedFropDigitalizacao) {
+              setLogsExpandedFropDigitalizacao(true);
+            }
+          } else {
+            setExecutandoFropDigitalizacao(false);
+            pararPollingFropDigitalizacao();
+          }
+        }
+      } else {
+        setJobAtualFropDigitalizacao(null);
+        setExecutandoFropDigitalizacao(false);
+        pararPollingFropDigitalizacao();
+      }
+    } catch (error) {
+      console.error('Erro ao verificar status do job de Frop Digitalização:', error);
+    }
+  };
+
+  const iniciarPollingFropDigitalizacao = (projeto_id) => {
+    if (pollingIntervalFropDigitalizacao.current) {
+      clearInterval(pollingIntervalFropDigitalizacao.current);
+    }
+
+    pollingIntervalFropDigitalizacao.current = setInterval(() => {
+      verificarStatusJobFropDigitalizacao(projeto_id);
+    }, 2000);
+  };
+
+  const pararPollingFropDigitalizacao = () => {
+    if (pollingIntervalFropDigitalizacao.current) {
+      clearInterval(pollingIntervalFropDigitalizacao.current);
+      pollingIntervalFropDigitalizacao.current = null;
+    }
+  };
+
+  const executarRotinaFropDigitalizacao = async () => {
+    if (!temPermissao()) {
+      toast.error('Você não tem permissão para executar rotinas');
+      return;
+    }
+
+    if (!filtros.squad_id || !filtros.projeto_id) {
+      toast.warning('Selecione Squad e Projeto para executar a rotina');
+      return;
+    }
+
+    if (!currentUser) {
+      toast.error('Erro: Usuário não identificado. Faça login novamente.');
+      return;
+    }
+
+    const nomeUsuario = currentUser.username || currentUser.login || 'Sistema';
+
+    const projetoSelecionado = projetos.find(p => p.id === parseInt(filtros.projeto_id));
+    if (!projetoSelecionado || !projetoSelecionado.subprograma) {
+      toast.error('Projeto selecionado não possui código de subprograma');
+      return;
+    }
+
+    setExecutandoFropDigitalizacao(true);
+    setLogsExpandedFropDigitalizacao(true);
+
+    try {
+      const response = await fetch(`${API_URL}/frop-digitalizacao/executar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuario: nomeUsuario,
+          squad_id: filtros.squad_id,
+          projeto_id: filtros.projeto_id,
+          cd_projeto: projetoSelecionado.subprograma
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.erro || 'Erro ao executar rotina');
+      }
+
+      toast.success('Rotina Frop Digitalização iniciada em background!');
+
+      iniciarPollingFropDigitalizacao(filtros.projeto_id);
+      setTimeout(() => verificarStatusJobFropDigitalizacao(filtros.projeto_id), 500);
+
+    } catch (error) {
+      toast.error(error.message);
+      setExecutandoFropDigitalizacao(false);
+    }
+  };
+
+  const podeExecutarFropDigitalizacao = () => {
+    return temPermissao() &&
+           filtros.squad_id &&
+           filtros.projeto_id &&
+           !executandoFropDigitalizacao;
+  };
+
   const formatarTimestamp = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -543,6 +673,7 @@ const Rotinas = () => {
   const mostrarRotinaRecodificacao = squadSelecionada && squadSelecionada.nome === 'Recodificação' && filtros.projeto_id;
   const mostrarRotinaCategorizacao = squadSelecionada && squadSelecionada.nome === 'Categorização' && filtros.projeto_id;
   const mostrarRotinaFropPacote = squadSelecionada && squadSelecionada.nome === 'Processamento' && filtros.projeto_id;
+  const mostrarRotinaFropDigitalizacao = squadSelecionada && squadSelecionada.nome === 'Processamento' && filtros.projeto_id;
 
   return (
     <div>
@@ -633,7 +764,7 @@ const Rotinas = () => {
                     setProjetoSearch('');
                   }}
                   style={{width: '100%'}}
-                  disabled={executando || executandoCategorizacao}
+                  disabled={executando || executandoCategorizacao || executandoFropPacote || executandoFropDigitalizacao}
                 >
                   <option value="">Selecione uma Squad</option>
                   {squads.map(s => (
@@ -663,13 +794,13 @@ const Rotinas = () => {
                       setShowProjetoDropdown(true);
                     }}
                     onFocus={() => setShowProjetoDropdown(true)}
-                    disabled={!filtros.squad_id || executando || executandoCategorizacao}
+                    disabled={!filtros.squad_id || executando || executandoCategorizacao || executandoFropPacote || executandoFropDigitalizacao}
                     style={{width: '100%', paddingRight: filtros.projeto_id ? '40px' : '10px'}}
                   />
                   {filtros.projeto_id && (
                     <button
                       onClick={limparProjeto}
-                      disabled={executando || executandoCategorizacao}
+                      disabled={executando || executandoCategorizacao || executandoFropPacote || executandoFropDigitalizacao}
                       style={{
                         position: 'absolute',
                         right: '10px',
@@ -678,7 +809,7 @@ const Rotinas = () => {
                         background: 'none',
                         border: 'none',
                         color: '#95a5a6',
-                        cursor: (executando || executandoCategorizacao) ? 'not-allowed' : 'pointer',
+                        cursor: (executando || executandoCategorizacao || executandoFropPacote || executandoFropDigitalizacao) ? 'not-allowed' : 'pointer',
                         fontSize: '18px',
                         padding: '0',
                         width: '20px',
@@ -686,7 +817,7 @@ const Rotinas = () => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        opacity: (executando || executandoCategorizacao) ? 0.5 : 1
+                        opacity: (executando || executandoCategorizacao || executandoFropPacote || executandoFropDigitalizacao) ? 0.5 : 1
                       }}
                       title="Limpar projeto"
                     >
@@ -713,15 +844,15 @@ const Rotinas = () => {
                     {projetosFiltrados.map(projeto => (
                       <div
                         key={projeto.id}
-                        onClick={() => !(executando || executandoCategorizacao) && selecionarProjeto(projeto)}
+                        onClick={() => !(executando || executandoCategorizacao || executandoFropPacote || executandoFropDigitalizacao) && selecionarProjeto(projeto)}
                         style={{
                           padding: '10px 15px',
-                          cursor: (executando || executandoCategorizacao) ? 'not-allowed' : 'pointer',
+                          cursor: (executando || executandoCategorizacao || executandoFropPacote || executandoFropDigitalizacao) ? 'not-allowed' : 'pointer',
                           borderBottom: '1px solid #f0f0f0',
                           transition: 'background 0.2s',
-                          opacity: (executando || executandoCategorizacao) ? 0.5 : 1
+                          opacity: (executando || executandoCategorizacao || executandoFropPacote || executandoFropDigitalizacao) ? 0.5 : 1
                         }}
-                        onMouseEnter={(e) => !(executando || executandoCategorizacao) && (e.target.style.background = '#f8f9fa')}
+                        onMouseEnter={(e) => !(executando || executandoCategorizacao || executandoFropPacote || executandoFropDigitalizacao) && (e.target.style.background = '#f8f9fa')}
                         onMouseLeave={(e) => e.target.style.background = 'white'}
                       >
                         <div style={{fontWeight: 600, color: '#2c3e50', marginBottom: '3px'}}>
@@ -1439,8 +1570,231 @@ const Rotinas = () => {
             </div>
           )}
 
+          {/* CARD DE FROP DIGITALIZAÇÃO */}
+          {mostrarRotinaFropDigitalizacao && (
+            <div style={{
+              background: 'white',
+              borderRadius: '12px',
+              overflow: 'hidden',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              border: '1px solid #e0e0e0',
+              marginTop: '20px'
+            }}>
+              {/* Header do Card */}
+              <div style={{
+                background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)',
+                padding: '20px 30px',
+                borderBottom: '1px solid #e0e0e0',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+                  <div style={{
+                    width: '50px',
+                    height: '50px',
+                    background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '24px'
+                  }}>
+                    <FontAwesomeIcon icon={faFile} />
+                  </div>
+                  <h3 style={{margin: 0, fontSize: '22px', fontWeight: 600, color: '#2c3e50'}}>
+                    Rotina Frop Digitalização
+                  </h3>
+                </div>
+              </div>
+
+              {/* Conteúdo do Card */}
+              <div style={{padding: '30px'}}>
+                {/* Descrição */}
+                <div style={{
+                  marginBottom: '25px',
+                  padding: '20px',
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #3498db'
+                }}>
+                  <h4 style={{
+                    margin: '0 0 10px 0',
+                    fontSize: '16px',
+                    fontWeight: 600,
+                    color: '#2c3e50'
+                  }}>
+                    Descrição da Rotina
+                  </h4>
+                  <p style={{margin: 0, color: '#7f8c8d', fontSize: '14px', lineHeight: '1.6'}}>
+                    Rotina automatizada de monitoramento de digitalização de instrumentos avaliativos.
+                    Compara instrumentos previstos com instrumentos digitalizados através de consultas
+                    aos repositórios CENTRAL e BR, calculando métricas e sincronizando com TMP_FROP_DIGITALIZACAO.
+                  </p>
+                </div>
+
+                {/* Informações do Projeto e Job */}
+                {filtros.projeto_id && (
+                  <div style={{
+                    marginBottom: '25px',
+                    padding: '15px 20px',
+                    background: '#e8f4f8',
+                    borderRadius: '6px',
+                    border: '1px solid #b8dce8'
+                  }}>
+                    <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
+                      Projeto Selecionado:
+                    </div>
+                    <div style={{fontSize: '16px', fontWeight: 600, color: '#2c3e50', marginBottom: '15px'}}>
+                      {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.subprograma} - {projetos.find(p => p.id === parseInt(filtros.projeto_id))?.nome}
+                    </div>
+
+                    {/* Informações da Execução */}
+                    {jobAtualFropDigitalizacao && (
+                      <div style={{borderTop: '1px solid #b8dce8', paddingTop: '12px'}}>
+                        <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
+                          <strong>Início:</strong> {formatarTimestamp(jobAtualFropDigitalizacao.inicio)}
+                          {' | '}
+                          <strong>Fim:</strong> {jobAtualFropDigitalizacao?.fim ? formatarTimestamp(jobAtualFropDigitalizacao.fim) : '-'}
+                        </div>
+                        <div style={{fontSize: '13px', marginTop: '8px'}}>
+                          <strong>Status:</strong>{' '}
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '4px 12px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            background: !jobAtualFropDigitalizacao
+                              ? '#95a5a6'
+                              : jobAtualFropDigitalizacao.status === 'concluido'
+                              ? '#27ae60'
+                              : jobAtualFropDigitalizacao.status === 'erro'
+                              ? '#e74c3c'
+                              : '#f39c12',
+                            color: 'white'
+                          }}>
+                            {!jobAtualFropDigitalizacao
+                              ? 'Não executado'
+                              : jobAtualFropDigitalizacao.status === 'concluido'
+                              ? 'Executado'
+                              : jobAtualFropDigitalizacao.status === 'erro'
+                              ? 'Erro'
+                              : 'Em execução'}
+                          </span>
+                          {jobAtualFropDigitalizacao?.status === 'em_andamento' && (
+                            <span style={{marginLeft: '10px', color: '#7f8c8d'}}>
+                              {jobAtualFropDigitalizacao.progresso}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Área de Logs */}
+                {jobAtualFropDigitalizacao && jobAtualFropDigitalizacao.logs && jobAtualFropDigitalizacao.logs.length > 0 && (
+                  <div style={{
+                    marginBottom: '25px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '8px',
+                    overflow: 'hidden'
+                  }}>
+                    <button
+                      onClick={() => setLogsExpandedFropDigitalizacao(!logsExpandedFropDigitalizacao)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 20px',
+                        background: '#f8f9fa',
+                        border: 'none',
+                        borderBottom: logsExpandedFropDigitalizacao ? '1px solid #e0e0e0' : 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        color: '#2c3e50'
+                      }}
+                    >
+                      <span>
+                        <FontAwesomeIcon icon={faClockRotateLeft} style={{marginRight: '8px'}} />
+                        Logs de Execução ({jobAtualFropDigitalizacao.logs.length})
+                      </span>
+                      <FontAwesomeIcon icon={logsExpandedFropDigitalizacao ? faChevronUp : faChevronDown} />
+                    </button>
+
+                    {logsExpandedFropDigitalizacao && (
+                      <div style={{
+                        maxHeight: '300px',
+                        overflowY: 'auto',
+                        padding: '15px',
+                        background: '#fafafa'
+                      }}>
+                        {jobAtualFropDigitalizacao.logs.map((log, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              padding: '8px 12px',
+                              marginBottom: '6px',
+                              background: 'white',
+                              borderRadius: '4px',
+                              fontSize: '13px',
+                              color: '#2c3e50',
+                              fontFamily: 'monospace'
+                            }}
+                          >
+                            {log}
+                          </div>
+                        ))}
+                        <div ref={logsEndRefFropDigitalizacao} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Rodapé com Botão de Ação */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  paddingTop: '20px',
+                  borderTop: '1px solid #e0e0e0'
+                }}>
+                  <button
+                    onClick={executarRotinaFropDigitalizacao}
+                    disabled={!podeExecutarFropDigitalizacao()}
+                    style={{
+                      padding: '12px 24px',
+                      background: !podeExecutarFropDigitalizacao()
+                        ? 'linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%)'
+                        : 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: !podeExecutarFropDigitalizacao() ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      minWidth: '140px',
+                      justifyContent: 'center'
+                    }}
+                    onMouseEnter={(e) => podeExecutarFropDigitalizacao() && (e.currentTarget.style.transform = 'translateY(-2px)')}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  >
+                    <FontAwesomeIcon icon={executandoFropDigitalizacao ? faSpinner : faPlay} spin={executandoFropDigitalizacao} />
+                    {executandoFropDigitalizacao ? 'Executando...' : 'Executar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Mensagem se não houver rotina disponível */}
-          {!mostrarRotinaRecodificacao && !mostrarRotinaCategorizacao && !mostrarRotinaFropPacote && (
+          {!mostrarRotinaRecodificacao && !mostrarRotinaCategorizacao && !mostrarRotinaFropPacote && !mostrarRotinaFropDigitalizacao && (
             <div style={{
               textAlign: 'center',
               padding: '80px 20px',
