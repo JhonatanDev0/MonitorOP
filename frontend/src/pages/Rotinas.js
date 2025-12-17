@@ -547,7 +547,14 @@ const Rotinas = () => {
             pararPollingFropDigitalizacao();
           }
         }
+      } else if (response.status === 404) {
+        // 404 é normal quando não há job ainda - não é erro
+        setJobAtualFropDigitalizacao(null);
+        setExecutandoFropDigitalizacao(false);
+        pararPollingFropDigitalizacao();
       } else {
+        // Outros erros (500, etc)
+        console.error('Erro ao verificar status do job de Frop Digitalização:', response.status);
         setJobAtualFropDigitalizacao(null);
         setExecutandoFropDigitalizacao(false);
         pararPollingFropDigitalizacao();
