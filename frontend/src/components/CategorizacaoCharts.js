@@ -124,7 +124,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           borderWidth: 2
         },
         {
-          label: 'Efetivo',
+          label: 'Realizado',
           data: efetivos,
           backgroundColor: 'rgba(46, 204, 113, 0.8)',
           borderColor: 'rgba(46, 204, 113, 1)',
