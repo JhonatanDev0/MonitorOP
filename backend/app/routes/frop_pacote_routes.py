@@ -154,7 +154,7 @@ def executar_frop_pacote(usuario, squad_id, projeto_id, cd_projeto):
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Executando ScriptFropT1.sql...")
         atualizar_job(projeto_id, 'em_andamento', 70, logs)
 
-        with open(sql_script_path, "r", encoding="ANSI") as f:
+        with open(sql_script_path, "r", encoding="utf-8") as f:
             sql_script = f.read()
 
         sql_script = sql_script.replace(
