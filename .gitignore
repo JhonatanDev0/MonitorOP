@@ -26,6 +26,7 @@ instance/
 backend/app/data/jobs_recodificacao.json
 backend/app/data/jobs_categorizacao.json
 backend/app/data/jobs_frop_pacote.json
+backend/app/data/jobs_frop_digitalizacao.json
 
 # Environment variables
 .env

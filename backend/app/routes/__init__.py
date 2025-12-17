@@ -8,6 +8,7 @@ from app.routes.dashboard_routes import bp as dashboard_bp
 from app.routes.recodificacao_routes import bp as recodificacao_bp
 from app.routes.categorizacao_routes import bp as categorizacao_bp
 from app.routes.frop_pacote_routes import bp as frop_pacote_bp
+from app.routes.frop_digitalizacao_routes import bp as frop_digitalizacao_bp
 from app.routes.notificacoes import bp as notificacoes_bp
 
 main_bp = Blueprint('main', __name__)
@@ -22,4 +23,5 @@ main_bp.register_blueprint(dashboard_bp)
 main_bp.register_blueprint(recodificacao_bp)
 main_bp.register_blueprint(categorizacao_bp)
 main_bp.register_blueprint(frop_pacote_bp)
+main_bp.register_blueprint(frop_digitalizacao_bp)
 main_bp.register_blueprint(notificacoes_bp)
