@@ -160,19 +160,33 @@ def executar_frop_digitalizacao(usuario, squad_id, projeto_id, cd_projeto):
                 f"DATABASE={origem_database};"
                 f"UID={origem_user};"
                 f"PWD={origem_password};"
-                f"Connection Timeout=300;"
+                f"Connection Timeout=30;"
             )
 
-            conn = pyodbc.connect(conn_str, timeout=300)
-            conn.timeout = 300
+            conn = pyodbc.connect(conn_str, timeout=30)
             cursor = conn.cursor()
 
+            # Configurar timeout do comando para 10 minutos (600 segundos)
+            # DEVE ser configurado ANTES do execute
+            cursor.timeout = 600
+
+            print(f"[FROP DIGITALIZACAO] Timeout configurado para 600 segundos (10 minutos)")
             print(f"[FROP DIGITALIZACAO] Executando query SQL...")
+
+            # Executar a query
             cursor.execute(query_origem)
+
+            print(f"[FROP DIGITALIZACAO] Query submetida ao servidor, aguardando resposta...")
+            logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Processando consulta no servidor SQL...")
+            atualizar_job(projeto_id, 'em_andamento', 55, logs)
 
             print(f"[FROP DIGITALIZACAO] Buscando resultados...")
             rows = cursor.fetchall()
             columns = [column[0] for column in cursor.description]
+
+            print(f"[FROP DIGITALIZACAO] Resultados recebidos, {len(rows)} linhas")
+            logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Dados recebidos do servidor")
+            atualizar_job(projeto_id, 'em_andamento', 58, logs)
 
             print(f"[FROP DIGITALIZACAO] Convertendo para DataFrame...")
             df = pd.DataFrame.from_records(rows, columns=columns)
