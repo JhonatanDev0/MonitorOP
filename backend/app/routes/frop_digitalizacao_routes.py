@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 import sqlalchemy as sa
 from sqlalchemy import text
+import traceback
 
 bp = Blueprint('frop_digitalizacao', __name__, url_prefix='/api/frop-digitalizacao')
 
@@ -250,21 +251,30 @@ def executar():
 def obter_job(projeto_id):
     """Retorna o status do job de um projeto"""
     try:
+        print(f"[FROP DIGITALIZACAO] Buscando job para projeto_id: {projeto_id}")
+        print(f"[FROP DIGITALIZACAO] JOBS_FILE path: {JOBS_FILE}")
+
         jobs = carregar_jobs()
+        print(f"[FROP DIGITALIZACAO] Jobs carregados: {list(jobs.keys())}")
+
         job = jobs.get(str(projeto_id))
 
         if not job:
+            print(f"[FROP DIGITALIZACAO] Job não encontrado para projeto_id: {projeto_id}")
             return jsonify({
                 'success': False,
                 'message': 'Job não encontrado'
             }), 404
 
+        print(f"[FROP DIGITALIZACAO] Job encontrado: {job}")
         return jsonify({
             'success': True,
             'job': job
         })
 
     except Exception as e:
+        print(f"[FROP DIGITALIZACAO] ERRO ao obter job: {str(e)}")
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': str(e)
