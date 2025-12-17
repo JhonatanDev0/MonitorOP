@@ -64,6 +64,8 @@ def executar_frop_pacote(usuario, squad_id, projeto_id, cd_projeto):
 
         servidor_monitor = '192.168.250.8,61433'
         banco_monitor = 'DB_MONITORAMENTO_OP'
+        usuario_monitor = 'SDV'
+        senha_monitor = 'SDV_COA'
 
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Configurando conexões com bancos de dados...")
         atualizar_job(projeto_id, 'em_andamento', 20, logs)
@@ -79,10 +81,14 @@ def executar_frop_pacote(usuario, squad_id, projeto_id, cd_projeto):
         engine_sia = sa.create_engine(f"mssql+pyodbc:///?odbc_connect={params_sia}")
 
         # Conexão DB_MONITORAMENTO_OP
-        engine_monitor = sa.create_engine(
-            f"mssql+pyodbc://{servidor_monitor}/{banco_monitor}"
-            f"?driver=ODBC+Driver+17+for+SQL+Server&trusted_connection=yes"
+        params_monitor = urllib.parse.quote_plus(
+            f"DRIVER=ODBC Driver 17 for SQL Server;"
+            f"SERVER={servidor_monitor};"
+            f"DATABASE={banco_monitor};"
+            f"UID={usuario_monitor};"
+            f"PWD={senha_monitor};"
         )
+        engine_monitor = sa.create_engine(f"mssql+pyodbc:///?odbc_connect={params_monitor}")
 
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Conexões estabelecidas com sucesso")
         atualizar_job(projeto_id, 'em_andamento', 30, logs)
@@ -159,7 +165,10 @@ def executar_frop_pacote(usuario, squad_id, projeto_id, cd_projeto):
         # Conexão pyodbc para executar script
         conn = pyodbc.connect(
             f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-            f"SERVER={servidor_monitor};DATABASE={banco_monitor};Trusted_Connection=yes;"
+            f"SERVER={servidor_monitor};"
+            f"DATABASE={banco_monitor};"
+            f"UID={usuario_monitor};"
+            f"PWD={senha_monitor};"
         )
         cursor = conn.cursor()
 

@@ -1238,7 +1238,7 @@ const Rotinas = () => {
                   <div style={{
                     width: '50px',
                     height: '50px',
-                    background: 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)',
+                    background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                     borderRadius: '10px',
                     display: 'flex',
                     alignItems: 'center',
@@ -1262,7 +1262,7 @@ const Rotinas = () => {
                   padding: '20px',
                   background: '#f8f9fa',
                   borderRadius: '8px',
-                  borderLeft: '4px solid #e67e22'
+                  borderLeft: '4px solid #3498db'
                 }}>
                   <h4 style={{
                     margin: '0 0 10px 0',
@@ -1284,9 +1284,9 @@ const Rotinas = () => {
                   <div style={{
                     marginBottom: '25px',
                     padding: '15px 20px',
-                    background: '#fef5e7',
+                    background: '#e8f4f8',
                     borderRadius: '6px',
-                    border: '1px solid #f8c471'
+                    border: '1px solid #b8dce8'
                   }}>
                     <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
                       Projeto Selecionado:
@@ -1297,7 +1297,7 @@ const Rotinas = () => {
 
                     {/* Informações da Execução */}
                     {jobAtualFropPacote && (
-                      <div style={{borderTop: '1px solid #f8c471', paddingTop: '12px'}}>
+                      <div style={{borderTop: '1px solid #b8dce8', paddingTop: '12px'}}>
                         <div style={{fontSize: '13px', color: '#5a6c7d', marginBottom: '5px'}}>
                           <strong>Início:</strong> {formatarTimestamp(jobAtualFropPacote.inicio)}
                           {' | '}
@@ -1414,7 +1414,7 @@ const Rotinas = () => {
                       padding: '12px 24px',
                       background: !podeExecutarFropPacote()
                         ? 'linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%)'
-                        : 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)',
+                        : 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '6px',
