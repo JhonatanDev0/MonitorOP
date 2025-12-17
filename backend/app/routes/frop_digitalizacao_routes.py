@@ -167,13 +167,14 @@ def executar_frop_digitalizacao(usuario, squad_id, projeto_id, cd_projeto):
             cursor = conn.cursor()
 
             # Configurar timeout do comando para 10 minutos (600 segundos)
-            cursor.execute("SET LOCK_TIMEOUT 600000")  # 10 minutos em milissegundos
+            # DEVE ser configurado ANTES do execute
+            cursor.timeout = 600
 
-            print(f"[FROP DIGITALIZACAO] Executando query SQL (timeout: 10 minutos)...")
+            print(f"[FROP DIGITALIZACAO] Timeout configurado para 600 segundos (10 minutos)")
+            print(f"[FROP DIGITALIZACAO] Executando query SQL...")
 
-            # Executar a query com timeout explícito no cursor
+            # Executar a query
             cursor.execute(query_origem)
-            cursor.timeout = 600  # 10 minutos
 
             print(f"[FROP DIGITALIZACAO] Query submetida ao servidor, aguardando resposta...")
             logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Processando consulta no servidor SQL...")
