@@ -52,6 +52,7 @@ def executar_frop_digitalizacao(usuario, squad_id, projeto_id, cd_projeto):
     logs = []
 
     try:
+        print(f"[FROP DIGITALIZACAO] Iniciando para projeto {cd_projeto} (ID: {projeto_id})")
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Iniciando rotina Frop Digitalização para projeto {cd_projeto}")
         atualizar_job(projeto_id, 'em_andamento', 10, logs)
 
@@ -71,23 +72,30 @@ def executar_frop_digitalizacao(usuario, squad_id, projeto_id, cd_projeto):
         atualizar_job(projeto_id, 'em_andamento', 20, logs)
 
         # Engine ORIGEM
-        engine_origem = sa.create_engine(
-            f"mssql+pyodbc://{origem_user}:{origem_password}"
-            f"@{origem_server}/{origem_database}"
-            "?driver=ODBC+Driver+17+for+SQL+Server",
-            fast_executemany=True
-        )
+        try:
+            engine_origem = sa.create_engine(
+                f"mssql+pyodbc://{origem_user}:{origem_password}"
+                f"@{origem_server}/{origem_database}"
+                "?driver=ODBC+Driver+17+for+SQL+Server",
+                fast_executemany=True
+            )
+            logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Conexão ORIGEM criada")
+            atualizar_job(projeto_id, 'em_andamento', 25, logs)
+        except Exception as e:
+            raise Exception(f"Erro ao criar engine ORIGEM: {str(e)}")
 
         # Engine DESTINO
-        engine_destino = sa.create_engine(
-            f"mssql+pyodbc://{destino_user}:{destino_password}"
-            f"@{destino_server}/{destino_database}"
-            "?driver=ODBC+Driver+17+for+SQL+Server",
-            fast_executemany=True
-        )
-
-        logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Conexões estabelecidas com sucesso")
-        atualizar_job(projeto_id, 'em_andamento', 30, logs)
+        try:
+            engine_destino = sa.create_engine(
+                f"mssql+pyodbc://{destino_user}:{destino_password}"
+                f"@{destino_server}/{destino_database}"
+                "?driver=ODBC+Driver+17+for+SQL+Server",
+                fast_executemany=True
+            )
+            logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Conexão DESTINO criada")
+            atualizar_job(projeto_id, 'em_andamento', 30, logs)
+        except Exception as e:
+            raise Exception(f"Erro ao criar engine DESTINO: {str(e)}")
 
         # Query ORIGEM
         query_origem = f"""
@@ -134,7 +142,12 @@ def executar_frop_digitalizacao(usuario, squad_id, projeto_id, cd_projeto):
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Consultando dados de digitalização...")
         atualizar_job(projeto_id, 'em_andamento', 50, logs)
 
-        df = pd.read_sql(query_origem, engine_origem)
+        try:
+            df = pd.read_sql(query_origem, engine_origem)
+            logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Query executada, {len(df)} registro(s) retornado(s)")
+            atualizar_job(projeto_id, 'em_andamento', 60, logs)
+        except Exception as e:
+            raise Exception(f"Erro ao executar query ORIGEM: {str(e)}")
 
         if df.empty:
             raise Exception("Query não retornou dados.")
@@ -181,13 +194,20 @@ def executar_frop_digitalizacao(usuario, squad_id, projeto_id, cd_projeto):
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Executando MERGE na tabela TMP_FROP_DIGITALIZACAO...")
         atualizar_job(projeto_id, 'em_andamento', 85, logs)
 
-        with engine_destino.begin() as conn:
-            conn.execute(merge_sql, df.iloc[0].to_dict())
+        try:
+            with engine_destino.begin() as conn:
+                conn.execute(merge_sql, df.iloc[0].to_dict())
+            logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] MERGE executado com sucesso")
+            atualizar_job(projeto_id, 'em_andamento', 95, logs)
+        except Exception as e:
+            raise Exception(f"Erro ao executar MERGE: {str(e)}")
 
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] ✅ Rotina Frop Digitalização concluída com sucesso!")
         atualizar_job(projeto_id, 'concluido', 100, logs)
+        print(f"[FROP DIGITALIZACAO] Concluído para projeto {cd_projeto} (ID: {projeto_id})")
 
     except Exception as e:
+        print(f"[FROP DIGITALIZACAO] ERRO para projeto {cd_projeto} (ID: {projeto_id}): {str(e)}")
         logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] ❌ Erro: {str(e)}")
         atualizar_job(projeto_id, 'erro', 0, logs)
 
