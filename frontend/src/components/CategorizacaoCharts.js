@@ -124,7 +124,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           borderWidth: 2
         },
         {
-          label: 'Efetivo',
+          label: 'Realizado',
           data: efetivos,
           backgroundColor: 'rgba(46, 204, 113, 0.8)',
           borderColor: 'rgba(46, 204, 113, 1)',
@@ -248,7 +248,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
         </div>
 
         <div className="metrica-card">
-          <div className="metrica-label">Total Efetivo</div>
+          <div className="metrica-label">Total Realizado</div>
           <div className="metrica-valor success">{totalEfetivo}</div>
         </div>
 
@@ -282,7 +282,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
                 <span className="stat-value">{metricas.PREVISTO_T1 || 0}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">Efetivo:</span>
+                <span className="stat-label">Realizado:</span>
                 <span className="stat-value success">{metricas.EFETIVO_T1 || 0}</span>
               </div>
             </div>
@@ -315,7 +315,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
                 <span className="stat-value">{metricas.PREVISTO_T2 || 0}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">Efetivo:</span>
+                <span className="stat-label">Realizado:</span>
                 <span className="stat-value success">{metricas.EFETIVO_T2 || 0}</span>
               </div>
             </div>
@@ -348,7 +348,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
                 <span className="stat-value">{metricas.PREVISTO_T3 || 0}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">Efetivo:</span>
+                <span className="stat-label">Realizado:</span>
                 <span className="stat-value success">{metricas.EFETIVO_T3 || 0}</span>
               </div>
             </div>
@@ -405,7 +405,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
           <div className="chart-wrapper">
             <h4 className="chart-title">
               <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '10px', color: '#3498db' }} />
-              Previsto x Efetivo por Tarefa
+              Previsto x Realizado por Tarefa
             </h4>
             <div style={{ height: '350px' }}>
               <Bar data={getBarChartData()} options={barOptions} />
