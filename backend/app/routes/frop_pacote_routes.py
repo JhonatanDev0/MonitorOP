@@ -256,3 +256,88 @@ def obter_job(projeto_id):
             'success': False,
             'message': str(e)
         }), 500
+
+@bp.route('/metricas/<cd_projeto>', methods=['GET'])
+def buscar_metricas(cd_projeto):
+    """Busca as métricas de Frop Pacote de um projeto específico"""
+    try:
+        # Configuração do SQL Server
+        SQLSERVER_HOST = os.environ.get('SQLSERVER_HOST_PRIMARY', '192.168.250.8,61433')
+        SQLSERVER_DATABASE = os.environ.get('SQLSERVER_DATABASE', 'DB_MONITORAMENTO_OP')
+        SQLSERVER_USER = os.environ.get('SQLSERVER_USER', 'SDV')
+        SQLSERVER_PASSWORD = os.environ.get('SQLSERVER_PASSWORD', 'SDV_COA')
+        SQLSERVER_DRIVER = os.environ.get('SQLSERVER_DRIVER', '{ODBC Driver 17 for SQL Server}')
+
+        # Conectar ao SQL Server
+        conn_str = (
+            f'DRIVER={SQLSERVER_DRIVER};'
+            f'SERVER={SQLSERVER_HOST};'
+            f'DATABASE={SQLSERVER_DATABASE};'
+            f'UID={SQLSERVER_USER};'
+            f'PWD={SQLSERVER_PASSWORD}'
+        )
+
+        conn = pyodbc.connect(conn_str)
+        cursor = conn.cursor()
+
+        # Buscar dados da TMP_FROP_PACOTE
+        query = """
+            SELECT
+                CD_PROJETO,
+                DT_EXPORTACAO,
+                QT_PACOTE_PLANEJADO,
+                QT_PACOTE_SIA,
+                QT_PACOTE_AUSENTE,
+                PCT_PACOTE_AUSENTE
+            FROM TMP_FROP_PACOTE
+            WHERE CD_PROJETO = ?
+        """
+
+        cursor.execute(query, (cd_projeto,))
+        row = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if not row:
+            return jsonify({
+                'success': False,
+                'message': 'Nenhum dado encontrado para este projeto'
+            }), 404
+
+        # Formatar data de exportação
+        dt_exportacao = None
+        if row.DT_EXPORTACAO:
+            try:
+                dt_exportacao = row.DT_EXPORTACAO.strftime('%d/%m/%Y às %H:%M')
+            except:
+                dt_exportacao = str(row.DT_EXPORTACAO)
+
+        # Montar resposta
+        metricas = {
+            'CD_PROJETO': row.CD_PROJETO,
+            'DT_EXPORTACAO': dt_exportacao,
+            'QT_PACOTE_PLANEJADO': row.QT_PACOTE_PLANEJADO or 0,
+            'QT_PACOTE_SIA': row.QT_PACOTE_SIA or 0,
+            'QT_PACOTE_AUSENTE': row.QT_PACOTE_AUSENTE or 0,
+            'PCT_PACOTE_AUSENTE': row.PCT_PACOTE_AUSENTE or '0%'
+        }
+
+        return jsonify({
+            'success': True,
+            'metricas': metricas
+        }), 200
+
+    except pyodbc.Error as e:
+        print(f"Erro de banco de dados ao buscar métricas de Frop Pacote: {str(e)}")
+        return jsonify({
+            'success': False,
+            'erro': 'Erro ao conectar ao banco de dados',
+            'detalhes': str(e)
+        }), 500
+    except Exception as e:
+        print(f"Erro ao buscar métricas de Frop Pacote: {str(e)}")
+        return jsonify({
+            'success': False,
+            'erro': str(e)
+        }), 500
