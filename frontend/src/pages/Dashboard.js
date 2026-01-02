@@ -35,8 +35,7 @@ function Dashboard() {
   const [filtros, setFiltros] = useState({
     ordem_producao: '',
     projeto_id: '',
-    squad_id: '',
-    tipo_atividade: ''
+    squad_id: ''
   });
   
   // Estado para visualização geral/detalhada
@@ -50,7 +49,6 @@ function Dashboard() {
   // Estados para opções filtradas dos selects
   const [opcoesOrdemProducao, setOpcoesOrdemProducao] = useState([]);
   const [opcoesSquads, setOpcoesSquads] = useState([]);
-  const [opcoesTiposAtividades, setOpcoesTiposAtividades] = useState([]);
 
   // Estados para dados SQL Server - Recodificação
   const [dadosRecodificacaoSQLServer, setDadosRecodificacaoSQLServer] = useState({});
@@ -96,10 +94,6 @@ function Dashboard() {
         
         if (filtros.squad_id) {
           atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
-        }
-        
-        if (filtros.tipo_atividade) {
-          atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
         }
 
         const concluidas = atividadesFiltradas.filter(a => a.status === 'concluida').length;
@@ -388,11 +382,6 @@ function Dashboard() {
     const squadIdsDisponiveis = [...new Set(atividadesFiltradas.map(a => a.squad.id))];
     const squadsDisponiveis = squads.filter(s => squadIdsDisponiveis.includes(s.id));
     setOpcoesSquads(squadsDisponiveis);
-
-    const tiposDisponiveis = [...new Set(
-      atividadesFiltradas.map(a => a.titulo)
-    )].sort();
-    setOpcoesTiposAtividades(tiposDisponiveis);
   };
 
   const aplicarFiltros = () => {
@@ -420,12 +409,6 @@ function Dashboard() {
       );
     }
 
-    if (filtros.tipo_atividade) {
-      atividadesFiltradas = atividadesFiltradas.filter(a =>
-        a.titulo === filtros.tipo_atividade
-      );
-    }
-
     const recodificacaoSquad = squads.find(s => s.nome === 'Recodificação');
 
     setDadosFiltrados({
@@ -439,8 +422,7 @@ function Dashboard() {
     setFiltros({
       ordem_producao: '',
       projeto_id: '',
-      squad_id: '',
-      tipo_atividade: ''
+      squad_id: ''
     });
   };
 
@@ -486,35 +468,6 @@ function Dashboard() {
 
       return projetosComDados;
     }
-  };
-
-  // ✅ NOVA FUNÇÃO: Filtrar métricas de recodificação baseado na atividade selecionada
-  const filtrarMetricasRecodificacao = (metricas) => {
-    if (!metricas || !metricas.metricas || !filtros.tipo_atividade) {
-      return metricas;
-    }
-
-    // Mapear o tipo de atividade selecionado para o tipo de recodificação
-    const atividadeMap = {
-      'CR Reserva': '01 - RESERVA TÉCNICA',
-      'CR Anulado': '02 - CARTÃO ANULADO',
-      'CR Duplicado': '03 - IMAGEM DUPLICADA',
-      'CR Genérico': '04 - CARTÃO GENERICO',
-      'Sujeito C1': '05 - RECODIFICAÇÃO DE SUJEITO C1',
-      'Sujeito C2': '06 - RECODIFICAÇÃO DE SUJEITO C2',
-      'Público Alvo': '07 - DEDUCAO DO PUBLICO ALVO'
-    };
-
-    const tipoRecodificacao = atividadeMap[filtros.tipo_atividade];
-
-    if (!tipoRecodificacao) {
-      return metricas;
-    }
-
-    return {
-      ...metricas,
-      metricas: metricas.metricas.filter(m => m.tipo === tipoRecodificacao)
-    };
   };
 
   if (loading) {
@@ -576,20 +529,6 @@ function Dashboard() {
                 ))}
               </select>
             </div>
-
-            <div className="filter-item">
-              <label>Tipo de Atividade</label>
-              <select
-                className="form-control"
-                value={filtros.tipo_atividade}
-                onChange={(e) => setFiltros({...filtros, tipo_atividade: e.target.value})}
-              >
-                <option value="">Todas as atividades</option>
-                {opcoesTiposAtividades.map(tipo => (
-                  <option key={tipo} value={tipo}>{tipo}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <div className="filter-actions">
@@ -625,7 +564,7 @@ function Dashboard() {
                 <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '10px' }} />
                 Resumo Geral
               </h3>
-              {(filtros.ordem_producao || filtros.projeto_id || filtros.squad_id || filtros.tipo_atividade) && (
+              {(filtros.ordem_producao || filtros.projeto_id || filtros.squad_id) && (
                 <div className="resumo-filtro-ativo">
                   <FontAwesomeIcon icon={faFilterCircleXmark} style={{ marginRight: '8px' }} />
                   Filtros ativos aplicados
@@ -659,11 +598,7 @@ function Dashboard() {
                       if (filtros.squad_id) {
                         atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
                       }
-                      
-                      if (filtros.tipo_atividade) {
-                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
-                      }
-                      
+
                       return atividadesFiltradas.length;
                     })()}
                   </div>
@@ -694,11 +629,7 @@ function Dashboard() {
                       if (filtros.squad_id) {
                         atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
                       }
-                      
-                      if (filtros.tipo_atividade) {
-                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
-                      }
-                      
+
                       return atividadesFiltradas.filter(a => a.status === 'concluida').length;
                     })()}
                   </div>
@@ -729,11 +660,7 @@ function Dashboard() {
                       if (filtros.squad_id) {
                         atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
                       }
-                      
-                      if (filtros.tipo_atividade) {
-                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
-                      }
-                      
+
                       return atividadesFiltradas.filter(a => a.status === 'pendente').length;
                     })()}
                   </div>
@@ -764,11 +691,7 @@ function Dashboard() {
                       if (filtros.squad_id) {
                         atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
                       }
-                      
-                      if (filtros.tipo_atividade) {
-                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
-                      }
-                      
+
                       return atividadesFiltradas.filter(a => a.status === 'em_andamento').length;
                     })()}
                   </div>
@@ -799,14 +722,10 @@ function Dashboard() {
                       if (filtros.squad_id) {
                         atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
                       }
-                      
-                      if (filtros.tipo_atividade) {
-                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
-                      }
-                      
+
                       const total = atividadesFiltradas.length;
                       const concluidas = atividadesFiltradas.filter(a => a.status === 'concluida').length;
-                      
+
                       return total > 0 ? ((concluidas / total) * 100).toFixed(1) : 0;
                     })()}%
                   </div>
@@ -828,14 +747,10 @@ function Dashboard() {
                       if (filtros.squad_id) {
                         atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
                       }
-                      
-                      if (filtros.tipo_atividade) {
-                        atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
-                      }
-                      
+
                       const total = atividadesFiltradas.length;
                       const concluidas = atividadesFiltradas.filter(a => a.status === 'concluida').length;
-                      
+
                       return `${concluidas} de ${total} atividades`;
                     })()}
                   </div>
@@ -861,14 +776,10 @@ function Dashboard() {
                         if (filtros.squad_id) {
                           atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
                         }
-                        
-                        if (filtros.tipo_atividade) {
-                          atividadesFiltradas = atividadesFiltradas.filter(a => a.titulo === filtros.tipo_atividade);
-                        }
-                        
+
                         const total = atividadesFiltradas.length;
                         const concluidas = atividadesFiltradas.filter(a => a.status === 'concluida').length;
-                        
+
                         return total > 0 ? (concluidas / total) * 100 : 0;
                       })()}%` 
                     }}
@@ -926,32 +837,28 @@ function Dashboard() {
                 <div className="info-card-content">
                   <div className="info-card-value">
                     {(() => {
-                      if (filtros.tipo_atividade) {
-                        return 1;
-                      }
-                      
                       let atividadesFiltradas = [...atividades];
-                      
+
                       if (filtros.ordem_producao) {
                         const projetosFiltrados = projetos
                           .filter(p => p.ordem_producao === filtros.ordem_producao)
                           .map(p => p.id);
                         atividadesFiltradas = atividadesFiltradas.filter(a => projetosFiltrados.includes(a.projeto.id));
                       }
-                      
+
                       if (filtros.projeto_id) {
                         atividadesFiltradas = atividadesFiltradas.filter(a => a.projeto.id === parseInt(filtros.projeto_id));
                       }
-                      
+
                       if (filtros.squad_id) {
                         atividadesFiltradas = atividadesFiltradas.filter(a => a.squad.id === parseInt(filtros.squad_id));
                       }
-                      
+
                       return [...new Set(atividadesFiltradas.map(a => a.titulo))].length;
                     })()}
                   </div>
                   <div className="info-card-label">
-                    {filtros.tipo_atividade ? 'Tipo Selecionado' : 'Tipos de Atividades'}
+                    Tipos de Atividades
                   </div>
                 </div>
               </div>
@@ -989,15 +896,11 @@ function Dashboard() {
                     a => a.projeto.id === projeto.id
                   );
 
-                  // ✅ NOVA LINHA: Filtrar as métricas de recodificação baseado na atividade selecionada
-                  const metricasFiltradas = filtrarMetricasRecodificacao(
-                    dadosRecodificacaoSQLServer[projeto.id]
-                  );
+                  const metricas = dadosRecodificacaoSQLServer[projeto.id];
 
-                  // ✅ MODIFICADO: Usar metricasFiltradas em vez de dadosRecodificacaoSQLServer[projeto.id]
-                  if (!metricasFiltradas || 
-                      !metricasFiltradas.metricas || 
-                      metricasFiltradas.metricas.length === 0) {
+                  if (!metricas ||
+                      !metricas.metricas ||
+                      metricas.metricas.length === 0) {
                     return null;
                   }
 
@@ -1005,7 +908,7 @@ function Dashboard() {
                     <div key={`recodificacao-${projeto.id}`} className="projeto-grafico-wrapper">
                       <RecodificacaoCharts
                         cdProjeto={projeto.subprograma}
-                        metricas={metricasFiltradas}
+                        metricas={metricas}
                         atividadesSquad={atividadesRecodificacaoProjeto}
                         nomeProjeto={projeto.nome_completo || projeto.nome}
                       />
@@ -1040,7 +943,6 @@ function Dashboard() {
                       <CategorizacaoCharts
                         metricas={metricasCategorizacao}
                         nomeProjeto={projeto.nome_completo || projeto.nome}
-                        tipoAtividadeFiltro={filtros.tipo_atividade}
                       />
                     </div>
                   );

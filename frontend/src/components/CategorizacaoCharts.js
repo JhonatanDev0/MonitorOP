@@ -30,35 +30,8 @@ ChartJS.register(
   ChartDataLabels
 );
 
-// Mapeamento de títulos de atividades para códigos de tarefas
-const ATIVIDADE_PARA_TAREFA_MAP = {
-  'T1': ['T1'],
-  'T2': ['T2'],
-  'T3': ['T3'],
-  'T4 Sujeito': ['T4'],  // Todos os tipos de T4 mapeiam para o card consolidado
-  'T4 Dedução': ['T4'],
-  'T4 Recuperação': ['T4']
-};
-
-function CategorizacaoCharts({ metricas, nomeProjeto, tipoAtividadeFiltro }) {
-  // Determinar quais tarefas devem ser exibidas baseado no filtro
-  const getTarefasVisiveis = () => {
-    if (!tipoAtividadeFiltro) {
-      return ['T1', 'T2', 'T3', 'T4']; // Todas
-    }
-
-    // Mapear o filtro para as tarefas correspondentes
-    const tarefas = ATIVIDADE_PARA_TAREFA_MAP[tipoAtividadeFiltro];
-
-    if (tarefas) {
-      return tarefas;
-    }
-
-    // Se não encontrou no mapeamento, mostrar todas
-    return ['T1', 'T2', 'T3', 'T4'];
-  };
-
-  const tarefasVisiveis = getTarefasVisiveis();
+function CategorizacaoCharts({ metricas, nomeProjeto }) {
+  const tarefasVisiveis = ['T1', 'T2', 'T3', 'T4'];
 
   // Função para formatar data
   const formatarData = (dataString) => {
