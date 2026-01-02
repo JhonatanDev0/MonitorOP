@@ -53,6 +53,14 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
     return false;
   };
 
+  // Determinar qual é a última seção com dados
+  const isUltimaSecao = (secaoAtual) => {
+    if (secaoAtual === 'processamento') return true;
+    if (secaoAtual === 'digitalizacao') return !metricasProcessamento;
+    if (secaoAtual === 'pacote') return !metricasDigitalizacao && !metricasProcessamento;
+    return false;
+  };
+
   return (
     <div className="recodificacao-charts">
       {/* Título do Projeto */}
@@ -67,7 +75,10 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
 
       {/* Seção Frop Pacote */}
       {metricasPacote && (
-        <div className="atividades-detalhamento" style={{ marginTop: nomeProjeto && isPrimeiraSecao('pacote') ? '25px' : '0' }}>
+        <div className="atividades-detalhamento" style={{
+          marginTop: nomeProjeto && isPrimeiraSecao('pacote') ? '25px' : '0',
+          paddingBottom: isUltimaSecao('pacote') ? '20px' : '0'
+        }}>
           <h4 className="detalhamento-title">
             <FontAwesomeIcon icon={faBoxArchive} style={{ marginRight: '8px' }} />
             Frop Pacote
@@ -98,7 +109,10 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
 
       {/* Seção Frop Digitalização */}
       {metricasDigitalizacao && (
-        <div className="atividades-detalhamento" style={{ marginTop: nomeProjeto && isPrimeiraSecao('digitalizacao') ? '25px' : '0' }}>
+        <div className="atividades-detalhamento" style={{
+          marginTop: nomeProjeto && isPrimeiraSecao('digitalizacao') ? '25px' : '0',
+          paddingBottom: isUltimaSecao('digitalizacao') ? '20px' : '0'
+        }}>
           <h4 className="detalhamento-title">
             <FontAwesomeIcon icon={faFileImage} style={{ marginRight: '8px' }} />
             Frop Digitalização
@@ -131,7 +145,10 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
 
       {/* Seção Processamento */}
       {metricasProcessamento && (
-        <div className="atividades-detalhamento" style={{ marginTop: nomeProjeto && isPrimeiraSecao('processamento') ? '25px' : '0' }}>
+        <div className="atividades-detalhamento" style={{
+          marginTop: nomeProjeto && isPrimeiraSecao('processamento') ? '25px' : '0',
+          paddingBottom: isUltimaSecao('processamento') ? '20px' : '0'
+        }}>
           <h4 className="detalhamento-title">
             <FontAwesomeIcon icon={faCog} style={{ marginRight: '8px' }} />
             Processamento
