@@ -59,25 +59,31 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
 
       {/* Seção Frop Pacote */}
       {metricasPacote && (
-        <div className="recodificacao-metricas" style={{ marginTop: nomeProjeto ? '25px' : '0' }}>
-          <div className="metrica-card">
-            <div className="metrica-label">Pacotes Planejados</div>
-            <div className="metrica-valor">{metricasPacote.QT_PACOTE_PLANEJADO || 0}</div>
-          </div>
+        <div className="atividades-detalhamento" style={{ marginTop: nomeProjeto ? '25px' : '0' }}>
+          <h4 className="detalhamento-title">
+            <FontAwesomeIcon icon={faBoxArchive} style={{ marginRight: '8px' }} />
+            Frop Pacote
+          </h4>
+          <div className="recodificacao-metricas">
+            <div className="metrica-card">
+              <div className="metrica-label">Pacotes Planejados</div>
+              <div className="metrica-valor">{metricasPacote.QT_PACOTE_PLANEJADO || 0}</div>
+            </div>
 
-          <div className="metrica-card">
-            <div className="metrica-label">Pacotes no SIA</div>
-            <div className="metrica-valor success">{metricasPacote.QT_PACOTE_SIA || 0}</div>
-          </div>
+            <div className="metrica-card">
+              <div className="metrica-label">Pacotes no SIA</div>
+              <div className="metrica-valor success">{metricasPacote.QT_PACOTE_SIA || 0}</div>
+            </div>
 
-          <div className="metrica-card">
-            <div className="metrica-label">Pacotes Ausentes</div>
-            <div className="metrica-valor" style={{ color: '#e74c3c' }}>{metricasPacote.QT_PACOTE_AUSENTE || 0}</div>
-          </div>
+            <div className="metrica-card">
+              <div className="metrica-label">Pacotes Ausentes</div>
+              <div className="metrica-valor" style={{ color: '#e74c3c' }}>{metricasPacote.QT_PACOTE_AUSENTE || 0}</div>
+            </div>
 
-          <div className="metrica-card info">
-            <div className="metrica-label">Última Atualização</div>
-            <div className="metrica-valor-small">{formatarData(metricasPacote.DT_EXPORTACAO)}</div>
+            <div className="metrica-card info">
+              <div className="metrica-label">Última Atualização</div>
+              <div className="metrica-valor-small">{formatarData(metricasPacote.DT_EXPORTACAO)}</div>
+            </div>
           </div>
         </div>
       )}
