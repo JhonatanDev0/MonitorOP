@@ -77,6 +77,7 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
       {metricasPacote && (
         <div className="atividades-detalhamento" style={{
           marginTop: nomeProjeto && isPrimeiraSecao('pacote') ? '25px' : '0',
+          marginBottom: '0',
           paddingBottom: isUltimaSecao('pacote') ? '20px' : '0'
         }}>
           <h4 className="detalhamento-title">
@@ -111,6 +112,7 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
       {metricasDigitalizacao && (
         <div className="atividades-detalhamento" style={{
           marginTop: nomeProjeto && isPrimeiraSecao('digitalizacao') ? '25px' : '0',
+          marginBottom: '0',
           paddingBottom: isUltimaSecao('digitalizacao') ? '20px' : '0'
         }}>
           <h4 className="detalhamento-title">
@@ -147,6 +149,7 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
       {metricasProcessamento && (
         <div className="atividades-detalhamento" style={{
           marginTop: nomeProjeto && isPrimeiraSecao('processamento') ? '25px' : '0',
+          marginBottom: '0',
           paddingBottom: isUltimaSecao('processamento') ? '20px' : '0'
         }}>
           <h4 className="detalhamento-title">
