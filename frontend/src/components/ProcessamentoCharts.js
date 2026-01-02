@@ -45,6 +45,14 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
     return ((valor / total) * 100).toFixed(2);
   };
 
+  // Determinar qual é a primeira seção com dados
+  const isPrimeiraSecao = (secaoAtual) => {
+    if (secaoAtual === 'pacote') return true;
+    if (secaoAtual === 'digitalizacao') return !metricasPacote;
+    if (secaoAtual === 'processamento') return !metricasPacote && !metricasDigitalizacao;
+    return false;
+  };
+
   return (
     <div className="recodificacao-charts">
       {/* Título do Projeto */}
@@ -59,7 +67,7 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
 
       {/* Seção Frop Pacote */}
       {metricasPacote && (
-        <div className="atividades-detalhamento" style={{ marginTop: nomeProjeto ? '25px' : '0' }}>
+        <div className="atividades-detalhamento" style={{ marginTop: nomeProjeto && isPrimeiraSecao('pacote') ? '25px' : '0' }}>
           <h4 className="detalhamento-title">
             <FontAwesomeIcon icon={faBoxArchive} style={{ marginRight: '8px' }} />
             Frop Pacote
@@ -90,7 +98,7 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
 
       {/* Seção Frop Digitalização */}
       {metricasDigitalizacao && (
-        <div className="atividades-detalhamento">
+        <div className="atividades-detalhamento" style={{ marginTop: nomeProjeto && isPrimeiraSecao('digitalizacao') ? '25px' : '0' }}>
           <h4 className="detalhamento-title">
             <FontAwesomeIcon icon={faFileImage} style={{ marginRight: '8px' }} />
             Frop Digitalização
@@ -123,7 +131,7 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
 
       {/* Seção Processamento */}
       {metricasProcessamento && (
-        <div className="atividades-detalhamento">
+        <div className="atividades-detalhamento" style={{ marginTop: nomeProjeto && isPrimeiraSecao('processamento') ? '25px' : '0' }}>
           <h4 className="detalhamento-title">
             <FontAwesomeIcon icon={faCog} style={{ marginRight: '8px' }} />
             Processamento
