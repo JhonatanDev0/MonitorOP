@@ -76,10 +76,7 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
           </div>
 
           <div className="metrica-card info">
-            <div className="metrica-label">
-              <FontAwesomeIcon icon={faBoxArchive} style={{ marginRight: '8px' }} />
-              Frop Pacote - Última Atualização
-            </div>
+            <div className="metrica-label">Última Atualização</div>
             <div className="metrica-valor-small">{formatarData(metricasPacote.DT_EXPORTACAO)}</div>
           </div>
         </div>
@@ -125,58 +122,30 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
             <FontAwesomeIcon icon={faCog} style={{ marginRight: '8px' }} />
             Processamento
           </h4>
-          <div className="atividades-grid">
-            <div className="atividade-card">
-              <div className="atividade-header">
-                <strong>Digitalização</strong>
-                <span className={`percentual-badge ${calcularPercentual(metricasProcessamento.QT_REGISTROS_DIGITALIZADOS, metricasProcessamento.QT_REGISTROS_PREVISTOS) >= 100 ? 'concluido' : 'pendente'}`}>
-                  {metricasProcessamento.PCT_REGISTROS_DIGITALIZADOS || '0%'}
-                </span>
-              </div>
-              <div className="atividade-stats">
-                <div className="stat-row">
-                  <span className="stat-label">Previstos:</span>
-                  <span className="stat-value">{metricasProcessamento.QT_REGISTROS_PREVISTOS || 0}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">Digitalizados:</span>
-                  <span className="stat-value success">{metricasProcessamento.QT_REGISTROS_DIGITALIZADOS || 0}</span>
-                </div>
-              </div>
+          <div className="recodificacao-metricas">
+            <div className="metrica-card">
+              <div className="metrica-label">Registros Previstos</div>
+              <div className="metrica-valor">{metricasProcessamento.QT_REGISTROS_PREVISTOS || 0}</div>
             </div>
 
-            <div className="atividade-card">
-              <div className="atividade-header">
-                <strong>Processamento</strong>
-                <span className={`percentual-badge ${calcularPercentual(metricasProcessamento.QT_REGISTROS_PROCESSADOS, metricasProcessamento.QT_REGISTROS_PREVISTOS) >= 100 ? 'concluido' : 'pendente'}`}>
-                  {metricasProcessamento.PCT_REGISTROS_PROCESSADOS || '0%'}
-                </span>
-              </div>
-              <div className="atividade-stats">
-                <div className="stat-row">
-                  <span className="stat-label">Decodificados:</span>
-                  <span className="stat-value">{metricasProcessamento.QT_REGISTROS_DECODIFICADOS || 0}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">Processados:</span>
-                  <span className="stat-value success">{metricasProcessamento.QT_REGISTROS_PROCESSADOS || 0}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">Não Processados:</span>
-                  <span className="stat-value" style={{ color: '#e74c3c' }}>{metricasProcessamento.QT_REGISTROS_NAO_PROCESSADOS || 0}</span>
-                </div>
-              </div>
+            <div className="metrica-card">
+              <div className="metrica-label">Registros Digitalizados</div>
+              <div className="metrica-valor success">{metricasProcessamento.QT_REGISTROS_DIGITALIZADOS || 0}</div>
             </div>
 
-            <div className="atividade-card">
-              <div className="atividade-header">
-                <strong>Última Atualização</strong>
-              </div>
-              <div className="atividade-stats">
-                <div className="stat-row">
-                  <span className="stat-value-small">{formatarData(metricasProcessamento.DT_EXPORTACAO)}</span>
-                </div>
-              </div>
+            <div className="metrica-card">
+              <div className="metrica-label">Registros Processados</div>
+              <div className="metrica-valor success">{metricasProcessamento.QT_REGISTROS_PROCESSADOS || 0}</div>
+            </div>
+
+            <div className="metrica-card">
+              <div className="metrica-label">Registros Não Processados</div>
+              <div className="metrica-valor" style={{ color: '#e74c3c' }}>{metricasProcessamento.QT_REGISTROS_NAO_PROCESSADOS || 0}</div>
+            </div>
+
+            <div className="metrica-card info">
+              <div className="metrica-label">Última Atualização</div>
+              <div className="metrica-valor-small">{formatarData(metricasProcessamento.DT_EXPORTACAO)}</div>
             </div>
           </div>
         </div>
