@@ -100,6 +100,11 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
               <div className="metrica-valor" style={{ color: '#e74c3c' }}>{metricasPacote.QT_PACOTE_AUSENTE || 0}</div>
             </div>
 
+            <div className="metrica-card">
+              <div className="metrica-label">% Pacotes Ausentes</div>
+              <div className="metrica-valor" style={{ color: '#e74c3c' }}>{metricasPacote.PCT_PACOTE_AUSENTE || '0%'}</div>
+            </div>
+
             <div className="metrica-card info">
               <div className="metrica-label">Última Atualização</div>
               <div className="metrica-valor-small">{formatarData(metricasPacote.DT_EXPORTACAO)}</div>
@@ -168,8 +173,23 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
             </div>
 
             <div className="metrica-card">
+              <div className="metrica-label">% Registros Digitalizados</div>
+              <div className="metrica-valor" style={{ color: '#3498db' }}>{metricasProcessamento.PCT_REGISTROS_DIGITALIZADOS || '0%'}</div>
+            </div>
+
+            <div className="metrica-card">
+              <div className="metrica-label">Registros Decodificados</div>
+              <div className="metrica-valor success">{metricasProcessamento.QT_REGISTROS_DECODIFICADOS || 0}</div>
+            </div>
+
+            <div className="metrica-card">
               <div className="metrica-label">Registros Processados</div>
               <div className="metrica-valor success">{metricasProcessamento.QT_REGISTROS_PROCESSADOS || 0}</div>
+            </div>
+
+            <div className="metrica-card">
+              <div className="metrica-label">% Registros Processados</div>
+              <div className="metrica-valor" style={{ color: '#3498db' }}>{metricasProcessamento.PCT_REGISTROS_PROCESSADOS || '0%'}</div>
             </div>
 
             <div className="metrica-card">
