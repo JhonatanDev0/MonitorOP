@@ -35,6 +35,23 @@ export const dashboardService = {
   getCategorizacaoMetricas: (cdProjeto) => {
     return dashboardApi.get(`/categorizacao/metricas/${cdProjeto}`);
   },
+
+  // ==================== PROCESSAMENTO ====================
+
+  // Buscar métricas de Frop Pacote
+  getFropPacoteMetricas: (cdProjeto) => {
+    return dashboardApi.get(`/frop-pacote/metricas/${cdProjeto}`);
+  },
+
+  // Buscar métricas de Frop Digitalização
+  getFropDigitalizacaoMetricas: (cdProjeto) => {
+    return dashboardApi.get(`/frop-digitalizacao/metricas/${cdProjeto}`);
+  },
+
+  // Buscar métricas de Processamento
+  getProcessamentoMetricas: (cdProjeto) => {
+    return dashboardApi.get(`/processamento/metricas/${cdProjeto}`);
+  },
 };
 
 export default dashboardApi;
