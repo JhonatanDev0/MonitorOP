@@ -11,6 +11,7 @@ import { atividadeService, projetoService, squadService } from '../services/api'
 import { dashboardService } from '../services/dashboardApi';
 import RecodificacaoCharts from '../components/RecodificacaoCharts';
 import CategorizacaoCharts from '../components/CategorizacaoCharts';
+import ProcessamentoCharts from '../components/ProcessamentoCharts';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -57,6 +58,12 @@ function Dashboard() {
   // Estados para dados SQL Server - Categorização
   const [dadosCategorizacaoSQLServer, setDadosCategorizacaoSQLServer] = useState({});
   const [loadingCategorizacao, setLoadingCategorizacao] = useState(false);
+
+  // Estados para dados SQL Server - Processamento
+  const [dadosFropPacoteSQLServer, setDadosFropPacoteSQLServer] = useState({});
+  const [dadosFropDigitalizacaoSQLServer, setDadosFropDigitalizacaoSQLServer] = useState({});
+  const [dadosProcessamentoSQLServer, setDadosProcessamentoSQLServer] = useState({});
+  const [loadingProcessamento, setLoadingProcessamento] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -171,6 +178,19 @@ function Dashboard() {
       carregarDadosCategorizacaoTodosProjetos();
     } else {
       setDadosCategorizacaoSQLServer({});
+    }
+  }, [filtros.projeto_id, filtros.ordem_producao, projetos]);
+
+  // Carregar dados de processamento do SQL Server quando projeto for selecionado
+  useEffect(() => {
+    if (filtros.projeto_id) {
+      carregarDadosProcessamentoProjeto(filtros.projeto_id);
+    } else if (projetos.length > 0) {
+      carregarDadosProcessamentoTodosProjetos();
+    } else {
+      setDadosFropPacoteSQLServer({});
+      setDadosFropDigitalizacaoSQLServer({});
+      setDadosProcessamentoSQLServer({});
     }
   }, [filtros.projeto_id, filtros.ordem_producao, projetos]);
 
@@ -333,6 +353,99 @@ function Dashboard() {
     }
   };
 
+  const carregarDadosProcessamentoProjeto = async (projetoId) => {
+    try {
+      setLoadingProcessamento(true);
+
+      const projetoSelecionado = projetos.find(p => p.id === parseInt(projetoId));
+
+      if (projetoSelecionado && projetoSelecionado.subprograma) {
+        const cdProjeto = projetoSelecionado.subprograma;
+
+        // Carregar as 3 métricas em paralelo
+        const [responsePacote, responseDigitalizacao, responseProcessamento] = await Promise.all([
+          dashboardService.getFropPacoteMetricas(cdProjeto).catch(() => null),
+          dashboardService.getFropDigitalizacaoMetricas(cdProjeto).catch(() => null),
+          dashboardService.getProcessamentoMetricas(cdProjeto).catch(() => null)
+        ]);
+
+        if (responsePacote && responsePacote.data.success) {
+          setDadosFropPacoteSQLServer({ [projetoId]: responsePacote.data.metricas });
+        }
+
+        if (responseDigitalizacao && responseDigitalizacao.data.success) {
+          setDadosFropDigitalizacaoSQLServer({ [projetoId]: responseDigitalizacao.data.metricas });
+        }
+
+        if (responseProcessamento && responseProcessamento.data.success) {
+          setDadosProcessamentoSQLServer({ [projetoId]: responseProcessamento.data.metricas });
+        }
+      }
+    } catch (error) {
+      if (error.response && error.response.status !== 404) {
+        console.error('Erro ao carregar dados de processamento:', error);
+      }
+    } finally {
+      setLoadingProcessamento(false);
+    }
+  };
+
+  const carregarDadosProcessamentoTodosProjetos = async () => {
+    try {
+      setLoadingProcessamento(true);
+
+      let projetosComSubprograma = projetos.filter(p => p.subprograma && p.subprograma.trim() !== '');
+
+      if (filtros.ordem_producao) {
+        projetosComSubprograma = projetosComSubprograma.filter(p => p.ordem_producao === filtros.ordem_producao);
+      }
+
+      const dadosPacote = {};
+      const dadosDigitalizacao = {};
+      const dadosProcessamento = {};
+
+      await Promise.all(
+        projetosComSubprograma.map(async (projeto) => {
+          try {
+            const [responsePacote, responseDigitalizacao, responseProcessamento] = await Promise.all([
+              dashboardService.getFropPacoteMetricas(projeto.subprograma).catch(() => null),
+              dashboardService.getFropDigitalizacaoMetricas(projeto.subprograma).catch(() => null),
+              dashboardService.getProcessamentoMetricas(projeto.subprograma).catch(() => null)
+            ]);
+
+            if (responsePacote && responsePacote.data.success) {
+              dadosPacote[projeto.id] = responsePacote.data.metricas;
+            }
+
+            if (responseDigitalizacao && responseDigitalizacao.data.success) {
+              dadosDigitalizacao[projeto.id] = responseDigitalizacao.data.metricas;
+            }
+
+            if (responseProcessamento && responseProcessamento.data.success) {
+              dadosProcessamento[projeto.id] = responseProcessamento.data.metricas;
+            }
+          } catch (error) {
+            if (error.response && error.response.status !== 404) {
+              console.error(`Erro ao carregar dados de processamento do projeto ${projeto.id}:`, error);
+            }
+          }
+        })
+      );
+
+      setDadosFropPacoteSQLServer(dadosPacote);
+      setDadosFropDigitalizacaoSQLServer(dadosDigitalizacao);
+      setDadosProcessamentoSQLServer(dadosProcessamento);
+
+    } catch (error) {
+      console.error('Erro ao carregar dados de processamento de todos os projetos:', error);
+      setDadosFropPacoteSQLServer({});
+      setDadosFropDigitalizacaoSQLServer({});
+      setDadosProcessamentoSQLServer({});
+    } finally {
+      setLoadingProcessamento(false);
+    }
+  };
+
   const atualizarOpcoesFiltros = () => {
     let atividadesFiltradas = [...atividades];
 
@@ -451,6 +564,12 @@ function Dashboard() {
     if (!filtros.squad_id) return true;
     const categorizacaoSquad = squads.find(s => s.nome === 'Categorização');
     return categorizacaoSquad && parseInt(filtros.squad_id) === categorizacaoSquad.id;
+  };
+
+  const deveExibirSquadProcessamento = () => {
+    if (!filtros.squad_id) return true;
+    const processamentoSquad = squads.find(s => s.nome === 'Processamento');
+    return processamentoSquad && parseInt(filtros.squad_id) === processamentoSquad.id;
   };
 
   const obterProjetosParaExibir = () => {
@@ -943,6 +1062,43 @@ function Dashboard() {
                       <CategorizacaoCharts
                         metricas={metricasCategorizacao}
                         nomeProjeto={projeto.nome_completo || projeto.nome}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Squad Processamento - Gráficos (apenas em modo detalhado) */}
+        {modoVisualizacao === 'detalhado' && deveExibirSquadProcessamento() && (
+          <div className="squad-section">
+            {loadingProcessamento ? (
+              <div className="loading">Carregando dados de processamento...</div>
+            ) : projetosParaExibir.length === 0 ? (
+              <div className="empty-state">
+                <p>Nenhum projeto com dados de processamento disponível</p>
+              </div>
+            ) : (
+              <div className="projetos-graficos-container">
+                {projetosParaExibir.map(projeto => {
+                  const metricasPacote = dadosFropPacoteSQLServer[projeto.id];
+                  const metricasDigitalizacao = dadosFropDigitalizacaoSQLServer[projeto.id];
+                  const metricasProcessamento = dadosProcessamentoSQLServer[projeto.id];
+
+                  // Só exibir se houver pelo menos uma métrica
+                  if (!metricasPacote && !metricasDigitalizacao && !metricasProcessamento) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={`processamento-${projeto.id}`} className="projeto-grafico-wrapper">
+                      <ProcessamentoCharts
+                        nomeProjeto={projeto.nome_completo || projeto.nome}
+                        metricasPacote={metricasPacote}
+                        metricasDigitalizacao={metricasDigitalizacao}
+                        metricasProcessamento={metricasProcessamento}
                       />
                     </div>
                   );
