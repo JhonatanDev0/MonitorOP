@@ -5,11 +5,34 @@ import {
   faCheckCircle,
   faBoxArchive,
   faFileImage,
-  faCog
+  faCog,
+  faChartBar
 } from '@fortawesome/free-solid-svg-icons';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { Bar } from 'react-chartjs-2';
 import '../styles/RecodificacaoCharts.css';
 
-function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizacao, metricasProcessamento }) {
+// Registrar componentes do Chart.js
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ChartDataLabels
+);
+
+function ProcessamentoCharts({ nomeProjeto, cdProjeto, metricasPacote, metricasDigitalizacao, metricasProcessamento }) {
   // Função para formatar data
   const formatarData = (dataString) => {
     if (!dataString) return '-';
@@ -59,6 +82,107 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
     if (secaoAtual === 'digitalizacao') return !metricasProcessamento;
     if (secaoAtual === 'pacote') return !metricasDigitalizacao && !metricasProcessamento;
     return false;
+  };
+
+  // Criar dados para gráfico de barras de Processamento
+  const getProcessamentoChartData = () => {
+    if (!metricasProcessamento) return null;
+
+    // Extrair percentuais (remover o símbolo %)
+    const pctDigitalizados = parseFloat((metricasProcessamento.PCT_REGISTROS_DIGITALIZADOS || '0%').replace('%', ''));
+    const pctProcessados = parseFloat((metricasProcessamento.PCT_REGISTROS_PROCESSADOS || '0%').replace('%', ''));
+
+    return {
+      labels: [cdProjeto || 'Projeto'],
+      datasets: [
+        {
+          label: 'Digitalizados',
+          data: [pctDigitalizados],
+          backgroundColor: 'rgba(46, 204, 113, 0.8)',
+          borderColor: 'rgba(46, 204, 113, 1)',
+          borderWidth: 2
+        },
+        {
+          label: 'Processados',
+          data: [pctProcessados],
+          backgroundColor: 'rgba(52, 152, 219, 0.8)',
+          borderColor: 'rgba(52, 152, 219, 1)',
+          borderWidth: 2
+        }
+      ]
+    };
+  };
+
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    layout: {
+      padding: {
+        top: 30
+      }
+    },
+    plugins: {
+      legend: {
+        position: 'bottom',
+      },
+      title: {
+        display: false
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + '%';
+          }
+        }
+      },
+      datalabels: {
+        display: true,
+        color: '#2c3e50',
+        font: {
+          size: 12,
+          weight: 'bold'
+        },
+        anchor: 'end',
+        align: 'top',
+        offset: 4,
+        formatter: (value) => value.toFixed(2) + '%'
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 100,
+        ticks: {
+          callback: function(value) {
+            return value + '%';
+          }
+        },
+        grid: {
+          color: 'rgba(0, 0, 0, 0.05)'
+        },
+        title: {
+          display: true,
+          text: 'Percentual (%)',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      },
+      x: {
+        grid: {
+          display: false
+        },
+        title: {
+          display: true,
+          text: 'Código do Projeto',
+          font: {
+            size: 14,
+            weight: 'bold'
+          }
+        }
+      }
+    }
   };
 
   return (
@@ -194,6 +318,23 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
             <div className="metrica-card info">
               <div className="metrica-label">Última Atualização</div>
               <div className="metrica-valor-small">{formatarData(metricasProcessamento.DT_EXPORTACAO)}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Gráfico de Processamento */}
+      {metricasProcessamento && getProcessamentoChartData() && (
+        <div className="charts-row" style={{ paddingBottom: '20px' }}>
+          <div className="chart-container" style={{ width: '100%' }}>
+            <div className="chart-wrapper">
+              <h4 className="chart-title">
+                <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '10px', color: '#3498db' }} />
+                Comparativo de Registros - Digitalização vs Processamento
+              </h4>
+              <div style={{ height: '300px' }}>
+                <Bar data={getProcessamentoChartData()} options={barOptions} />
+              </div>
             </div>
           </div>
         </div>
