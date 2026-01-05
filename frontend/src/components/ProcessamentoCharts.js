@@ -98,11 +98,9 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
             <div className="metrica-card">
               <div className="metrica-label">Pacotes Ausentes</div>
               <div className="metrica-valor" style={{ color: '#e74c3c' }}>{metricasPacote.QT_PACOTE_AUSENTE || 0}</div>
-            </div>
-
-            <div className="metrica-card">
-              <div className="metrica-label">% Pacotes Ausentes</div>
-              <div className="metrica-valor" style={{ color: '#e74c3c' }}>{metricasPacote.PCT_PACOTE_AUSENTE || '0%'}</div>
+              <div className="metrica-label" style={{ marginTop: '8px', fontSize: '11px', opacity: 0.8 }}>
+                {metricasPacote.PCT_PACOTE_AUSENTE || '0%'} do total
+              </div>
             </div>
 
             <div className="metrica-card info">
@@ -168,32 +166,28 @@ function ProcessamentoCharts({ nomeProjeto, metricasPacote, metricasDigitalizaca
             </div>
 
             <div className="metrica-card">
-              <div className="metrica-label">Registros Digitalizados</div>
+              <div className="metrica-label">Digitalização</div>
               <div className="metrica-valor success">{metricasProcessamento.QT_REGISTROS_DIGITALIZADOS || 0}</div>
+              <div className="metrica-label" style={{ marginTop: '8px', fontSize: '11px', opacity: 0.8 }}>
+                {metricasProcessamento.PCT_REGISTROS_DIGITALIZADOS || '0%'} digitalizados
+              </div>
             </div>
 
             <div className="metrica-card">
-              <div className="metrica-label">% Registros Digitalizados</div>
-              <div className="metrica-valor" style={{ color: '#3498db' }}>{metricasProcessamento.PCT_REGISTROS_DIGITALIZADOS || '0%'}</div>
-            </div>
-
-            <div className="metrica-card">
-              <div className="metrica-label">Registros Decodificados</div>
+              <div className="metrica-label">Decodificação</div>
               <div className="metrica-valor success">{metricasProcessamento.QT_REGISTROS_DECODIFICADOS || 0}</div>
             </div>
 
             <div className="metrica-card">
-              <div className="metrica-label">Registros Processados</div>
+              <div className="metrica-label">Processamento</div>
               <div className="metrica-valor success">{metricasProcessamento.QT_REGISTROS_PROCESSADOS || 0}</div>
+              <div className="metrica-label" style={{ marginTop: '8px', fontSize: '11px', opacity: 0.8 }}>
+                {metricasProcessamento.PCT_REGISTROS_PROCESSADOS || '0%'} processados
+              </div>
             </div>
 
             <div className="metrica-card">
-              <div className="metrica-label">% Registros Processados</div>
-              <div className="metrica-valor" style={{ color: '#3498db' }}>{metricasProcessamento.PCT_REGISTROS_PROCESSADOS || '0%'}</div>
-            </div>
-
-            <div className="metrica-card">
-              <div className="metrica-label">Registros Não Processados</div>
+              <div className="metrica-label">Não Processados</div>
               <div className="metrica-valor" style={{ color: '#e74c3c' }}>{metricasProcessamento.QT_REGISTROS_NAO_PROCESSADOS || 0}</div>
             </div>
 
