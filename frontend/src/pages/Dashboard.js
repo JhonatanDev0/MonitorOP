@@ -1096,7 +1096,6 @@ function Dashboard() {
                     <div key={`processamento-${projeto.id}`} className="projeto-grafico-wrapper">
                       <ProcessamentoCharts
                         nomeProjeto={projeto.nome_completo || projeto.nome}
-                        cdProjeto={projeto.id}
                         metricasPacote={metricasPacote}
                         metricasDigitalizacao={metricasDigitalizacao}
                         metricasProcessamento={metricasProcessamento}
