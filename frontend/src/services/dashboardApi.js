@@ -52,6 +52,19 @@ export const dashboardService = {
   getProcessamentoMetricas: (cdProjeto) => {
     return dashboardApi.get(`/processamento/metricas/${cdProjeto}`);
   },
+
+  // ==================== PARTICIPAÇÃO ====================
+
+  // Buscar dados de participação
+  getParticipacaoData: (cdProjeto = null) => {
+    const params = cdProjeto ? { cd_projeto: cdProjeto } : {};
+    return dashboardApi.get('/dashboard/participacao', { params });
+  },
+
+  // Buscar dados de participação por projeto
+  getParticipacaoByProjeto: (cdProjeto) => {
+    return dashboardApi.get(`/dashboard/participacao/${cdProjeto}`);
+  },
 };
 
 export default dashboardApi;

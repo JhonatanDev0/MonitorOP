@@ -12,6 +12,7 @@ import { dashboardService } from '../services/dashboardApi';
 import RecodificacaoCharts from '../components/RecodificacaoCharts';
 import CategorizacaoCharts from '../components/CategorizacaoCharts';
 import ProcessamentoCharts from '../components/ProcessamentoCharts';
+import ParticipacaoCharts from '../components/ParticipacaoCharts';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -64,6 +65,10 @@ function Dashboard() {
   const [dadosFropDigitalizacaoSQLServer, setDadosFropDigitalizacaoSQLServer] = useState({});
   const [dadosProcessamentoSQLServer, setDadosProcessamentoSQLServer] = useState({});
   const [loadingProcessamento, setLoadingProcessamento] = useState(false);
+
+  // Estados para dados SQL Server - Participação
+  const [dadosParticipacaoSQLServer, setDadosParticipacaoSQLServer] = useState({});
+  const [loadingParticipacao, setLoadingParticipacao] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -191,6 +196,17 @@ function Dashboard() {
       setDadosFropPacoteSQLServer({});
       setDadosFropDigitalizacaoSQLServer({});
       setDadosProcessamentoSQLServer({});
+    }
+  }, [filtros.projeto_id, filtros.ordem_producao, projetos]);
+
+  // Carregar dados de participação do SQL Server quando projeto for selecionado
+  useEffect(() => {
+    if (filtros.projeto_id) {
+      carregarDadosParticipacaoProjeto(filtros.projeto_id);
+    } else if (projetos.length > 0) {
+      carregarDadosParticipacaoTodosProjetos();
+    } else {
+      setDadosParticipacaoSQLServer({});
     }
   }, [filtros.projeto_id, filtros.ordem_producao, projetos]);
 
@@ -446,6 +462,75 @@ function Dashboard() {
     }
   };
 
+  const carregarDadosParticipacaoProjeto = async (projetoId) => {
+    try {
+      setLoadingParticipacao(true);
+
+      const projetoSelecionado = projetos.find(p => p.id === parseInt(projetoId));
+
+      if (projetoSelecionado && projetoSelecionado.subprograma) {
+        const cdProjeto = projetoSelecionado.subprograma;
+
+        const response = await dashboardService.getParticipacaoByProjeto(cdProjeto);
+
+        if (response.data.success) {
+          setDadosParticipacaoSQLServer({
+            [projetoId]: response.data.data
+          });
+        } else {
+          setDadosParticipacaoSQLServer({});
+        }
+      }
+    } catch (error) {
+      // Não logar erro 404 - significa apenas que não há dados para o projeto
+      if (error.response && error.response.status !== 404) {
+        console.error('Erro ao carregar dados de participação:', error);
+      }
+      setDadosParticipacaoSQLServer({});
+    } finally {
+      setLoadingParticipacao(false);
+    }
+  };
+
+  const carregarDadosParticipacaoTodosProjetos = async () => {
+    try {
+      setLoadingParticipacao(true);
+
+      let projetosComSubprograma = projetos.filter(p => p.subprograma && p.subprograma.trim() !== '');
+
+      if (filtros.ordem_producao) {
+        projetosComSubprograma = projetosComSubprograma.filter(p => p.ordem_producao === filtros.ordem_producao);
+      }
+
+      const dadosParticipacao = {};
+
+      await Promise.all(
+        projetosComSubprograma.map(async (projeto) => {
+          try {
+            const response = await dashboardService.getParticipacaoByProjeto(projeto.subprograma);
+
+            if (response.data.success && response.data.data) {
+              dadosParticipacao[projeto.id] = response.data.data;
+            }
+          } catch (error) {
+            // Não logar erro 404 - significa apenas que não há dados para o projeto
+            if (error.response && error.response.status !== 404) {
+              console.error(`Erro ao carregar dados de participação do projeto ${projeto.id}:`, error);
+            }
+          }
+        })
+      );
+
+      setDadosParticipacaoSQLServer(dadosParticipacao);
+
+    } catch (error) {
+      console.error('Erro ao carregar dados de participação de todos os projetos:', error);
+      setDadosParticipacaoSQLServer({});
+    } finally {
+      setLoadingParticipacao(false);
+    }
+  };
+
   const atualizarOpcoesFiltros = () => {
     let atividadesFiltradas = [...atividades];
 
@@ -570,6 +655,12 @@ function Dashboard() {
     if (!filtros.squad_id) return true;
     const processamentoSquad = squads.find(s => s.nome === 'Processamento');
     return processamentoSquad && parseInt(filtros.squad_id) === processamentoSquad.id;
+  };
+
+  const deveExibirParticipacao = () => {
+    // Sempre exibir participação quando não houver filtro de squad
+    // ou quando não houver squad específico (participação é geral)
+    return !filtros.squad_id;
   };
 
   const obterProjetosParaExibir = () => {
@@ -1100,6 +1191,39 @@ function Dashboard() {
                         metricasPacote={metricasPacote}
                         metricasDigitalizacao={metricasDigitalizacao}
                         metricasProcessamento={metricasProcessamento}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Indicadores de Participação - Gráficos (apenas em modo detalhado) */}
+        {modoVisualizacao === 'detalhado' && deveExibirParticipacao() && (
+          <div className="squad-section">
+            {loadingParticipacao ? (
+              <div className="loading">Carregando dados de participação...</div>
+            ) : projetosParaExibir.length === 0 ? (
+              <div className="empty-state">
+                <p>Nenhum projeto com dados de participação disponível</p>
+              </div>
+            ) : (
+              <div className="projetos-graficos-container">
+                {projetosParaExibir.map(projeto => {
+                  const participacaoData = dadosParticipacaoSQLServer[projeto.id];
+
+                  if (!participacaoData) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={`participacao-${projeto.id}`} className="projeto-grafico-wrapper">
+                      <ParticipacaoCharts
+                        cdProjeto={projeto.subprograma}
+                        participacaoData={participacaoData}
+                        nomeProjeto={projeto.nome_completo || projeto.nome}
                       />
                     </div>
                   );

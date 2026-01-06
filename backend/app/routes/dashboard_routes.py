@@ -187,3 +187,71 @@ def get_recodificacao_metricas(cd_projeto):
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 500
+
+
+# ==================== ROTAS DE PARTICIPAÇÃO ====================
+
+@bp.route('/participacao', methods=['GET'])
+def get_participacao_data():
+    """
+    Retorna dados de participação do SQL Server
+    Query params opcionais:
+    - cd_projeto: Filtrar por código do projeto
+    """
+    try:
+        cd_projeto = request.args.get('cd_projeto')
+
+        data = sqlserver_service.fetch_participacao_data(cd_projeto)
+
+        return jsonify({
+            'success': True,
+            'data': data,
+            'count': len(data)
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@bp.route('/participacao/<cd_projeto>', methods=['GET'])
+def get_participacao_by_projeto(cd_projeto):
+    """
+    Retorna dados de participação para um projeto específico
+    Retorna o registro mais recente por projeto
+    """
+    try:
+        import json
+
+        data = sqlserver_service.fetch_participacao_data(cd_projeto)
+
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'Nenhum dado encontrado para este projeto'
+            }), 404
+
+        # Pegar o registro mais recente (último registro por DT_REGISTRO)
+        latest_record = max(data, key=lambda x: x.get('DT_REGISTRO', ''))
+
+        # Parse do JSON DADO_PARTICIPACAO
+        if latest_record.get('DADO_PARTICIPACAO'):
+            try:
+                latest_record['DADO_PARTICIPACAO'] = json.loads(latest_record['DADO_PARTICIPACAO'])
+            except json.JSONDecodeError:
+                latest_record['DADO_PARTICIPACAO'] = []
+
+        return jsonify({
+            'success': True,
+            'data': latest_record
+        }), 200
+
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
