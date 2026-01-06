@@ -468,23 +468,38 @@ function Dashboard() {
 
       const projetoSelecionado = projetos.find(p => p.id === parseInt(projetoId));
 
+      console.log('=== Carregando dados de participação ===');
+      console.log('Projeto ID:', projetoId);
+      console.log('Projeto selecionado:', projetoSelecionado);
+
       if (projetoSelecionado && projetoSelecionado.subprograma) {
         const cdProjeto = projetoSelecionado.subprograma;
+        console.log('CD_PROJETO:', cdProjeto);
 
         const response = await dashboardService.getParticipacaoByProjeto(cdProjeto);
 
+        console.log('Resposta da API:', response.data);
+
         if (response.data.success) {
+          console.log('Dados recebidos:', response.data.data);
+          console.log('DADO_PARTICIPACAO:', response.data.data.DADO_PARTICIPACAO);
           setDadosParticipacaoSQLServer({
             [projetoId]: response.data.data
           });
         } else {
+          console.log('API retornou success: false');
           setDadosParticipacaoSQLServer({});
         }
+      } else {
+        console.log('Projeto não tem subprograma');
       }
     } catch (error) {
       // Não logar erro 404 - significa apenas que não há dados para o projeto
       if (error.response && error.response.status !== 404) {
         console.error('Erro ao carregar dados de participação:', error);
+        console.error('Resposta do erro:', error.response?.data);
+      } else {
+        console.log('Nenhum dado de participação encontrado (404)');
       }
       setDadosParticipacaoSQLServer({});
     } finally {
@@ -498,28 +513,44 @@ function Dashboard() {
 
       let projetosComSubprograma = projetos.filter(p => p.subprograma && p.subprograma.trim() !== '');
 
+      console.log('=== Carregando participação de todos os projetos ===');
+      console.log('Total de projetos com subprograma:', projetosComSubprograma.length);
+
       if (filtros.ordem_producao) {
         projetosComSubprograma = projetosComSubprograma.filter(p => p.ordem_producao === filtros.ordem_producao);
+        console.log('Projetos após filtro de ordem:', projetosComSubprograma.length);
       }
 
       const dadosParticipacao = {};
+      let sucessos = 0;
+      let erros = 0;
 
       await Promise.all(
         projetosComSubprograma.map(async (projeto) => {
           try {
+            console.log(`Buscando participação do projeto ${projeto.id} (${projeto.subprograma})...`);
             const response = await dashboardService.getParticipacaoByProjeto(projeto.subprograma);
 
             if (response.data.success && response.data.data) {
+              console.log(`✓ Dados encontrados para projeto ${projeto.id}`);
+              console.log(`  - DADO_PARTICIPACAO:`, response.data.data.DADO_PARTICIPACAO);
               dadosParticipacao[projeto.id] = response.data.data;
+              sucessos++;
             }
           } catch (error) {
+            erros++;
             // Não logar erro 404 - significa apenas que não há dados para o projeto
             if (error.response && error.response.status !== 404) {
-              console.error(`Erro ao carregar dados de participação do projeto ${projeto.id}:`, error);
+              console.error(`✗ Erro ao carregar dados de participação do projeto ${projeto.id}:`, error);
+            } else {
+              console.log(`✗ Sem dados para projeto ${projeto.id} (404)`);
             }
           }
         })
       );
+
+      console.log(`Resumo: ${sucessos} projetos com dados, ${erros} sem dados`);
+      console.log('Dados de participação carregados:', Object.keys(dadosParticipacao).length);
 
       setDadosParticipacaoSQLServer(dadosParticipacao);
 
