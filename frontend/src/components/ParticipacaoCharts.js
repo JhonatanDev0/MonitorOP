@@ -30,6 +30,15 @@ ChartJS.register(
 );
 
 function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
+  // Debug logs
+  console.log('=== ParticipacaoCharts Debug ===');
+  console.log('cdProjeto:', cdProjeto);
+  console.log('nomeProjeto:', nomeProjeto);
+  console.log('participacaoData:', participacaoData);
+  console.log('DADO_PARTICIPACAO:', participacaoData?.DADO_PARTICIPACAO);
+  console.log('Tipo de DADO_PARTICIPACAO:', typeof participacaoData?.DADO_PARTICIPACAO);
+  console.log('É array?:', Array.isArray(participacaoData?.DADO_PARTICIPACAO));
+
   // Função para formatar percentual
   const formatarPercentual = (percentualStr) => {
     if (!percentualStr) return '-';
@@ -44,9 +53,40 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
 
   // Processar dados de participação
   const processarDados = () => {
-    if (!participacaoData || !participacaoData.DADO_PARTICIPACAO) return [];
+    console.log('Processando dados...');
 
-    return participacaoData.DADO_PARTICIPACAO;
+    if (!participacaoData) {
+      console.log('participacaoData está vazio');
+      return [];
+    }
+
+    if (!participacaoData.DADO_PARTICIPACAO) {
+      console.log('DADO_PARTICIPACAO está vazio');
+      return [];
+    }
+
+    let dados = participacaoData.DADO_PARTICIPACAO;
+
+    // Se for string, tentar fazer parse
+    if (typeof dados === 'string') {
+      console.log('DADO_PARTICIPACAO é string, fazendo parse...');
+      try {
+        dados = JSON.parse(dados);
+        console.log('Parse bem-sucedido!', dados);
+      } catch (e) {
+        console.error('Erro ao fazer parse do JSON:', e);
+        return [];
+      }
+    }
+
+    // Verificar se é array
+    if (!Array.isArray(dados)) {
+      console.log('DADO_PARTICIPACAO não é um array:', typeof dados);
+      return [];
+    }
+
+    console.log('Dados processados:', dados.length, 'itens');
+    return dados;
   };
 
   // Criar dados para gráfico de barras de Língua Portuguesa

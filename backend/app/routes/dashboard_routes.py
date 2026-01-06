@@ -238,10 +238,34 @@ def get_participacao_by_projeto(cd_projeto):
 
         # Parse do JSON DADO_PARTICIPACAO
         if latest_record.get('DADO_PARTICIPACAO'):
-            try:
-                latest_record['DADO_PARTICIPACAO'] = json.loads(latest_record['DADO_PARTICIPACAO'])
-            except json.JSONDecodeError:
+            dado_participacao = latest_record.get('DADO_PARTICIPACAO')
+
+            # Log para debug
+            print(f"Tipo de DADO_PARTICIPACAO: {type(dado_participacao)}")
+            print(f"Conteúdo de DADO_PARTICIPACAO (primeiros 200 chars): {str(dado_participacao)[:200]}")
+
+            # Se já for uma lista, manter como está
+            if isinstance(dado_participacao, list):
+                latest_record['DADO_PARTICIPACAO'] = dado_participacao
+            # Se for string, fazer parse
+            elif isinstance(dado_participacao, str):
+                try:
+                    # Limpar possíveis espaços e quebras de linha
+                    dado_participacao_limpo = dado_participacao.strip()
+                    latest_record['DADO_PARTICIPACAO'] = json.loads(dado_participacao_limpo)
+                    print(f"Parse JSON bem-sucedido! {len(latest_record['DADO_PARTICIPACAO'])} itens")
+                except json.JSONDecodeError as e:
+                    print(f"Erro ao fazer parse do JSON: {str(e)}")
+                    print(f"Conteúdo que causou erro: {dado_participacao}")
+                    latest_record['DADO_PARTICIPACAO'] = []
+            else:
+                print(f"Tipo inesperado para DADO_PARTICIPACAO: {type(dado_participacao)}")
                 latest_record['DADO_PARTICIPACAO'] = []
+        else:
+            print("DADO_PARTICIPACAO está vazio ou None")
+            latest_record['DADO_PARTICIPACAO'] = []
+
+        print(f"Dados finais a serem retornados: {len(latest_record.get('DADO_PARTICIPACAO', []))} itens")
 
         return jsonify({
             'success': True,
@@ -250,6 +274,8 @@ def get_participacao_by_projeto(cd_projeto):
 
     except Exception as e:
         import traceback
+        print(f"Erro no endpoint de participação: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({
             'success': False,
             'error': str(e),
