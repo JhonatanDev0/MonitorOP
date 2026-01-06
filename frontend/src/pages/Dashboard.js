@@ -1254,6 +1254,15 @@ function Dashboard() {
         )}
 
         {/* Indicadores de Participação - Gráficos (apenas em modo detalhado) */}
+        {(() => {
+          console.log('=== Verificando exibição de Participação ===');
+          console.log('Modo visualização:', modoVisualizacao);
+          console.log('Deve exibir participação?', deveExibirParticipacao());
+          console.log('filtros.squad_id:', filtros.squad_id);
+          console.log('Loading participação:', loadingParticipacao);
+          console.log('Dados participação disponíveis:', Object.keys(dadosParticipacaoSQLServer).length);
+          return null;
+        })()}
         {modoVisualizacao === 'detalhado' && deveExibirParticipacao() && (
           <div className="squad-section">
             {loadingParticipacao ? (
