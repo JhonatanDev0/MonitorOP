@@ -133,19 +133,19 @@ class SQLServerService:
     def fetch_reserva_historico(self, cd_projeto):
         """
         Busca histórico de reserva por projeto (todas as datas de criação)
-        
+
         Args:
             cd_projeto: Código do projeto
-            
+
         Returns:
             Lista de dicionários ordenados por data
         """
         try:
             conn = self.get_connection()
             cursor = conn.cursor()
-            
+
             query = """
-                SELECT 
+                SELECT
                     CD_PROJETO,
                     DT_CRIACAO,
                     INDICADOR AS TP_RESERVA,
@@ -155,11 +155,11 @@ class SQLServerService:
                 WHERE CD_PROJETO = ?
                 ORDER BY DT_CRIACAO ASC, INDICADOR ASC
             """
-            
+
             cursor.execute(query, (cd_projeto,))
-            
+
             columns = [column[0] for column in cursor.description]
-            
+
             results = []
             for row in cursor.fetchall():
                 row_dict = {}
@@ -172,16 +172,75 @@ class SQLServerService:
                         row_dict[columns[i]] = '0'
                     else:
                         row_dict[columns[i]] = value
-                
+
                 results.append(row_dict)
-            
+
             cursor.close()
             conn.close()
-            
+
             return results
-            
+
         except Exception as e:
             print(f"Erro ao buscar histórico de reserva: {str(e)}")
+            raise
+
+    # ==================== MÉTODOS DE PARTICIPAÇÃO ====================
+
+    def fetch_participacao_data(self, cd_projeto=None):
+        """
+        Busca dados de participação do SQL Server
+
+        Args:
+            cd_projeto: Código do projeto (opcional)
+
+        Returns:
+            Lista de dicionários com os dados
+        """
+        try:
+            conn = self.get_connection()
+            cursor = conn.cursor()
+
+            # Query base
+            query = """
+                SELECT
+                    ID,
+                    CD_PROJETO,
+                    DT_EXPORTACAO,
+                    DADO_PARTICIPACAO,
+                    DT_REGISTRO
+                FROM TMP_RELATORIO_PARTICIPACAO
+            """
+
+            # Adicionar filtro se necessário
+            if cd_projeto:
+                query += " WHERE CD_PROJETO = ?"
+                cursor.execute(query, (cd_projeto,))
+            else:
+                cursor.execute(query)
+
+            # Buscar colunas
+            columns = [column[0] for column in cursor.description]
+
+            # Converter resultados para lista de dicionários
+            results = []
+            for row in cursor.fetchall():
+                row_dict = {}
+                for i, value in enumerate(row):
+                    # Converter data para ISO format se for datetime
+                    if isinstance(value, datetime):
+                        row_dict[columns[i]] = value.strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        row_dict[columns[i]] = value
+
+                results.append(row_dict)
+
+            cursor.close()
+            conn.close()
+
+            return results
+
+        except Exception as e:
+            print(f"Erro ao buscar dados de participação: {str(e)}")
             raise
 
 
