@@ -656,9 +656,9 @@ function Dashboard() {
   };
 
   const deveExibirParticipacao = () => {
-    // Indicadores de Participação são GERAIS do projeto, não vinculados a squads
-    // Então sempre exibir, independente do filtro de squad
-    return true;
+    if (!filtros.squad_id) return true;
+    const calculoSquad = squads.find(s => s.nome === 'Cálculo');
+    return calculoSquad && parseInt(filtros.squad_id) === calculoSquad.id;
   };
 
   const obterProjetosParaExibir = () => {
