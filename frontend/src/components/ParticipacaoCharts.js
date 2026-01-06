@@ -1,44 +1,14 @@
 import React from 'react';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-} from 'chart.js';
-import { Bar } from 'react-chartjs-2';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faUsers,
   faCheckCircle,
   faExclamationTriangle,
-  faTimesCircle,
-  faChartBar
+  faTimesCircle
 } from '@fortawesome/free-solid-svg-icons';
 import '../styles/ParticipacaoCharts.css';
 
-// Registrar componentes do Chart.js
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
 function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
-  // Debug logs
-  console.log('=== ParticipacaoCharts Debug ===');
-  console.log('cdProjeto:', cdProjeto);
-  console.log('nomeProjeto:', nomeProjeto);
-  console.log('participacaoData:', participacaoData);
-  console.log('DADO_PARTICIPACAO:', participacaoData?.DADO_PARTICIPACAO);
-  console.log('Tipo de DADO_PARTICIPACAO:', typeof participacaoData?.DADO_PARTICIPACAO);
-  console.log('É array?:', Array.isArray(participacaoData?.DADO_PARTICIPACAO));
-
   // Função para formatar percentual
   const formatarPercentual = (percentualStr) => {
     if (!percentualStr) return '-';
@@ -53,15 +23,11 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
 
   // Processar dados de participação
   const processarDados = () => {
-    console.log('Processando dados...');
-
     if (!participacaoData) {
-      console.log('participacaoData está vazio');
       return [];
     }
 
     if (!participacaoData.DADO_PARTICIPACAO) {
-      console.log('DADO_PARTICIPACAO está vazio');
       return [];
     }
 
@@ -69,138 +35,22 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
 
     // Se for string, tentar fazer parse
     if (typeof dados === 'string') {
-      console.log('DADO_PARTICIPACAO é string, fazendo parse...');
       try {
         dados = JSON.parse(dados);
-        console.log('Parse bem-sucedido!', dados);
       } catch (e) {
-        console.error('Erro ao fazer parse do JSON:', e);
         return [];
       }
     }
 
     // Verificar se é array
     if (!Array.isArray(dados)) {
-      console.log('DADO_PARTICIPACAO não é um array:', typeof dados);
       return [];
     }
 
-    console.log('Dados processados:', dados.length, 'itens');
     return dados;
   };
 
-  // Criar dados para gráfico de barras de Língua Portuguesa
-  const getLinguaPortuguesaChartData = () => {
-    const dados = processarDados();
-
-    if (!dados || dados.length === 0) return null;
-
-    const labels = dados.map(item => item['Resumo da Avaliação']);
-    const quantidades = dados.map(item => item['Língua Portuguesa - Quantidade']);
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Língua Portuguesa',
-          data: quantidades,
-          backgroundColor: 'rgba(52, 152, 219, 0.8)',
-          borderColor: 'rgba(52, 152, 219, 1)',
-          borderWidth: 2
-        }
-      ]
-    };
-  };
-
-  // Criar dados para gráfico de barras de Matemática
-  const getMatematicaChartData = () => {
-    const dados = processarDados();
-
-    if (!dados || dados.length === 0) return null;
-
-    const labels = dados.map(item => item['Resumo da Avaliação']);
-    const quantidades = dados.map(item => item['Matemática - Quantidade']);
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Matemática',
-          data: quantidades,
-          backgroundColor: 'rgba(155, 89, 182, 0.8)',
-          borderColor: 'rgba(155, 89, 182, 1)',
-          borderWidth: 2
-        }
-      ]
-    };
-  };
-
-  // Criar dados para gráfico comparativo
-  const getComparativoChartData = () => {
-    const dados = processarDados();
-
-    if (!dados || dados.length === 0) return null;
-
-    const labels = dados.map(item => item['Resumo da Avaliação']);
-    const linguaPortuguesa = dados.map(item => item['Língua Portuguesa - Quantidade']);
-    const matematica = dados.map(item => item['Matemática - Quantidade']);
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: 'Língua Portuguesa',
-          data: linguaPortuguesa,
-          backgroundColor: 'rgba(52, 152, 219, 0.8)',
-          borderColor: 'rgba(52, 152, 219, 1)',
-          borderWidth: 2
-        },
-        {
-          label: 'Matemática',
-          data: matematica,
-          backgroundColor: 'rgba(155, 89, 182, 0.8)',
-          borderColor: 'rgba(155, 89, 182, 1)',
-          borderWidth: 2
-        }
-      ]
-    };
-  };
-
-  // Opções dos gráficos
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: false,
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            return `${context.dataset.label}: ${formatarNumero(context.parsed.y)} turmas`;
-          }
-        }
-      }
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function(value) {
-            return formatarNumero(value);
-          }
-        }
-      }
-    }
-  };
-
   const dados = processarDados();
-  const linguaPortuguesaData = getLinguaPortuguesaChartData();
-  const matematicaData = getMatematicaChartData();
-  const comparativoData = getComparativoChartData();
 
   // Função para obter ícone por tipo de resumo
   const getIconePorResumo = (resumo) => {
@@ -260,45 +110,6 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Gráficos */}
-      <div className="graficos-container">
-        {/* Gráfico Comparativo */}
-        {comparativoData && (
-          <div className="grafico-card">
-            <h3>
-              <FontAwesomeIcon icon={faChartBar} /> Comparativo por Disciplina
-            </h3>
-            <div className="grafico-wrapper">
-              <Bar data={comparativoData} options={chartOptions} />
-            </div>
-          </div>
-        )}
-
-        {/* Gráfico Língua Portuguesa */}
-        {linguaPortuguesaData && (
-          <div className="grafico-card">
-            <h3>
-              <FontAwesomeIcon icon={faChartBar} /> Língua Portuguesa
-            </h3>
-            <div className="grafico-wrapper">
-              <Bar data={linguaPortuguesaData} options={chartOptions} />
-            </div>
-          </div>
-        )}
-
-        {/* Gráfico Matemática */}
-        {matematicaData && (
-          <div className="grafico-card">
-            <h3>
-              <FontAwesomeIcon icon={faChartBar} /> Matemática
-            </h3>
-            <div className="grafico-wrapper">
-              <Bar data={matematicaData} options={chartOptions} />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
