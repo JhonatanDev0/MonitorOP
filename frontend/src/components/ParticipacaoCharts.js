@@ -4,9 +4,10 @@ import {
   faUsers,
   faCheckCircle,
   faExclamationTriangle,
-  faTimesCircle
+  faTimesCircle,
+  faClockRotateLeft
 } from '@fortawesome/free-solid-svg-icons';
-import '../styles/ParticipacaoCharts.css';
+import '../styles/RecodificacaoCharts.css';
 
 function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
   // Função para formatar percentual
@@ -19,6 +20,35 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
   const formatarNumero = (numero) => {
     if (numero === null || numero === undefined) return '-';
     return numero.toLocaleString('pt-BR');
+  };
+
+  // Função para formatar data
+  const formatarData = (dataString) => {
+    if (!dataString) return '-';
+
+    try {
+      // Se vier no formato "DD/MM/YYYY às HH:MM"
+      if (typeof dataString === 'string' && dataString.includes(' às ')) {
+        return dataString;
+      }
+
+      if (typeof dataString === 'string' && dataString.includes('/')) {
+        return dataString;
+      }
+
+      const data = new Date(dataString);
+      if (isNaN(data.getTime())) {
+        return '-';
+      }
+
+      const dia = String(data.getDate()).padStart(2, '0');
+      const mes = String(data.getMonth() + 1).padStart(2, '0');
+      const ano = data.getFullYear();
+
+      return `${dia}/${mes}/${ano}`;
+    } catch (error) {
+      return '-';
+    }
   };
 
   // Processar dados de participação
@@ -50,7 +80,26 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
     return dados;
   };
 
+  // Extrair disciplinas dinamicamente do primeiro registro
+  const extrairDisciplinas = (dados) => {
+    if (!dados || dados.length === 0) return [];
+
+    const primeiroItem = dados[0];
+    const disciplinas = [];
+
+    // Procurar por todas as chaves que terminam com "- Quantidade"
+    Object.keys(primeiroItem).forEach(chave => {
+      if (chave.endsWith(' - Quantidade')) {
+        const nomeDisciplina = chave.replace(' - Quantidade', '');
+        disciplinas.push(nomeDisciplina);
+      }
+    });
+
+    return disciplinas;
+  };
+
   const dados = processarDados();
+  const disciplinas = extrairDisciplinas(dados);
 
   // Função para obter ícone por tipo de resumo
   const getIconePorResumo = (resumo) => {
@@ -62,54 +111,87 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
 
   // Função para obter classe CSS por tipo de resumo
   const getClassePorResumo = (resumo) => {
-    if (resumo.includes('baixa participação')) return 'card-warning';
-    if (resumo.includes('sem participação')) return 'card-danger';
-    if (resumo.includes('com resultados')) return 'card-success';
-    return 'card-info';
+    if (resumo.includes('baixa participação')) return 'warning';
+    if (resumo.includes('sem participação')) return 'danger';
+    if (resumo.includes('com resultados')) return 'success';
+    return 'info';
   };
 
-  if (!participacaoData || !participacaoData.DADO_PARTICIPACAO) {
+  if (!participacaoData || !participacaoData.DADO_PARTICIPACAO || dados.length === 0) {
     return (
-      <div className="participacao-charts-container">
-        <div className="sem-dados">
-          <FontAwesomeIcon icon={faUsers} size="3x" />
-          <p>Nenhum dado de participação disponível para este projeto</p>
-        </div>
+      <div className="recodificacao-charts-empty">
+        <p>Nenhum dado de participação disponível para este projeto</p>
       </div>
     );
   }
 
   return (
-    <div className="participacao-charts-container">
-      <div className="participacao-header">
-        <h2>
-          <FontAwesomeIcon icon={faUsers} /> Indicadores de Participação
-        </h2>
-        {nomeProjeto && <p className="projeto-nome">{nomeProjeto}</p>}
+    <div className="recodificacao-charts">
+      {/* Título do Projeto */}
+      {nomeProjeto && (
+        <div className="projeto-titulo">
+          <h3>
+            <FontAwesomeIcon icon={faUsers} style={{ marginRight: '10px', color: '#3498db' }} />
+            {nomeProjeto}
+          </h3>
+        </div>
+      )}
+
+      {/* Cabeçalho com data de exportação */}
+      <div className="recodificacao-metricas" style={{ marginTop: nomeProjeto ? '25px' : '0' }}>
+        <div className="metrica-card info">
+          <div className="metrica-label">Última Exportação</div>
+          <div className="metrica-valor-small">
+            <FontAwesomeIcon icon={faClockRotateLeft} style={{ marginRight: '6px' }} />
+            {formatarData(participacaoData.DT_EXPORTACAO)}
+          </div>
+        </div>
       </div>
 
-      {/* Cards de Resumo */}
-      <div className="cards-resumo">
-        {dados.map((item, index) => (
-          <div key={index} className={`card-resumo ${getClassePorResumo(item['Resumo da Avaliação'])}`}>
-            <div className="card-header">
-              <FontAwesomeIcon icon={getIconePorResumo(item['Resumo da Avaliação'])} size="2x" />
-              <h3>{item['Resumo da Avaliação']}</h3>
-            </div>
-            <div className="card-content">
-              <div className="disciplina">
-                <h4>Língua Portuguesa</h4>
-                <p className="quantidade">{formatarNumero(item['Língua Portuguesa - Quantidade'])} turmas</p>
-                <p className="percentual">{formatarPercentual(item['Língua Portuguesa - Percentual'])}</p>
+      {/* Detalhamento por Tipo de Avaliação */}
+      <div className="atividades-detalhamento">
+        <h4 className="detalhamento-title">
+          <FontAwesomeIcon icon={faUsers} style={{ marginRight: '8px' }} />
+          Indicadores de Participação
+        </h4>
+
+        {dados.map((item, index) => {
+          const resumo = item['Resumo da Avaliação'];
+          const tipoClasse = getClassePorResumo(resumo);
+          const icone = getIconePorResumo(resumo);
+
+          return (
+            <div key={index} className="atividade-card" style={{ marginBottom: '20px' }}>
+              <div className="atividade-header" style={{ marginBottom: '15px', borderBottom: '2px solid #e9ecef', paddingBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <FontAwesomeIcon icon={icone} size="lg" className={tipoClasse} />
+                  <strong style={{ fontSize: '16px' }}>{resumo}</strong>
+                </div>
               </div>
-              <div className="disciplina">
-                <h4>Matemática</h4>
-                <p className="quantidade">{formatarNumero(item['Matemática - Quantidade'])} turmas</p>
-                <p className="percentual">{formatarPercentual(item['Matemática - Percentual'])}</p>
+
+              <div className="atividade-detalhes">
+                <div className="atividades-grid" style={{ gridTemplateColumns: `repeat(${disciplinas.length}, 1fr)` }}>
+                  {disciplinas.map((disciplina, idx) => {
+                    const quantidade = item[`${disciplina} - Quantidade`];
+                    const percentual = item[`${disciplina} - Percentual`];
+
+                    return (
+                      <div key={idx} className="detalhe-item">
+                        <div className="detalhe-label">{disciplina}</div>
+                        <div className="detalhe-valor">
+                          {formatarNumero(quantidade)} turmas
+                        </div>
+                        <div className="detalhe-percentual">
+                          {formatarPercentual(percentual)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
