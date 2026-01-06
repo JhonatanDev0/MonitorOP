@@ -1112,7 +1112,9 @@ function Dashboard() {
               <div className="loading">Carregando dados de recodificação...</div>
             ) : projetosParaExibir.length === 0 ? (
               <div className="empty-state">
-                <p>Nenhum projeto com dados de recodificação disponível</p>
+                <p>{(filtros.ordem_producao || filtros.projeto_id)
+                  ? 'Não foram encontrados registros de recodificação para os filtros aplicados'
+                  : 'Nenhum projeto com dados de recodificação disponível'}</p>
               </div>
             ) : (
               <div className="projetos-graficos-container">
@@ -1152,7 +1154,9 @@ function Dashboard() {
               <div className="loading">Carregando dados de categorização...</div>
             ) : projetosParaExibir.length === 0 ? (
               <div className="empty-state">
-                <p>Nenhum projeto com dados de categorização disponível</p>
+                <p>{(filtros.ordem_producao || filtros.projeto_id)
+                  ? 'Não foram encontrados registros de categorização para os filtros aplicados'
+                  : 'Nenhum projeto com dados de categorização disponível'}</p>
               </div>
             ) : (
               <div className="projetos-graficos-container">
@@ -1184,7 +1188,9 @@ function Dashboard() {
               <div className="loading">Carregando dados de processamento...</div>
             ) : projetosParaExibir.length === 0 ? (
               <div className="empty-state">
-                <p>Nenhum projeto com dados de processamento disponível</p>
+                <p>{(filtros.ordem_producao || filtros.projeto_id)
+                  ? 'Não foram encontrados registros de processamento para os filtros aplicados'
+                  : 'Nenhum projeto com dados de processamento disponível'}</p>
               </div>
             ) : (
               <div className="projetos-graficos-container">
@@ -1224,9 +1230,15 @@ function Dashboard() {
                 const projetosParticipacao = obterProjetosParaExibirParticipacao();
 
                 if (projetosParticipacao.length === 0) {
+                  // Verificar se há filtros ativos
+                  const hasFiltrosAtivos = filtros.ordem_producao || filtros.projeto_id;
+                  const mensagem = hasFiltrosAtivos
+                    ? 'Não foram encontrados registros de participação para os filtros aplicados'
+                    : 'Nenhum projeto com dados de participação disponível';
+
                   return (
                     <div className="empty-state">
-                      <p>Nenhum projeto com dados de participação disponível</p>
+                      <p>{mensagem}</p>
                     </div>
                   );
                 }

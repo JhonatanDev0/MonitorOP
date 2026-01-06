@@ -109,12 +109,12 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
     return faUsers;
   };
 
-  // Função para obter classe CSS por tipo de resumo
-  const getClassePorResumo = (resumo) => {
-    if (resumo.includes('baixa participação')) return 'warning';
-    if (resumo.includes('sem participação')) return 'danger';
-    if (resumo.includes('com resultados')) return 'success';
-    return 'info';
+  // Função para obter cor por tipo de resumo
+  const getCorPorResumo = (resumo) => {
+    if (resumo.includes('baixa participação')) return '#f39c12'; // Laranja/Amarelo
+    if (resumo.includes('sem participação')) return '#e74c3c'; // Vermelho
+    if (resumo.includes('com resultados')) return '#2ecc71'; // Verde
+    return '#3498db'; // Azul
   };
 
   if (!participacaoData || !participacaoData.DADO_PARTICIPACAO || dados.length === 0) {
@@ -157,14 +157,14 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
 
         {dados.map((item, index) => {
           const resumo = item['Resumo da Avaliação'];
-          const tipoClasse = getClassePorResumo(resumo);
+          const cor = getCorPorResumo(resumo);
           const icone = getIconePorResumo(resumo);
 
           return (
             <div key={index} className="atividade-card" style={{ marginBottom: '20px' }}>
               <div className="atividade-header" style={{ marginBottom: '15px', borderBottom: '2px solid #e9ecef', paddingBottom: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <FontAwesomeIcon icon={icone} size="lg" className={tipoClasse} />
+                  <FontAwesomeIcon icon={icone} size="lg" style={{ color: cor }} />
                   <strong style={{ fontSize: '16px' }}>{resumo}</strong>
                 </div>
               </div>
@@ -177,7 +177,7 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
 
                     return (
                       <div key={idx} className="detalhe-item">
-                        <div className="detalhe-label">{disciplina}</div>
+                        <div className="detalhe-label" style={{ fontWeight: 'bold' }}>{disciplina}</div>
                         <div className="detalhe-valor">
                           {formatarNumero(quantidade)} turmas
                         </div>
