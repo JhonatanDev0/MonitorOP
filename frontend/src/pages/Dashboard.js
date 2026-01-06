@@ -711,6 +711,28 @@ function Dashboard() {
     }
   };
 
+  const obterProjetosParaExibirParticipacao = () => {
+    if (filtros.projeto_id) {
+      const projeto = projetos.find(p => p.id === parseInt(filtros.projeto_id));
+      return projeto ? [projeto] : [];
+    } else {
+      let projetosComDados = projetos.filter(p =>
+        dadosParticipacaoSQLServer[p.id] && dadosParticipacaoSQLServer[p.id].DADO_PARTICIPACAO
+      );
+
+      if (filtros.ordem_producao) {
+        projetosComDados = projetosComDados.filter(p => p.ordem_producao === filtros.ordem_producao);
+      }
+
+      console.log('Projetos com dados de participação para exibir:', projetosComDados.length);
+      projetosComDados.forEach(p => {
+        console.log(`  - Projeto ${p.id}: ${p.nome}`);
+      });
+
+      return projetosComDados;
+    }
+  };
+
   if (loading) {
     return <div className="loading">Carregando dashboard...</div>;
   }
@@ -1236,31 +1258,44 @@ function Dashboard() {
           <div className="squad-section">
             {loadingParticipacao ? (
               <div className="loading">Carregando dados de participação...</div>
-            ) : projetosParaExibir.length === 0 ? (
-              <div className="empty-state">
-                <p>Nenhum projeto com dados de participação disponível</p>
-              </div>
-            ) : (
-              <div className="projetos-graficos-container">
-                {projetosParaExibir.map(projeto => {
-                  const participacaoData = dadosParticipacaoSQLServer[projeto.id];
+            ) : (() => {
+                const projetosParticipacao = obterProjetosParaExibirParticipacao();
+                console.log('Renderizando seção de participação. Projetos:', projetosParticipacao.length);
 
-                  if (!participacaoData) {
-                    return null;
-                  }
-
+                if (projetosParticipacao.length === 0) {
                   return (
-                    <div key={`participacao-${projeto.id}`} className="projeto-grafico-wrapper">
-                      <ParticipacaoCharts
-                        cdProjeto={projeto.subprograma}
-                        participacaoData={participacaoData}
-                        nomeProjeto={projeto.nome_completo || projeto.nome}
-                      />
+                    <div className="empty-state">
+                      <p>Nenhum projeto com dados de participação disponível</p>
                     </div>
                   );
-                })}
-              </div>
-            )}
+                }
+
+                return (
+                  <div className="projetos-graficos-container">
+                    {projetosParticipacao.map(projeto => {
+                      const participacaoData = dadosParticipacaoSQLServer[projeto.id];
+
+                      console.log(`Renderizando participação do projeto ${projeto.id}:`, participacaoData);
+
+                      if (!participacaoData) {
+                        console.log(`Sem dados de participação para projeto ${projeto.id}`);
+                        return null;
+                      }
+
+                      return (
+                        <div key={`participacao-${projeto.id}`} className="projeto-grafico-wrapper">
+                          <ParticipacaoCharts
+                            cdProjeto={projeto.subprograma}
+                            participacaoData={participacaoData}
+                            nomeProjeto={projeto.nome_completo || projeto.nome}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()
+            }
           </div>
         )}
       </div>
