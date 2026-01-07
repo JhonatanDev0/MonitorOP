@@ -243,6 +243,10 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
   const doughnutOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      animateScale: true,
+      animateRotate: true
+    },
     plugins: {
       legend: {
         position: 'bottom',
@@ -266,6 +270,9 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
   const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 750
+    },
     layout: {
       padding: {
         top: 30  // Espaço para os valores acima das barras
@@ -495,11 +502,14 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
               Resumo Geral
             </h4>
             <div style={{ height: '300px' }}>
-              <Doughnut
-                key={`doughnut-${cdProjeto}`}
-                data={getPizzaChartData()}
-                options={doughnutOptions}
-              />
+              {getPizzaChartData() && (
+                <Doughnut
+                  key={`doughnut-${cdProjeto}`}
+                  data={getPizzaChartData()}
+                  options={doughnutOptions}
+                  redraw={true}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -512,11 +522,14 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
               Previsto x Realizado
             </h4>
             <div style={{ height: '300px' }}>
-              <Bar
-                key={`bar-${cdProjeto}`}
-                data={getBarChartData()}
-                options={barOptions}
-              />
+              {getBarChartData() && (
+                <Bar
+                  key={`bar-${cdProjeto}`}
+                  data={getBarChartData()}
+                  options={barOptions}
+                  redraw={true}
+                />
+              )}
             </div>
           </div>
         </div>

@@ -110,6 +110,9 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
   const barOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 750
+    },
     layout: {
       padding: {
         top: 30
@@ -381,11 +384,14 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
               Previsto x Realizado por Tarefa
             </h4>
             <div style={{ height: '350px' }}>
-              <Bar
-                key={`bar-categorizacao-${nomeProjeto}`}
-                data={getBarChartData()}
-                options={barOptions}
-              />
+              {getBarChartData() && (
+                <Bar
+                  key={`bar-categorizacao-${nomeProjeto}`}
+                  data={getBarChartData()}
+                  options={barOptions}
+                  redraw={true}
+                />
+              )}
             </div>
           </div>
         </div>
