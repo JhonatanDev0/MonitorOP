@@ -53,13 +53,13 @@
 }
 
 .recodificacao-metricas .metrica-card.destaque {
-  background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
   color: white;
   border: none;
 }
 
 .recodificacao-metricas .metrica-card.warning {
-  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  background: linear-gradient(135deg, #fdb644 0%, #e28636 100%);
   color: white;
   border: none;
 }
