@@ -53,10 +53,13 @@ const TIPO_ATIVIDADE_MAP = {
   '07 - DEDUCAO DO PUBLICO ALVO': 'Público Alvo'
 };
 
-function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto }) {
+function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto, projetoId }) {
   const [modalAberto, setModalAberto] = useState(false);
   const [observacaoSelecionada, setObservacaoSelecionada] = useState(null);
   const [chartsReady, setChartsReady] = useState(false);
+
+  // Garantir ID único para cada gráfico
+  const chartId = projetoId || cdProjeto || Math.random().toString(36);
 
   // Força re-renderização dos gráficos após o DOM estar pronto
   useEffect(() => {
@@ -65,7 +68,7 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
       setChartsReady(true);
     }, 100);
     return () => clearTimeout(timer);
-  }, [cdProjeto, metricas]);
+  }, [cdProjeto, metricas, chartId]);
 
   // Função para abrir modal de observações
   const abrirModal = (metrica) => {
@@ -514,7 +517,7 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
             <div style={{ height: '300px' }}>
               {chartsReady && getPizzaChartData() && (
                 <Doughnut
-                  key={`doughnut-${cdProjeto}`}
+                  key={`doughnut-${chartId}`}
                   data={getPizzaChartData()}
                   options={doughnutOptions}
                   redraw={true}
@@ -534,7 +537,7 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
             <div style={{ height: '300px' }}>
               {chartsReady && getBarChartData() && (
                 <Bar
-                  key={`bar-${cdProjeto}`}
+                  key={`bar-${chartId}`}
                   data={getBarChartData()}
                   options={barOptions}
                   redraw={true}

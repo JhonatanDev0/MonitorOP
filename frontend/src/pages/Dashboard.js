@@ -1138,6 +1138,7 @@ function Dashboard() {
                         metricas={metricas}
                         atividadesSquad={atividadesRecodificacaoProjeto}
                         nomeProjeto={projeto.nome_completo || projeto.nome}
+                        projetoId={projeto.id}
                       />
                     </div>
                   );
@@ -1172,6 +1173,7 @@ function Dashboard() {
                       <CategorizacaoCharts
                         metricas={metricasCategorizacao}
                         nomeProjeto={projeto.nome_completo || projeto.nome}
+                        projetoId={projeto.id}
                       />
                     </div>
                   );
