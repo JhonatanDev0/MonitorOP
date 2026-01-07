@@ -495,7 +495,11 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
               Resumo Geral
             </h4>
             <div style={{ height: '300px' }}>
-              <Doughnut data={getPizzaChartData()} options={doughnutOptions} />
+              <Doughnut
+                key={`doughnut-${cdProjeto}`}
+                data={getPizzaChartData()}
+                options={doughnutOptions}
+              />
             </div>
           </div>
         </div>
@@ -508,7 +512,11 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
               Previsto x Realizado
             </h4>
             <div style={{ height: '300px' }}>
-              <Bar data={getBarChartData()} options={barOptions} />
+              <Bar
+                key={`bar-${cdProjeto}`}
+                data={getBarChartData()}
+                options={barOptions}
+              />
             </div>
           </div>
         </div>
