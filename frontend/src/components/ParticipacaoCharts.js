@@ -101,6 +101,29 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
   const dados = processarDados();
   const disciplinas = extrairDisciplinas(dados);
 
+  // Função para reordenar os dados - "previstas" vem primeiro
+  const reordenarDados = (dados) => {
+    if (!dados || dados.length === 0) return [];
+
+    const dadosOrdenados = [...dados];
+
+    // Encontrar o índice do card "previstas"
+    const indicePrevistas = dadosOrdenados.findIndex(item => {
+      const resumo = item['Resumo da Avaliação'] || '';
+      return resumo.toLowerCase().includes('previsto') || resumo.toLowerCase().includes('previstas');
+    });
+
+    // Se encontrou, mover para o início
+    if (indicePrevistas > 0) {
+      const itemPrevistas = dadosOrdenados.splice(indicePrevistas, 1)[0];
+      dadosOrdenados.unshift(itemPrevistas);
+    }
+
+    return dadosOrdenados;
+  };
+
+  const dadosOrdenados = reordenarDados(dados);
+
   // Função para obter ícone por tipo de resumo
   const getIconePorResumo = (resumo) => {
     if (resumo.includes('baixa participação')) return faExclamationTriangle;
@@ -155,7 +178,7 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
           Indicadores de Participação
         </h4>
 
-        {dados.map((item, index) => {
+        {dadosOrdenados.map((item, index) => {
           const resumo = item['Resumo da Avaliação'];
           const cor = getCorPorResumo(resumo);
           const icone = getIconePorResumo(resumo);
