@@ -30,9 +30,12 @@ ChartJS.register(
   ChartDataLabels
 );
 
-function CategorizacaoCharts({ metricas, nomeProjeto }) {
+function CategorizacaoCharts({ metricas, nomeProjeto, projetoId }) {
   const tarefasVisiveis = ['T1', 'T2', 'T3', 'T4'];
   const [chartsReady, setChartsReady] = useState(false);
+
+  // Garantir ID único para cada gráfico
+  const chartId = projetoId || nomeProjeto || Math.random().toString(36);
 
   // Força re-renderização dos gráficos após o DOM estar pronto
   useEffect(() => {
@@ -41,7 +44,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
       setChartsReady(true);
     }, 100);
     return () => clearTimeout(timer);
-  }, [nomeProjeto, metricas]);
+  }, [nomeProjeto, metricas, chartId]);
 
   // Função para formatar data
   const formatarData = (dataString) => {
@@ -396,7 +399,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
             <div style={{ height: '350px' }}>
               {chartsReady && getBarChartData() && (
                 <Bar
-                  key={`bar-categorizacao-${nomeProjeto}`}
+                  key={`bar-categorizacao-${chartId}`}
                   data={getBarChartData()}
                   options={barOptions}
                   redraw={true}
