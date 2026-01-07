@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -32,6 +32,16 @@ ChartJS.register(
 
 function CategorizacaoCharts({ metricas, nomeProjeto }) {
   const tarefasVisiveis = ['T1', 'T2', 'T3', 'T4'];
+  const [chartsReady, setChartsReady] = useState(false);
+
+  // Força re-renderização dos gráficos após o DOM estar pronto
+  useEffect(() => {
+    setChartsReady(false);
+    const timer = setTimeout(() => {
+      setChartsReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [nomeProjeto, metricas]);
 
   // Função para formatar data
   const formatarData = (dataString) => {
@@ -384,7 +394,7 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
               Previsto x Realizado por Tarefa
             </h4>
             <div style={{ height: '350px' }}>
-              {getBarChartData() && (
+              {chartsReady && getBarChartData() && (
                 <Bar
                   key={`bar-categorizacao-${nomeProjeto}`}
                   data={getBarChartData()}

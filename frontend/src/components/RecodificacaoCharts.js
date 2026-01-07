@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import {
   Chart as ChartJS,
@@ -56,6 +56,16 @@ const TIPO_ATIVIDADE_MAP = {
 function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto }) {
   const [modalAberto, setModalAberto] = useState(false);
   const [observacaoSelecionada, setObservacaoSelecionada] = useState(null);
+  const [chartsReady, setChartsReady] = useState(false);
+
+  // Força re-renderização dos gráficos após o DOM estar pronto
+  useEffect(() => {
+    setChartsReady(false);
+    const timer = setTimeout(() => {
+      setChartsReady(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [cdProjeto, metricas]);
 
   // Função para abrir modal de observações
   const abrirModal = (metrica) => {
@@ -502,7 +512,7 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
               Resumo Geral
             </h4>
             <div style={{ height: '300px' }}>
-              {getPizzaChartData() && (
+              {chartsReady && getPizzaChartData() && (
                 <Doughnut
                   key={`doughnut-${cdProjeto}`}
                   data={getPizzaChartData()}
@@ -522,7 +532,7 @@ function RecodificacaoCharts({ cdProjeto, metricas, atividadesSquad, nomeProjeto
               Previsto x Realizado
             </h4>
             <div style={{ height: '300px' }}>
-              {getBarChartData() && (
+              {chartsReady && getBarChartData() && (
                 <Bar
                   key={`bar-${cdProjeto}`}
                   data={getBarChartData()}
