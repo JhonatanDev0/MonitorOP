@@ -101,16 +101,17 @@ function ParticipacaoCharts({ cdProjeto, participacaoData, nomeProjeto }) {
   const dados = processarDados();
   const disciplinas = extrairDisciplinas(dados);
 
-  // Função para reordenar os dados - "previstas" vem primeiro
+  // Função para reordenar os dados - "Total de turmas previstas" vem primeiro
   const reordenarDados = (dados) => {
     if (!dados || dados.length === 0) return [];
 
     const dadosOrdenados = [...dados];
 
-    // Encontrar o índice do card "previstas"
+    // Encontrar o índice do card "Total de turmas previstas" (exatamente esse texto, sem adicionais)
     const indicePrevistas = dadosOrdenados.findIndex(item => {
-      const resumo = item['Resumo da Avaliação'] || '';
-      return resumo.toLowerCase().includes('previsto') || resumo.toLowerCase().includes('previstas');
+      const resumo = (item['Resumo da Avaliação'] || '').trim();
+      // Verificar se é exatamente "Total de turmas previstas" (sem "sem participação", "com resultados", etc)
+      return resumo === 'Total de turmas previstas';
     });
 
     // Se encontrou, mover para o início
