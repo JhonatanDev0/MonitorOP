@@ -381,7 +381,11 @@ function CategorizacaoCharts({ metricas, nomeProjeto }) {
               Previsto x Realizado por Tarefa
             </h4>
             <div style={{ height: '350px' }}>
-              <Bar data={getBarChartData()} options={barOptions} />
+              <Bar
+                key={`bar-categorizacao-${nomeProjeto}`}
+                data={getBarChartData()}
+                options={barOptions}
+              />
             </div>
           </div>
         </div>
